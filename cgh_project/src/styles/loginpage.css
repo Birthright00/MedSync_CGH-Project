@@ -1,0 +1,28 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap");
+
+body {
+  font-family: "Montserrat", sans-serif;
+}
+
+h1 {
+  color: red;
+}
+
+.login-page {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100vw;
+  height: 100vh;
+  background-image: url("../images/login-background-img.jpg");
+  /* background-color: darkgray; */
+}
+
+.left-col {
+  display: grid;
+  grid-column-start: 1;
+}
+
+.right-col {
+  display: grid;
+  grid-column-start: 2;
+}

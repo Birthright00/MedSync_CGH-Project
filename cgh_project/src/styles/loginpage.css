@@ -3,26 +3,119 @@
 body {
   font-family: "Montserrat", sans-serif;
 }
-
-h1 {
-  color: red;
-}
-
 .login-page {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
   width: 100vw;
   height: 100vh;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-page:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-image: url("../images/login-background-img.jpg");
-  /* background-color: darkgray; */
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.5;
+  z-index: -1;
 }
 
-.left-col {
-  display: grid;
-  grid-column-start: 1;
+.login-div {
+  width: 50vw;
+  height: 50vh;
+  display: flex;
+  justify-content: center;
+  z-index: 1; /* Ensures the content is above the background image */
 }
 
-.right-col {
-  display: grid;
-  grid-column-start: 2;
+.login-form {
+  width: 50%;
+  height: 100%;
+  background-color: white;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px,
+    rgba(0, 0, 0, 0.3) 0px 30px 60px -30px,
+    rgba(10, 37, 64, 0.35) 0px -2px 6px 0px inset;
+  z-index: 1; /* Ensures the content is above the background image */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center the image and other content horizontally */
+  padding: 20px;
+}
+.login-form img {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 20px; /* Add space between the image and the form fields */
+}
+
+.signin_button {
+  width: 50%;
+  height: 50px;
+  border-radius: 15px;
+  font-size: 15px;
+  padding: 10px;
+  transition: background-color 500ms, color 500ms;
+  margin: 10px;
+  background-color: #0672cb;
+  color: white;
+  border-width: 0px;
+  margin-top: 20px;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px,
+    rgba(0, 0, 0, 0.3) 0px 30px 60px -30px,
+    rgba(10, 37, 64, 0.35) 0px -2px 6px 0px inset;
+}
+
+.signin_button:hover {
+  background-color: #0672cb;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset,
+    rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
+}
+
+.username,
+.password {
+  display: flex;
+  justify-content: center;
+  width: 50%;
+  padding: 10px;
+  border-width: 3px;
+  border-radius: 10px;
+  margin: 10px auto;
+  font-size: 15px;
+  text-align: center;
+  color: #a9a9a9;
+}
+
+.card_footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.forget_pw {
+  margin: 10px;
+  font-size: 15px;
+  color: #0000ee;
+  cursor: pointer;
+}
+
+.login-button {
+  width: 90px;
+  height: 90px;
+  padding: 10px;
+  border-radius: 25px;
+  font-size: 15px;
+  font-weight: bold;
+  margin: 10px;
+  border-style: solid;
+  border-width: 2px;
+  background-color: white;
+  transition: background-color 500ms, color 500ms;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px,
+    rgba(0, 0, 0, 0.3) 0px 30px 60px -30px,
+    rgba(10, 37, 64, 0.35) 0px -2px 6px 0px inset;
 }

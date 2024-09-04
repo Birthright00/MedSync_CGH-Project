@@ -13,14 +13,19 @@ const LoginPage = () => {
 
   return (
     <>
-      <div className="login-page">
+      <motion.div
+        className="login-page"
+        animate={{ opacity: 1 }}
+        initial={{ opacity: 0 }}
+        transition={{ delay: 0.5 }}
+      >
         <div className="login-div">
           <form className="login-form">
             <img src={logo} alt="logo" />
             <div className="login_card">
               {/* <h5 className="role">Pick your role: </h5> */}
               <motion.button
-                whileHover={{ scale: 1.2 }}
+                whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 className="login-button"
               >
@@ -28,7 +33,7 @@ const LoginPage = () => {
                 Management
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.2 }}
+                whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 className="login-button"
               >
@@ -71,7 +76,7 @@ const LoginPage = () => {
             </div>
           </form>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 };

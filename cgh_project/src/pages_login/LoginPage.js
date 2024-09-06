@@ -1,16 +1,24 @@
-import "../styles/loginpage.css";
-import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import logo from "../images/cgh_logo.png";
 import management from "../images/management.png";
 import staff from "../images/staff.png";
+import Footer from "../components/footer";
+import "../styles/loginpage.css";
 
 const LoginPage = () => {
   const nav = useNavigate();
   const [username, usernameupdate] = useState("");
   const [password, passwordupdate] = useState("");
-
+  const [selectedRole, setSelectedRole] = useState(null); // State to track selected role
+  const handleSignIn = () => {
+    if (selectedRole === "management") {
+      nav("/management-home");
+    } else if (selectedRole === "staff") {
+      nav("/staff-home");
+    }
+  };
   return (
     <>
       <motion.div
@@ -22,12 +30,15 @@ const LoginPage = () => {
         <div className="login-div">
           <form className="login-form">
             <img src={logo} alt="logo" />
-            <div className="login_card">
-              {/* <h5 className="role">Pick your role: </h5> */}
+            <div className="login-card">
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="login-button"
+                className={`login-button ${
+                  selectedRole === "management" ? "selected" : ""
+                }`}
+                type="button"
+                onClick={() => setSelectedRole("management")}
               >
                 <img src={management} alt="management" />
                 Management
@@ -35,9 +46,13 @@ const LoginPage = () => {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="login-button"
+                className={`login-button ${
+                  selectedRole === "staff" ? "selected" : ""
+                }`}
+                type="button"
+                onClick={() => setSelectedRole("staff")}
               >
-                <img src={staff} alt="management" />
+                <img src={staff} alt="staff" />
                 Staff
               </motion.button>
             </div>
@@ -69,6 +84,7 @@ const LoginPage = () => {
                 whileTap={{ scale: 0.9 }}
                 type="submit"
                 className="signin_button"
+                onClick={handleSignIn}
               >
                 Sign in
               </motion.button>
@@ -77,6 +93,7 @@ const LoginPage = () => {
           </form>
         </div>
       </motion.div>
+      <Footer />
     </>
   );
 };

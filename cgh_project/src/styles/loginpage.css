@@ -55,26 +55,26 @@ body {
   margin-bottom: 20px; /* Add space between the image and the form fields */
 }
 
-.login_card {
-  width: 100%;
-  display: flex;
-  justify-content: space-around; /* Space out the buttons evenly */
+.login-card {
+  width: 100%; /* Ensure the container takes the full width of the parent container */
+  display: flex; /* Apply flexbox */
+  justify-content: center; /* Center the buttons horizontally */
+  gap: 20px; /* Space between the buttons */
   align-items: center; /* Align items vertically in the center */
   margin-bottom: 20px;
+  flex-wrap: wrap; /* Allow the buttons to wrap to the next line when needed */
 }
 
 .login-button {
-  font-family: "Montserrat", sans-serif;
-  width: 120px;
-  height: 120px;
+  width: 120px; /* Set a fixed width for the buttons */
+  height: 120px; /* Set a fixed height for the buttons */
   padding: 10px;
   border-radius: 25px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: bold;
-  margin: 10px;
   border-style: solid;
   border-width: 2px;
-  border-color: black; /* Ensure a consistent border color */
+  border-color: black;
   background-color: #e6e6e6;
   transition: background-color 500ms, color 500ms;
   box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px,
@@ -82,8 +82,35 @@ body {
     rgba(10, 37, 64, 0.35) 0px -2px 6px 0px inset;
   display: flex;
   flex-direction: column;
-  align-items: center; /* Center content within the button */
-  justify-content: center; /* Center content within the button */
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.login-button img {
+  max-width: 100%;
+  max-height: 100%;
+  height: auto;
+  width: auto;
+  display: block;
+  object-fit: contain; /* Ensures the image fits within the button */
+}
+
+/* Media query to handle small screens */
+@media (max-width: 600px) {
+  .login-card {
+    flex-direction: column; /* Stack buttons vertically */
+  }
+
+  .login-button {
+    width: 100%; /* Buttons take full width of the container */
+    max-width: 200px; /* Set a maximum width to avoid them getting too large */
+  }
+}
+
+.login-button.selected {
+  background-color: #0672cb;
+  color: white;
 }
 
 .signin_button {
@@ -97,7 +124,6 @@ body {
   background-color: #0672cb;
   color: white;
   border-width: 0px;
-  margin-top: 20px;
   box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
 }
 
@@ -108,21 +134,21 @@ body {
 
 .username,
 .password {
-  display: block; /* Block level to take up full width */
-  margin: 0 auto 20px auto; /* Center with auto margin on left and right */
+  display: block;
+  margin: 0 auto 20px auto;
   width: 100%;
   padding: 10px;
   border-style: solid;
   border-width: 2px;
-  border-radius: 5px; /* Adjust border-radius for less rounded corners */
+  border-radius: 5px;
   border-color: black;
   font-size: 15px;
   text-align: center;
   color: #a9a9a9;
   font-family: "Montserrat", sans-serif;
-  box-sizing: border-box; /* Include padding in the width */
+  box-sizing: border-box;
+  margin-top: 10px;
 }
-
 
 .card_footer {
   display: flex;

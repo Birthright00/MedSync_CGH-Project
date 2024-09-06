@@ -1,22 +1,43 @@
 .staff-home-page {
-    width: 100vw;
-    height: 100vh;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .staff-home-page:before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url("../images/login-background-img.jpg");
-    background-repeat: no-repeat;
-    background-size: cover;
-    opacity: 0.5;
-    z-index: -1;
-  }
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.staff-home-page:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("../images/login-background-img.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.5;
+  z-index: -1;
+}
+
+.staff-home-div-left,
+.staff-home-div-mid,
+.staff-home-div-right {
+  width: 33.33%; /* Each div takes 1/3 of the screen width */
+  height: 100%; /* Ensure each div takes the full height of the screen */
+  display: flex; /* Use flexbox to align the content inside */
+  justify-content: center; /* Center the h1 horizontally */
+  align-items: center; /* Center the h1 vertically */
+}
+
+.staff-home-div-left-base,
+.staff-home-div-mid-base,
+.staff-home-div-right-base {
+  width: 75%;
+  height: 75%;
+  background-color: #e6e6e6;
+  border-style: solid;
+  border-width: 0px;
+  border-radius: 20px;
+}

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import logo from "../images/cgh_logo.png";
 import management from "../images/management.png";
 import staff from "../images/staff.png";
+import Footer from "../components/footer";
 import "../styles/loginpage.css";
 
 const LoginPage = () => {
@@ -92,6 +93,7 @@ const LoginPage = () => {
           </form>
         </div>
       </motion.div>
+      <Footer />
     </>
   );
 };

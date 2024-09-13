@@ -35,7 +35,7 @@ _If you find this file in the folders, it may look really confusing and differen
 
 <a id="requirements"></a>
 
-## Technical Requirements:
+## Getting Started:
 
 ---
 
@@ -85,7 +85,7 @@ You would move out of "Documents" and back to the folder where "Documents" is lo
 
 <a id="gettingstarted"></a>
 
-## Installation Guide, Getting Started
+## Installation Guide
 
 ---
 
@@ -190,8 +190,14 @@ If your web browser did not start automatically, click this link :
 
 ---
 
+Note if you are a mac user, good luck, whatever problems you have is beyond me.
+
+If you are a windows user, you are in good hands.
+
 Here are some potential errors you may encounter during installation, along with solutions based on user feedback:
 
-- **Error:** Not sure which destination to save the web application into.
+1. **Error:** Not sure which destination to save the web application into.
 
-  - **Solution:** By default, if you’re unsure where to save the web application, navigate (`cd`) all the way out to the C drive, then `cd` into the "Downloads" folder.
+   **Solution:** By default, if you’re unsure where to save the web application, navigate (`cd`) all the way out to the C drive, then `cd` into the "Downloads" folder.
+
+2. **Error:** Installation issues with VSC

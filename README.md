@@ -95,9 +95,7 @@ Don't worry about the terminologies, just follow the instructions below!
 
 Launch VSC once you downloaded it and press **_Ctrl_** followed by **_`_** (this is the ~ button below your ESC button)
 
-A terminal should open up looking like this :
-
-![image of terminal in VSC](cgh_project\src\images\terminal_in_vsc.jpg)
+**_A terminal should open up._**
 
 Change Directory (using **_cd_**) into your preferred location to download the project. For example, if I am at C drive, I will :
 

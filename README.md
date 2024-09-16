@@ -201,3 +201,15 @@ Here are some potential errors you may encounter during installation, along with
    **Solution:** By default, if you’re unsure where to save the web application, navigate (`cd`) all the way out to the C drive, then `cd` into the "Downloads" folder.
 
 2. **Error:** Installation issues with VSC
+
+## Backend Data Management using mySQL workbench
+
+---
+
+Things you may need frequently :
+
+- Stored procedure to view all data
+
+```sql
+call show_data()
+```

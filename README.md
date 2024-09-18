@@ -186,6 +186,25 @@ Your chrome will automatically launch and the web application will start.
 If your web browser did not start automatically, click this link :
 [http://localhost:3000](http://localhost:3000)
 
+## Features
+
+---
+
+### Management
+
+#### Home Page
+
+- Filter
+- Sorting
+- Quick Summary
+- Pages (Not sure if this a ft yet)
+
+#### Data Entry
+
+- Edit Doctor Data
+- Add new Doctor data
+- Download button
+
 ## Potential Errors/FAQs
 
 ---
@@ -213,3 +232,5 @@ Things you may need frequently :
 ```sql
 call show_data()
 ```
+
+---

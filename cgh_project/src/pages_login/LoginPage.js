@@ -7,18 +7,77 @@ import staff from "../images/staff.png";
 import Footer from "../components/footer";
 import "../styles/loginpage.css";
 
+// Testing Accounts
+// {
+//   "mcr_number": "M12345A",
+//   "email": "user1@example.com",
+//   "password": "management",
+//   "role": "management"
+// }
+
+// {
+//   "mcr_number": "M67890B",
+//   "email": "user2@example.com",
+//   "password": "staff",
+//   "role": "staff"
+// }
+
 const LoginPage = () => {
   const nav = useNavigate();
   const [username, usernameupdate] = useState("");
   const [password, passwordupdate] = useState("");
   const [selectedRole, setSelectedRole] = useState(null); // State to track selected role
-  const handleSignIn = () => {
-    if (selectedRole === "management") {
-      nav("/management-home");
-    } else if (selectedRole === "staff") {
-      nav("/staff-home");
+
+  const handleSignUp = () => {
+    nav("/signup-page");
+  };
+
+  const handleSignIn = async (e) => {
+    // Prevent page refresh on form submit
+    e.preventDefault();
+
+    // Validate if a role is selected
+    if (!selectedRole) {
+      alert("Please select a role (Management or Staff) before logging in.");
+      return; // Stop the function if no role is selected
+    }
+
+    try {
+      const response = await fetch("http://localhost:3001/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mcr_number: username,
+          password: password,
+          selectedRole: selectedRole, // Send selected role to the backend
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Login ok!");
+        console.log("Selected role:", selectedRole); // Log selected role
+
+        // Use the role from the backend response for navigation
+        if (data.role === "management") {
+          nav("/management-home");
+        } else if (data.role === "staff") {
+          nav("/staff-home");
+        } else {
+          alert("Invalid role received");
+        }
+      } else {
+        alert(data.error); // Show error if login failed
+      }
+    } catch (err) {
+      console.error("Error logging in:", err);
+      alert("Login failed, please try again.");
     }
   };
+
   return (
     <>
       <motion.div
@@ -28,7 +87,8 @@ const LoginPage = () => {
         transition={{ delay: 0.5 }}
       >
         <div className="login-div">
-          <form className="login-form">
+          {/* Attach onSubmit to form and prevent default submission */}
+          <form className="login-form" onSubmit={handleSignIn}>
             <img src={logo} alt="logo" />
             <div className="login-card">
               <motion.button
@@ -60,7 +120,7 @@ const LoginPage = () => {
             <div className="card-body">
               <div className="form-group">
                 <input
-                  placeholder="Username"
+                  placeholder="Enter MCR Number"
                   value={username}
                   onChange={(e) => usernameupdate(e.target.value)}
                   className="username"
@@ -69,7 +129,7 @@ const LoginPage = () => {
               </div>
               <div className="form-group">
                 <input
-                  placeholder="Password"
+                  placeholder="Enter Password"
                   value={password}
                   onChange={(e) => passwordupdate(e.target.value)}
                   className="password"
@@ -84,11 +144,13 @@ const LoginPage = () => {
                 whileTap={{ scale: 0.9 }}
                 type="submit"
                 className="signin_button"
-                onClick={handleSignIn}
               >
-                Sign in
+                Login
               </motion.button>
               <h5 className="forget_pw">Forget password</h5>
+              <h5 className="forget_pw" onClick={handleSignUp}>
+                Sign Up
+              </h5>
             </div>
           </form>
         </div>

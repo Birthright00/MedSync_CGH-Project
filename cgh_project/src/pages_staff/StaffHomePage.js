@@ -3,10 +3,25 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/footer";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 
 const StaffHomePage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get("http://localhost:3001/database");
+        console.log(response.data);
+        setData(response.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchData();
+  }, []);
 
   return (
     <>

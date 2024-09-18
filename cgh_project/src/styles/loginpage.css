@@ -17,7 +17,7 @@ body {
   content: "";
   position: absolute;
   width: 100%;
-  height: 100%;
+  height: 110%;
   background-image: url("../images/login-background-img.jpg");
   background-repeat: no-repeat;
   background-size: cover;
@@ -35,7 +35,7 @@ body {
 
 .login-form {
   width: 50%;
-  height: 90%;
+  height: 100%;
   padding: 20px;
   background-color: white;
   box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px,

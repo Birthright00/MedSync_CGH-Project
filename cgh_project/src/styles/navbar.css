@@ -1,53 +1,46 @@
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap");
 
+/* General Navbar Styles */
 .navbar {
   font-family: "Montserrat", sans-serif;
   background-color: white;
   background-size: cover;
   z-index: 1000;
   transition: background-color 500ms, box-shadow 500ms;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Added subtle shadow for depth */
 }
 
-.sticky-nav {
-  position: fixed;
-  font-family: "Montserrat", sans-serif;
-  background-color: white;
-  top: 0;
-  left: 0;
-  width: 100%; /* Ensure the sticky navbar also takes the full width */
-  z-index: 1000;
-  transition: ease;
-}
-
+/* Navbar Contents */
 .navbar_contents {
-  margin-top: 20px;
-  margin-bottom: 20px;
   display: flex;
   justify-content: center;
   width: 100%;
 }
 
 .navbar_contents img {
-  margin: -20px;
   margin-right: 150px;
+  height: 80px; /* Ensure the logo size is consistent */
+  transition: height 300ms; /* Smooth transition for any height change */
 }
 
+/* Navbar Button Styles */
 .navbarbutton {
-  width: 150px;
+  width: 100px;
   height: 50px;
   border-radius: 8px;
   font-family: "Montserrat", sans-serif;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   padding: 10px;
-  transition: background-color 500ms, color 500ms;
   margin: 10px;
   background-color: transparent;
   color: #0083ca;
+  transition: background-color 300ms, color 300ms;
   border-width: 0px;
 }
 
 .navbarbutton:hover {
   background-color: #0083ca;
   color: white;
+  border-color: #006699; /* Darker border on hover for contrast */
 }

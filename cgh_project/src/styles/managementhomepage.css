@@ -29,6 +29,7 @@
   background-color: white;
   opacity: 0.9;
   z-index: 1;
+  margin-top: -150px;
 }
 
 .data-table {
@@ -41,6 +42,7 @@
   border: 1px solid #ddd;
   padding: 8px;
   text-align: left;
+  height: 50px; /* Set a fixed height for all rows */
 }
 
 .data-table th {

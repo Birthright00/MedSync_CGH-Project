@@ -7,7 +7,7 @@ import axios from "axios";
 const ManagementHomePage = () => {
   const [data, setData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const entriesPerPage = 10;
+  const entriesPerPage = 5;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -24,6 +24,19 @@ const ManagementHomePage = () => {
   const indexOfLastEntry = currentPage * entriesPerPage;
   const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
   const currentEntries = data.slice(indexOfFirstEntry, indexOfLastEntry);
+
+  // Create an array with 10 slots, filling with data or empty objects
+  const rowsToDisplay = [...currentEntries];
+  while (rowsToDisplay.length < entriesPerPage) {
+    rowsToDisplay.push({
+      mcr_number: '',
+      first_name: '',
+      last_name: '',
+      department: '',
+      appointment: '',
+      teaching_training_hours: ''
+    });
+  }
 
   const handleNextPage = () => {
     if (indexOfLastEntry < data.length) {
@@ -54,8 +67,8 @@ const ManagementHomePage = () => {
               </tr>
             </thead>
             <tbody>
-              {currentEntries.map((staff) => (
-                <tr key={staff.mcr_number}>
+              {rowsToDisplay.map((staff, index) => (
+                <tr key={index}>
                   <td>{staff.mcr_number}</td>
                   <td>{staff.first_name}</td>
                   <td>{staff.last_name}</td>

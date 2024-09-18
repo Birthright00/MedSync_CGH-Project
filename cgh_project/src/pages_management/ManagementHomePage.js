@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/footer";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { CSVLink } from "react-csv";
 
 const ManagementHomePage = () => {
   const [data, setData] = useState([]);
@@ -13,7 +14,14 @@ const ManagementHomePage = () => {
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [appointmentFilter, setAppointmentFilter] = useState("");
   const [trainingHoursFilter, setTrainingHoursFilter] = useState("");
-  const entriesPerPage = 6;
+  const resetFilters = () => {
+    setFirstNameFilter("");
+    setLastNameFilter("");
+    setDepartmentFilter("");
+    setAppointmentFilter("");
+    setTrainingHoursFilter("");
+  };
+  const entriesPerPage = 5;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -141,43 +149,56 @@ const ManagementHomePage = () => {
             onChange={(e) => setTrainingHoursFilter(e.target.value)}
             placeholder="Enter training hours"
           />
+          <button onClick={resetFilters}>Reset</button>
         </div>
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>MCR Number</th>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th>Department</th>
-                <th>Appointment</th>
-                <th>Teaching Training Hours</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rowsToDisplay.map((staff, index) => (
-                <tr key={index}>
-                  <td>{staff.mcr_number}</td>
-                  <td>{staff.first_name}</td>
-                  <td>{staff.last_name}</td>
-                  <td>{staff.department}</td>
-                  <td>{staff.appointment}</td>
-                  <td>{staff.teaching_training_hours}</td>
+        <div>
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>MCR Number</th>
+                  <th>First Name</th>
+                  <th>Last Name</th>
+                  <th>Department</th>
+                  <th>Appointment</th>
+                  <th>Teaching Training Hours</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="pagination">
-          <button onClick={handlePreviousPage} disabled={currentPage === 1}>
-            Previous
-          </button>
-          <button
-            onClick={handleNextPage}
-            disabled={indexOfLastEntry >= filteredData.length}
-          >
-            Next
-          </button>
+              </thead>
+              <tbody>
+                {rowsToDisplay.map((staff, index) => (
+                  <tr key={index}>
+                    <td>{staff.mcr_number}</td>
+                    <td>{staff.first_name}</td>
+                    <td>{staff.last_name}</td>
+                    <td>{staff.department}</td>
+                    <td>{staff.appointment}</td>
+                    <td>{staff.teaching_training_hours}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="pagination">
+            <span className="current-page">Page {currentPage}</span>
+            <button onClick={handlePreviousPage} disabled={currentPage === 1}>
+              Previous
+            </button>
+            <button
+              onClick={handleNextPage}
+              disabled={indexOfLastEntry >= filteredData.length}
+            >
+              Next
+            </button>
+          </div>
+          <div className="download-section">
+            <CSVLink
+              data={rowsToDisplay.filter((row) => row.mcr_number)}
+              filename={`page-${currentPage}-data.csv`}
+              className="download-button"
+            >
+              Download Page Data
+            </CSVLink>
+          </div>
         </div>
       </div>
       <Footer />

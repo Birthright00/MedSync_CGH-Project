@@ -4,12 +4,17 @@ import cors from "cors";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"; // Added jwt import
 
+// Understanding the code
+// this file sets up a backend API with Express
+// will handle user registration, login, including password hashing and JWT token creation for authentication
+// login logic will check user's mcr_number, password and role against the database
+
 const app = express();
 
 // Middleware to parse JSON bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors()); //Enables CORS, allowing cross-origin requests from browsers.
 
 const JWT_SECRET = "your_jwt_secret_key"; // Replace with your JWT secret
 

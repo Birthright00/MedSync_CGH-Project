@@ -1,13 +1,20 @@
+// Dependencies Imports
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import logo from "../images/cgh_logo.png";
-import management from "../images/management.png";
-import staff from "../images/staff.png";
-import Footer from "../components/footer";
 import { ToastContainer, toast } from "react-toastify";
+
+// Components Imports
+import Footer from "../components/footer";
+
+// CSS Imports
 import "react-toastify/dist/ReactToastify.css";
 import "../styles/loginpage.css";
+
+// Images Imports
+import logo from "../images/cgh_logo.png";
+import staff from "../images/staff.png";
+import management from "../images/management.png";
 import show_pw from "../images/show_pw.png";
 import hide_pw from "../images/hide_pw.png";
 
@@ -18,20 +25,25 @@ const LoginPage = () => {
   const [selectedRole, setSelectedRole] = useState(null); // State to track selected role
   const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
 
+  //-----------------------------------------------------------------/
+  // TBC --> Not sure if we want to allow anyone to register //
   const handleSignUp = () => {
     nav("/signup-page");
   };
+  //-----------------------------------------------------------------/
 
+  // Sign in & Authentication handler function
   const handleSignIn = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // e.preventDefault() is called to prevent the default form submission behavior, which would reload the page.
 
+    // Making sure users select a role
     if (!selectedRole) {
-      toast.warn(
-        "Please select a role (Management or Staff) before logging in."
-      );
+      toast.warn("Please select a role (Management or Staff)");
       return;
     }
 
+    //-----------------------------------------------------------------/
+    // API Call to Backend for Login
     try {
       const response = await fetch("http://localhost:3001/login", {
         method: "POST",
@@ -44,24 +56,44 @@ const LoginPage = () => {
           selectedRole: selectedRole,
         }),
       });
+      //-----------------------------------------------------------------/
 
+      // The response is the object returned from the backend after the login attempt.
+      // The .json() method is used to convert the response body from JSON format to a JavaScript object.
       const data = await response.json();
 
+      //-----------------------------------------------------------------/
+      // Handling Responses
       if (response.ok) {
         // Successful login
-        toast.success("Login successful!");
+        toast.success("Login successful! Welcome Back!");
         setTimeout(() => {
           nav(data.role === "management" ? "/management-home" : "/staff-home");
         }, 1000); // Small delay for toast visibility
       } else {
-        // Display error toast if login fails
-        toast.error(
-          data.error || "Login failed, please check your credentials."
-        );
+        // Handle specific status codes and show custom toast messages
+        switch (response.status) {
+          case 403:
+            toast.error("Access Denied: Please double check your role.");
+            break;
+          case 401:
+            toast.error("Login failed : Incorrect password.");
+            break;
+          case 404:
+            toast.error("Login failed : User not found.");
+            break;
+          case 500:
+            toast.error("Internal Server Error. Please try again later.");
+            break;
+          default:
+            toast.error(
+              data.error || "Login failed. Please check your credentials."
+            );
+        }
       }
     } catch (err) {
       console.error("Error logging in:", err);
-      toast.error("Login failed, please try again.");
+      toast.error("Unable to connect to the server. Please try again later.");
     }
   };
 

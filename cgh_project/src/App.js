@@ -5,6 +5,7 @@ import LoginPage from "./pages_login/LoginPage";
 import ManagementHomePage from "./pages_management/ManagementHomePage";
 import StaffHomePage from "./pages_staff/StaffHomePage";
 import SignUpPage from "./pages_login/SignUpPage";
+import { ToastContainer } from "react-toastify";
 function App() {
   return (
     <Router>

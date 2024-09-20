@@ -14,6 +14,9 @@ const ManagementHomePage = () => {
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [appointmentFilter, setAppointmentFilter] = useState("");
   const [trainingHoursFilter, setTrainingHoursFilter] = useState("");
+  const [entriesPerPage, setEntriesPerPage] = useState(10); // State to hold number of entries per page
+
+  // Reset filters
   const resetFilters = () => {
     setFirstNameFilter("");
     setLastNameFilter("");
@@ -21,8 +24,8 @@ const ManagementHomePage = () => {
     setAppointmentFilter("");
     setTrainingHoursFilter("");
   };
-  const entriesPerPage = 5;
 
+  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -36,6 +39,7 @@ const ManagementHomePage = () => {
     fetchData();
   }, []);
 
+  // Filter data when filters change
   useEffect(() => {
     const filtered = data.filter(
       (staff) =>
@@ -65,12 +69,15 @@ const ManagementHomePage = () => {
     data,
   ]);
 
+  // Pagination calculations
   const indexOfLastEntry = currentPage * entriesPerPage;
   const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
   const currentEntries = filteredData.slice(
     indexOfFirstEntry,
     indexOfLastEntry
   );
+
+  const totalPages = Math.ceil(filteredData.length / entriesPerPage);
 
   const rowsToDisplay = [...currentEntries];
   while (rowsToDisplay.length < entriesPerPage) {
@@ -84,6 +91,7 @@ const ManagementHomePage = () => {
     });
   }
 
+  // Handle next and previous page clicks
   const handleNextPage = () => {
     if (indexOfLastEntry < filteredData.length) {
       setCurrentPage(currentPage + 1);
@@ -94,6 +102,12 @@ const ManagementHomePage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
+  };
+
+  // Handle entries per page change
+  const handleEntriesPerPageChange = (e) => {
+    setEntriesPerPage(Number(e.target.value)); // Update the number of entries per page
+    setCurrentPage(1); // Reset to the first page
   };
 
   return (
@@ -109,7 +123,7 @@ const ManagementHomePage = () => {
             id="first-name-filter"
             value={firstNameFilter}
             onChange={(e) => setFirstNameFilter(e.target.value)}
-            placeholder="Enter first name"
+            placeholder="First name"
           />
 
           <label htmlFor="last-name-filter">Last Name:</label>
@@ -118,7 +132,7 @@ const ManagementHomePage = () => {
             id="last-name-filter"
             value={lastNameFilter}
             onChange={(e) => setLastNameFilter(e.target.value)}
-            placeholder="Enter last name"
+            placeholder="Last name"
           />
 
           <label htmlFor="department-filter">Department:</label>
@@ -127,7 +141,7 @@ const ManagementHomePage = () => {
             id="department-filter"
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
-            placeholder="Enter department"
+            placeholder="Department"
           />
 
           <label htmlFor="appointment-filter">Appointment:</label>
@@ -136,7 +150,7 @@ const ManagementHomePage = () => {
             id="appointment-filter"
             value={appointmentFilter}
             onChange={(e) => setAppointmentFilter(e.target.value)}
-            placeholder="Enter appointment"
+            placeholder="Appointment"
           />
 
           <label htmlFor="training-hours-filter">
@@ -147,15 +161,18 @@ const ManagementHomePage = () => {
             id="training-hours-filter"
             value={trainingHoursFilter}
             onChange={(e) => setTrainingHoursFilter(e.target.value)}
-            placeholder="Enter training hours"
+            placeholder="Training hours"
           />
-          <button onClick={resetFilters}>Reset</button>
+          <button className="reset-button" onClick={resetFilters}>
+            Reset
+          </button>
         </div>
         <div>
           <div className="table-container">
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>No</th> {/* Add this line */}
                   <th>MCR Number</th>
                   <th>First Name</th>
                   <th>Last Name</th>
@@ -167,6 +184,7 @@ const ManagementHomePage = () => {
               <tbody>
                 {rowsToDisplay.map((staff, index) => (
                   <tr key={index}>
+                    <td>{staff.no}</td> {/* Add this line */}
                     <td>{staff.mcr_number}</td>
                     <td>{staff.first_name}</td>
                     <td>{staff.last_name}</td>
@@ -178,30 +196,56 @@ const ManagementHomePage = () => {
               </tbody>
             </table>
           </div>
-          <div className="pagination">
-            <span className="current-page">Page {currentPage}</span>
-            <button onClick={handlePreviousPage} disabled={currentPage === 1}>
-              Previous
-            </button>
-            <button
-              onClick={handleNextPage}
-              disabled={indexOfLastEntry >= filteredData.length}
-            >
-              Next
-            </button>
-          </div>
-          <div className="download-section">
-            <CSVLink
-              data={rowsToDisplay.filter((row) => row.mcr_number)}
-              filename={`page-${currentPage}-data.csv`}
-              className="download-button"
-            >
-              Download Page Data
-            </CSVLink>
+          {/* Entries Per Page Dropdown */}{" "}
+          <div className="pagination-background">
+            <div className="entries-per-page">
+              <label htmlFor="entries-per-page">Entries per page : </label>
+              <select
+                id="entries-per-page"
+                value={entriesPerPage}
+                onChange={handleEntriesPerPageChange}
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+
+            <div className="pagination-container">
+              <div className="pagination">
+                <span className="current-page">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={handleNextPage}
+                  disabled={indexOfLastEntry >= filteredData.length}
+                >
+                  Next
+                </button>
+              </div>
+              <div className="download-section">
+                <button className="download-button">
+                  <CSVLink
+                    data={rowsToDisplay.filter((row) => row.mcr_number)}
+                    filename={`page-${currentPage}-data.csv`}
+                    className="csv-link"
+                  >
+                    Download
+                  </CSVLink>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 };

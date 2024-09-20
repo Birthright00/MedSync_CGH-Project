@@ -19,19 +19,17 @@
 
 .navbar_contents img {
   margin-right: 150px;
-  height: 80px; /* Ensure the logo size is consistent */
+  height: 70px; /* Ensure the logo size is consistent */
   transition: height 300ms; /* Smooth transition for any height change */
 }
 
 /* Navbar Button Styles */
 .navbarbutton {
-  width: 100px;
+  width: 120px;
   height: 50px;
   border-radius: 8px;
   font-family: "Montserrat", sans-serif;
   font-size: 14px;
-  font-weight: bold;
-  padding: 10px;
   margin: 10px;
   background-color: transparent;
   color: #0083ca;

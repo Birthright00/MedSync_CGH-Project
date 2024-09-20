@@ -225,12 +225,55 @@ Here are some potential errors you may encounter during installation, along with
 
 ---
 
-Things you may need frequently :
+### The API and request
 
-- Stored procedure to view all data
+1. API Endpoint
 
-```sql
-call show_data()
-```
+- The request is sent to the backend's login route : "http://localhost:3001/login"
+- This URL corresponds to a server running locally on your machine (in development). In production, this URL would point to your live server.
+
+2. Post Request
+
+- Why POST instead of GET?
+
+  - POST is typically used for sending sensitive information like login credentials (username and password)
+  - GET requests are used for retrieving data, but they append parameters to the URL. In the case of login, this would be insecure because the credentials would be visible in the URL (e.g., http://localhost:3001/login?username=123&password=abc).
+  - With POST, the data is sent in the body of the request, keeping the credentials hidden from the URL and browser history, providing a layer of security.
+
+3. Headers
+
+- The request includes a header that specifies the content type, in this case :
+
+  `"Content-type" : "application/json"` means that the data being sent is in JSON format
+
+4. Request Body
+
+- The data sent in the body includes the username, password, and the selected role (management or staff)
+- `JSON.stringify({mcr_number: username, password: password, selectedRole: selectedRole})` converts the data to a JSON string, which is required for sending the data in the request body.
+
+### Verification
+
+When backend server receives the login request it wil :
+
+1. The backend's /login route receives the request, reading the MCR number, password and selectedRole from the request body.
+2. Querying the database
+
+   - The backend queries the database for a user with the provided MCR number like :
+     `sql SELECT * FROM user_database WHERE mcr_number = ?`
+   - The "?" is a placeholder that will be replaced with the actual value entered by user
+
+3. Password Verification
+
+   - When user is found, the backend compares the password provided by the user with the password stored in the database
+   - Note : it is not simply string comparison. The passwords in the database are hashed, so it is a **HASH comparison**
+
+     - The password the user enters is hashed using the same algo that was used when storing the password (bcrypt in our case)
+     - The backend then compares the newly hashed password to the hashed password stored in the database.
+     - Below consists of all the potential errors
+     - Role selected + As long as one is blank = 400 (Bad Request)
+     - Role + Wrong Username + Wrong PW = 404 (Not Found) (Toast : User not found)
+     - Role + Correct Username + Wrong PW = 401 (Unauthorised)
+     - Role + Wrong Username + Correct PW = 404 (Not Found)
+     - Wrong Role + Correct Username + Correct PW = 403 (Forbidden)
 
 ---

@@ -37,7 +37,7 @@ body {
   opacity: 0.9;
   z-index: 1;
   border-right: 1px solid #ddd;
-  margin-top: 25px;
+  margin-top: 50px;
   margin-right: 50px;
 }
 
@@ -72,7 +72,7 @@ body {
   background-color: white;
   opacity: 0.9;
   z-index: 1;
-  margin-top: 25px;
+  margin-top: 50px;
 }
 
 .data-table {

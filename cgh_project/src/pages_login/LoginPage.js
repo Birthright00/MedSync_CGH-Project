@@ -5,41 +5,31 @@ import logo from "../images/cgh_logo.png";
 import management from "../images/management.png";
 import staff from "../images/staff.png";
 import Footer from "../components/footer";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "../styles/loginpage.css";
-
-// Testing Accounts
-// {
-//   "mcr_number": "M12345A",
-//   "email": "user1@example.com",
-//   "password": "management",
-//   "role": "management"
-// }
-
-// {
-//   "mcr_number": "M67890B",
-//   "email": "user2@example.com",
-//   "password": "staff",
-//   "role": "staff"
-// }
+import show_pw from "../images/show_pw.png";
+import hide_pw from "../images/hide_pw.png";
 
 const LoginPage = () => {
   const nav = useNavigate();
   const [username, usernameupdate] = useState("");
   const [password, passwordupdate] = useState("");
   const [selectedRole, setSelectedRole] = useState(null); // State to track selected role
+  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
 
   const handleSignUp = () => {
     nav("/signup-page");
   };
 
   const handleSignIn = async (e) => {
-    // Prevent page refresh on form submit
     e.preventDefault();
 
-    // Validate if a role is selected
     if (!selectedRole) {
-      alert("Please select a role (Management or Staff) before logging in.");
-      return; // Stop the function if no role is selected
+      toast.warn(
+        "Please select a role (Management or Staff) before logging in."
+      );
+      return;
     }
 
     try {
@@ -51,35 +41,38 @@ const LoginPage = () => {
         body: JSON.stringify({
           mcr_number: username,
           password: password,
-          selectedRole: selectedRole, // Send selected role to the backend
+          selectedRole: selectedRole,
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        console.log("Login ok!");
-        console.log("Selected role:", selectedRole); // Log selected role
-
-        // Use the role from the backend response for navigation
-        if (data.role === "management") {
-          nav("/management-home");
-        } else if (data.role === "staff") {
-          nav("/staff-home");
-        } else {
-          alert("Invalid role received");
-        }
+        // Successful login
+        toast.success("Login successful!");
+        setTimeout(() => {
+          nav(data.role === "management" ? "/management-home" : "/staff-home");
+        }, 1000); // Small delay for toast visibility
       } else {
-        alert(data.error); // Show error if login failed
+        // Display error toast if login fails
+        toast.error(
+          data.error || "Login failed, please check your credentials."
+        );
       }
     } catch (err) {
       console.error("Error logging in:", err);
-      alert("Login failed, please try again.");
+      toast.error("Login failed, please try again.");
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword); // Toggle password visibility
   };
 
   return (
     <>
+      <ToastContainer />
+
       <motion.div
         className="login-page"
         animate={{ opacity: 1 }}
@@ -87,7 +80,6 @@ const LoginPage = () => {
         transition={{ delay: 0.5 }}
       >
         <div className="login-div">
-          {/* Attach onSubmit to form and prevent default submission */}
           <form className="login-form" onSubmit={handleSignIn}>
             <img src={logo} alt="logo" />
             <div className="login-card">
@@ -133,8 +125,26 @@ const LoginPage = () => {
                   value={password}
                   onChange={(e) => passwordupdate(e.target.value)}
                   className="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
                 />
+              </div>
+              <div className="toggle-password">
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  style={{
+                    marginTop: "10px",
+                    cursor: "pointer",
+                    border: "none",
+                    background: "none",
+                  }}
+                >
+                  <img
+                    className="toggle-password-img"
+                    src={showPassword ? hide_pw : show_pw} // Toggle between the show and hide images
+                    alt={showPassword ? "Hide Password" : "Show Password"}
+                  />
+                </button>
               </div>
             </div>
 
@@ -155,6 +165,7 @@ const LoginPage = () => {
           </form>
         </div>
       </motion.div>
+
       <Footer />
     </>
   );

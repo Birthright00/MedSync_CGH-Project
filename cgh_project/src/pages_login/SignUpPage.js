@@ -31,6 +31,12 @@ const SignUpPage = () => {
     return mcrPattern.test(mcrNumber); // Returns true if it matches, false otherwise
   };
 
+  const validatePassword = (password) => {
+    const pwPattern =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return pwPattern.test(password);
+  };
+
   const handleBack = () => {
     nav("/");
   };
@@ -55,7 +61,31 @@ const SignUpPage = () => {
     }
     if (!validateMCRNumber(username)) {
       toast.error(
-        "Invalid MCR Number. It must start with 'M', followed by 5 digits, and end with a letter."
+        <div>
+          <p>Invalid MCR Number. It must meet the following criteria:</p>
+          <ul>
+            <li>Start with 'M' or 'm'</li>
+            <li>Followed by 5 digits (0-9)</li>
+            <li>End with a letter (A-Z, a-z)</li>
+            <li>Total of 7 characters</li>
+          </ul>
+        </div>
+      );
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      toast.error(
+        <div>
+          <p>Password must meet the following requirements:</p>
+          <ul>
+            <li>Minimum 8 characters</li>
+            <li>At least one lowercase letter</li>
+            <li>At least one uppercase letter</li>
+            <li>At least one digit (0-9)</li>
+            <li>At least one special character</li>
+          </ul>
+        </div>
       );
       return;
     }

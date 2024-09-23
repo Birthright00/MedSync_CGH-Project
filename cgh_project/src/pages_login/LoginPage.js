@@ -22,8 +22,22 @@ const LoginPage = () => {
   const nav = useNavigate();
   const [username, usernameupdate] = useState("");
   const [password, passwordupdate] = useState("");
-  const [selectedRole, setSelectedRole] = useState(null); // State to track selected role
-  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Quick Regex Revision
+
+  // ^ = start of string
+  // [Mm] = [ ] allows the choice of M or m
+  // Together they mean first character must be either M or m
+
+  // \d = any digit
+  // {5} = exactly 5 digits
+
+  // [A-Za-z] = any single alphabetic letter, regardless of case
+
+  // $ = end of string
+
   const validateMCRNumber = (mcrNumber) => {
     const mcrPattern = /^[Mm]\d{5}[A-Za-z]$/;
     return mcrPattern.test(mcrNumber); // Returns true if it matches, false otherwise
@@ -47,7 +61,15 @@ const LoginPage = () => {
     }
     if (!validateMCRNumber(username)) {
       toast.error(
-        "Invalid MCR Number. It must start with 'M', followed by 5 digits, and end with a letter."
+        <div>
+          <p>Invalid MCR Number. It must meet the following criteria:</p>
+          <ul>
+            <li>Start with 'M' or 'm'</li>
+            <li>Followed by 5 digits (0-9)</li>
+            <li>End with a letter (A-Z, a-z)</li>
+            <li>Total of 7 characters</li>
+          </ul>
+        </div>
       );
       return;
     }

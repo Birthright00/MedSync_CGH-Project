@@ -72,7 +72,7 @@ const SignUpPage = () => {
       // console.log(data);
       if (response.ok) {
         toast.success("Signup Successful");
-        nav("/login-page");
+        nav("/");
       } else {
         toast.error(data.message);
       }
@@ -133,46 +133,54 @@ const SignUpPage = () => {
                 />
               </div>
               <div className="form-group">
-                <input
-                  placeholder="Enter Password"
-                  value={password}
-                  onChange={(e) => passwordupdate(e.target.value)}
-                  className="password"
-                  type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
-                />
+                <div className="password-container">
+                  <input
+                    placeholder="Enter Password"
+                    value={password}
+                    onChange={(e) => passwordupdate(e.target.value)}
+                    className="password"
+                    type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
+                  />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="toggle-password-btn"
+                  >
+                    <img
+                      className="toggle-password-img"
+                      src={showPassword ? show_pw : hide_pw} // Toggle between the show and hide images
+                      alt={showPassword ? "Hide Password" : "Show Password"}
+                    />
+                  </button>
+                </div>
               </div>
               <div className="form-group">
-                <input
-                  placeholder="Confirm Password"
-                  value={cfrmpassword}
-                  onChange={(e) => cfrmpasswordupdate(e.target.value)}
-                  className="password"
-                  type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
-                />
-              </div>
-              <div className="toggle-password">
-                <button
-                  type="button"
-                  onClick={togglePasswordVisibility}
-                  style={{
-                    marginTop: "10px",
-                    cursor: "pointer",
-                    border: "none",
-                    background: "none",
-                  }}
-                >
-                  <img
-                    className="toggle-password-img"
-                    src={showPassword ? hide_pw : show_pw} // Toggle between the show and hide images
-                    alt={showPassword ? "Hide Password" : "Show Password"}
+                <div className="password-container">
+                  <input
+                    placeholder="Confirm Password"
+                    value={cfrmpassword}
+                    onChange={(e) => cfrmpasswordupdate(e.target.value)}
+                    className="password"
+                    type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
                   />
-                </button>
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="toggle-password-btn"
+                  >
+                    <img
+                      className="toggle-password-img"
+                      src={showPassword ? show_pw : hide_pw} // Toggle between the show and hide images
+                      alt={showPassword ? "Hide Password" : "Show Password"}
+                    />
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="card_footer">
               <motion.button
-                whileHover={{ scale: 1.2 }}
+                whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 type="submit"
                 className="signin_button"
@@ -183,20 +191,18 @@ const SignUpPage = () => {
             </div>
             <div className="card_footer">
               <motion.button
-                whileHover={{ scale: 1.2 }}
+                whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 type="submit"
                 className="signin_button"
                 onClick={handleBack}
               >
-                Back
+                Back to login
               </motion.button>
             </div>
           </form>
         </div>
       </motion.div>
-
-      <Footer />
     </>
   );
 };

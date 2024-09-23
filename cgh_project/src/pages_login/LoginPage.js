@@ -154,15 +154,29 @@ const LoginPage = () => {
                 />
               </div>
               <div className="form-group">
-                <input
-                  placeholder="Enter Password"
-                  value={password}
-                  onChange={(e) => passwordupdate(e.target.value)}
-                  className="password"
-                  type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
-                />
+                <div className="password-container">
+                  <input
+                    placeholder="Enter Password"
+                    value={password}
+                    onChange={(e) => passwordupdate(e.target.value)}
+                    className="password"
+                    type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
+                  />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="toggle-password-btn"
+                  >
+                    <img
+                      className="toggle-password-img"
+                      src={showPassword ? show_pw : hide_pw} // Toggle between the show and hide images
+                      alt={showPassword ? "Hide Password" : "Show Password"}
+                    />
+                  </button>
+                </div>
               </div>
-              <div className="toggle-password">
+
+              {/* <div className="toggle-password">
                 <button
                   type="button"
                   onClick={togglePasswordVisibility}
@@ -179,12 +193,12 @@ const LoginPage = () => {
                     alt={showPassword ? "Hide Password" : "Show Password"}
                   />
                 </button>
-              </div>
+              </div> */}
             </div>
 
             <div className="card_footer">
               <motion.button
-                whileHover={{ scale: 1.2 }}
+                whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 type="submit"
                 className="signin_button"

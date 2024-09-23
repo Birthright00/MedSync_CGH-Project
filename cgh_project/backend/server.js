@@ -212,6 +212,57 @@ app.get("/staff/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// Database Update - Staff Details, PUT route to update staff details
+// -------------------------------------------------------------------------------------------------------------//
+app.put("/staff/:mcr_number", verifyToken, (req, res) => {
+  const mcr_number = req.params.mcr_number;
+  const {
+    first_name,
+    last_name,
+    department,
+    appointment,
+    teaching_training_hours,
+    start_date,
+    end_date,
+    renewal_start_date,
+    renewal_end_date,
+    email,
+  } = req.body;
+
+  console.log("Request body:", req.body); // Log the request body to check if everything is received correctly
+  console.log("MCR Number:", mcr_number); // Log the MCR number
+
+  const q = `
+    UPDATE main_data 
+    SET first_name = ?, last_name = ?, department = ?, appointment = ?, 
+        teaching_training_hours = ?, start_date = ?, end_date = ?, 
+        renewal_start_date = ?, renewal_end_date = ?, email = ?
+    WHERE mcr_number = ?`;
+
+  const values = [
+    first_name,
+    last_name,
+    department,
+    appointment,
+    teaching_training_hours,
+    start_date,
+    end_date,
+    renewal_start_date,
+    renewal_end_date,
+    email,
+    mcr_number,
+  ];
+
+  db.query(q, values, (err, data) => {
+    if (err) {
+      console.error("Error during the query execution:", err); // Log the error
+      return res.status(500).json({ error: "Failed to update staff details" });
+    }
+    return res.json({ message: "Staff details updated successfully" });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start
 // -------------------------------------------------------------------------------------------------------------//
 db.connect((err) => {

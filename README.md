@@ -300,4 +300,25 @@ WHERE column_name = 'row_name';
 
 ```
 
+### Inserting new row/ data
+
+```sql
+INSERT INTO main_db (mcr_number, first_name, last_name, department, appointment, teaching_training_hours)
+VALUES ('M12345A', 'John', 'Doe', 'Cardiology', 'Consultant', 120);
+```
+
+### Adding new Column
+
+```sql
+ALTER TABLE name_of_table
+ADD column_name datatype;
+```
+
+### Renaming Column Name
+
+```sql
+ALTER TABLE name_of_table
+RENAME COLUMN column_name to column_name_2;
+```
+
 ---

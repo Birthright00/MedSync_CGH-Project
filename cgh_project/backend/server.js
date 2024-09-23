@@ -191,6 +191,27 @@ app.post("/database", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// Database GET - Staff by mcr_number
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/staff/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params;
+
+  const q = "SELECT * FROM main_data WHERE mcr_number = ?"; // Adjust table/column names as necessary
+
+  db.query(q, [mcr_number], (err, data) => {
+    if (err) {
+      return res
+        .status(500)
+        .json({ message: "Error retrieving staff details" });
+    }
+    if (data.length === 0) {
+      return res.status(404).json({ message: "Staff not found" });
+    }
+    res.json(data[0]); // Send the first staff entry found in the response
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start
 // -------------------------------------------------------------------------------------------------------------//
 db.connect((err) => {

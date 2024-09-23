@@ -59,6 +59,7 @@ const SignUpPage = () => {
       toast.warn("Please enter all the fields");
       return;
     }
+
     if (!validateMCRNumber(username)) {
       toast.error(
         <div>
@@ -73,6 +74,11 @@ const SignUpPage = () => {
       );
       return;
     }
+
+    // ----------------------------------------------------------------------------------------//
+    // Comment out this part for easier account creation
+    // ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
+    // ----------------------------------------------------------------------------------------//
 
     if (!validatePassword(password)) {
       toast.error(
@@ -89,6 +95,11 @@ const SignUpPage = () => {
       );
       return;
     }
+
+    // ----------------------------------------------------------------------------------------//
+    // ⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️
+    // Comment out this part for easier account creation
+    // ----------------------------------------------------------------------------------------//
 
     if (password !== cfrmpassword) {
       toast.warn("Passwords do not match");
@@ -112,7 +123,9 @@ const SignUpPage = () => {
       // console.log(data);
       if (response.ok) {
         toast.success("Signup Successful");
-        nav("/");
+        setTimeout(() => {
+          nav("/");
+        }, 1000); // Small delay for toast visibility
       } else {
         toast.error(data.message);
       }

@@ -5,9 +5,8 @@
   position: relative;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
   flex-direction: row;
-  padding: 20px;
+  padding: 10px;
 }
 
 .management-home-page:before {
@@ -21,13 +20,14 @@
   background-repeat: no-repeat; /* Ensure no repetition */
   background-size: cover; /* Cover the entire container */
   background-position: center; /* Center the background image */
-  opacity: 0.5;
+  opacity: 0.6;
   z-index: -1;
 }
 
 /* Filter Section */
 .filter-section {
   width: 100%;
+  height: 100%;
   padding: 20px;
   background-color: white;
   opacity: 0.9;

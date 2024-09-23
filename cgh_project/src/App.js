@@ -5,7 +5,7 @@ import LoginPage from "./pages_login/LoginPage";
 import ManagementHomePage from "./pages_management/ManagementHomePage";
 import StaffHomePage from "./pages_staff/StaffHomePage";
 import SignUpPage from "./pages_login/SignUpPage";
-import { ToastContainer } from "react-toastify";
+import StaffDetailPage from "./components/StaffDetailPage";
 function App() {
   return (
     <Router>
@@ -19,7 +19,12 @@ function App() {
             element={<ManagementHomePage />}
           />
           <Route exact path="/staff-home" element={<StaffHomePage />} />
-          <Route exact path="*" element={<SignUpPage />} />
+          <Route exact path="/signup-page" element={<SignUpPage />} />
+          <Route
+            exact
+            path="/staff/:mcr_number"
+            element={<StaffDetailPage />}
+          />
         </Routes>
       </div>
     </Router>

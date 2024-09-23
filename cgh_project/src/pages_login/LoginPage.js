@@ -22,8 +22,26 @@ const LoginPage = () => {
   const nav = useNavigate();
   const [username, usernameupdate] = useState("");
   const [password, passwordupdate] = useState("");
-  const [selectedRole, setSelectedRole] = useState(null); // State to track selected role
-  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Quick Regex Revision
+
+  // ^ = start of string
+  // [Mm] = [ ] allows the choice of M or m
+  // Together they mean first character must be either M or m
+
+  // \d = any digit
+  // {5} = exactly 5 digits
+
+  // [A-Za-z] = any single alphabetic letter, regardless of case
+
+  // $ = end of string
+
+  const validateMCRNumber = (mcrNumber) => {
+    const mcrPattern = /^[Mm]\d{5}[A-Za-z]$/;
+    return mcrPattern.test(mcrNumber); // Returns true if it matches, false otherwise
+  };
 
   //-----------------------------------------------------------------/
   // TBC --> Not sure if we want to allow anyone to register //
@@ -39,6 +57,20 @@ const LoginPage = () => {
     // Making sure users select a role
     if (!selectedRole) {
       toast.warn("Please select a role (Management or Staff)");
+      return;
+    }
+    if (!validateMCRNumber(username)) {
+      toast.error(
+        <div>
+          <p>Invalid MCR Number. It must meet the following criteria:</p>
+          <ul>
+            <li>Start with 'M' or 'm'</li>
+            <li>Followed by 5 digits (0-9)</li>
+            <li>End with a letter (A-Z, a-z)</li>
+            <li>Total of 7 characters</li>
+          </ul>
+        </div>
+      );
       return;
     }
 
@@ -65,6 +97,8 @@ const LoginPage = () => {
       //-----------------------------------------------------------------/
       // Handling Responses
       if (response.ok) {
+        // Store the token in localStorage
+        localStorage.setItem("token", data.token); // Save the JWT token in localStorage
         // Successful login
         toast.success("Login successful! Welcome Back!");
         setTimeout(() => {
@@ -152,15 +186,29 @@ const LoginPage = () => {
                 />
               </div>
               <div className="form-group">
-                <input
-                  placeholder="Enter Password"
-                  value={password}
-                  onChange={(e) => passwordupdate(e.target.value)}
-                  className="password"
-                  type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
-                />
+                <div className="password-container">
+                  <input
+                    placeholder="Enter Password"
+                    value={password}
+                    onChange={(e) => passwordupdate(e.target.value)}
+                    className="password"
+                    type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
+                  />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="toggle-password-btn"
+                  >
+                    <img
+                      className="toggle-password-img"
+                      src={showPassword ? show_pw : hide_pw} // Toggle between the show and hide images
+                      alt={showPassword ? "Hide Password" : "Show Password"}
+                    />
+                  </button>
+                </div>
               </div>
-              <div className="toggle-password">
+
+              {/* <div className="toggle-password">
                 <button
                   type="button"
                   onClick={togglePasswordVisibility}
@@ -177,12 +225,12 @@ const LoginPage = () => {
                     alt={showPassword ? "Hide Password" : "Show Password"}
                   />
                 </button>
-              </div>
+              </div> */}
             </div>
 
             <div className="card_footer">
               <motion.button
-                whileHover={{ scale: 1.2 }}
+                whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 type="submit"
                 className="signin_button"

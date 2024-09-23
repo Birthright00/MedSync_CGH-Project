@@ -2,6 +2,7 @@ import "../styles/managementhomepage.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/footer";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CSVLink } from "react-csv";
 
@@ -14,8 +15,11 @@ const ManagementHomePage = () => {
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [appointmentFilter, setAppointmentFilter] = useState("");
   const [trainingHoursFilter, setTrainingHoursFilter] = useState("");
-  const [entriesPerPage, setEntriesPerPage] = useState(10); // State to hold number of entries per page
-
+  const [entriesPerPage, setEntriesPerPage] = useState(5); // State to hold number of entries per page
+  const nav = useNavigate();
+  const handleRowClick = (mcr_number) => {
+    nav(`/staff/${mcr_number}`); // Navigate to the detail page
+  };
   // Reset filters
   const resetFilters = () => {
     setFirstNameFilter("");
@@ -23,13 +27,21 @@ const ManagementHomePage = () => {
     setDepartmentFilter("");
     setAppointmentFilter("");
     setTrainingHoursFilter("");
+    setFilteredData(data);
   };
 
   // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("http://localhost:3001/database");
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.log("No token found");
+          return;
+        }
+        const response = await axios.get("http://localhost:3001/database", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setData(response.data);
         setFilteredData(response.data); // Initialize filtered data
       } catch (error) {
@@ -183,8 +195,12 @@ const ManagementHomePage = () => {
               </thead>
               <tbody>
                 {rowsToDisplay.map((staff, index) => (
-                  <tr key={index}>
-                    <td>{staff.no}</td> {/* Add this line */}
+                  <tr
+                    key={index}
+                    onClick={() => handleRowClick(staff.mcr_number)}
+                  >
+                    <td>{indexOfFirstEntry + index + 1}</td>{" "}
+                    {/* Fix row numbering */}
                     <td>{staff.mcr_number}</td>
                     <td>{staff.first_name}</td>
                     <td>{staff.last_name}</td>

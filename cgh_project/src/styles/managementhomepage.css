@@ -5,9 +5,8 @@
   position: relative;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
   flex-direction: row;
-  padding: 20px;
+  padding: 10px;
 }
 
 .management-home-page:before {
@@ -21,13 +20,14 @@
   background-repeat: no-repeat; /* Ensure no repetition */
   background-size: cover; /* Cover the entire container */
   background-position: center; /* Center the background image */
-  opacity: 0.5;
+  opacity: 0.6;
   z-index: -1;
 }
 
 /* Filter Section */
 .filter-section {
   width: 100%;
+  height: 100%;
   padding: 20px;
   background-color: white;
   opacity: 0.9;
@@ -49,25 +49,25 @@
 
 .filter-section label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
   font-size: 12px;
-  color: #555;
+  color: #0083ca;
 }
 
 .filter-section input {
   width: 100%;
   padding: 10px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 12px;
   box-sizing: border-box;
 }
 
 .reset-button {
   width: 100%;
   padding: 10px;
-  font-size: 16px;
+  font-size: 12px !important;
   background-color: #0083ca;
   color: white;
   border: none;
@@ -101,18 +101,18 @@
   display: flex;
   justify-content: center;
   align-items: center; /* Ensures the label and select dropdown are vertically aligned */
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .entries-per-page label {
   margin-right: 10px; /* Add space between label and dropdown */
-  font-size: 14px; /* Make sure the font size matches the select dropdown */
+  font-size: 12px; /* Make sure the font size matches the select dropdown */
   color: #555;
 }
 
 .entries-per-page select {
   padding: 10px;
-  font-size: 14px;
+  font-size: 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: #0083ca; /* Button color */
@@ -133,15 +133,25 @@
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .data-table th,
 .data-table td {
   border: 1px solid #ddd;
   padding: 8px;
-  text-align: center; /* Centering table data and headers */
-  height: 20px;
+  text-align: center;
+  height: 30px; /* Set a consistent height for each row */
+  overflow: hidden; /* Ensures no content overflow */
+  white-space: nowrap; /* Prevents text from wrapping */
+  text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
+}
+
+/* Making the first column "no" thinner */
+th:first-child,
+td:first-child {
+  width: 3%;
+  text-align: center;
 }
 
 /* Sticky Table Headers */
@@ -150,7 +160,6 @@
   top: 0;
   background-color: #f2f2f2; /* Ensure the background doesn't turn transparent */
   z-index: 2; /* Make sure it stays above the table rows */
-  font-weight: bold;
   font-size: 14px;
   color: #0083ca;
   border: 1px solid #ddd;
@@ -170,7 +179,7 @@
 /* Pagination */
 .current-page {
   margin-right: 50px;
-  font-size: 14px;
+  font-size: 12px;
   color: black;
   margin-bottom: 20px;
 }
@@ -188,6 +197,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  white-space: nowrap; /* Prevent text wrapping */
 }
 /* New styles for the pagination background */
 .pagination-background {
@@ -206,7 +216,7 @@
   margin-right: 20px;
   margin-bottom: 20px;
   padding: 10px;
-  font-size: 14px;
+  font-size: 12px;
   cursor: pointer;
   background-color: #0083ca;
   color: white;

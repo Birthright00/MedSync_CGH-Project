@@ -19,6 +19,10 @@ const Navbar = ({ homeRoute }) => {
     nav(homeRoute); // Navigate to the provided homeRoute
   };
 
+  const handleBackNav = () => {
+    nav(-1);
+  };
+
   // useEffect(() => {
   //   const handleScroll = () => {
   //     if (window.scrollY > 100) {
@@ -65,17 +69,17 @@ const Navbar = ({ homeRoute }) => {
           className="navbarbutton"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={handleLogOut}
+          onClick={handleBackNav} // Handle Back navigation
         >
-          Log Out
-        </motion.button>
+          Back
+        </motion.button>{" "}
         <motion.button
           className="navbarbutton"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          onClick={() => nav(-1)} // Handle Back navigation
+          onClick={handleLogOut}
         >
-          Back
+          Log Out
         </motion.button>
       </div>
     </motion.nav>

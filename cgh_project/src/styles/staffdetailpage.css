@@ -1,0 +1,112 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap");
+
+/* Main Page Layout */
+.body {
+  font-family: "Montserrat", sans-serif;
+}
+.staff-detail-page {
+  width: 100vw;
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Background Image with Opacity */
+.staff-detail-page:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("../images/login-background-img.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.6; /* Background opacity */
+  z-index: -1; /* Place it behind the content */
+}
+
+/* Container for Staff Information */
+.staff-info-container {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  width: 60%;
+  max-width: 400px;
+  max-height: 700px;
+  margin: 20px;
+  z-index: 1; /* Ensure content is on top of the background */
+  opacity: 1; /* Full opacity for the content */
+}
+
+.staff-info-container h2 {
+  color: #0083ca;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Table Style for Staff Information */
+.staff-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.staff-detail-table th,
+.staff-detail-table td {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.staff-detail-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+  color: #0083ca;
+  font-size: 12px;
+  max-height: 5px;
+  min-height: 5px;
+  max-width: 200px;
+  overflow: hidden; /* Ensures no content overflow */
+  white-space: nowrap; /* Prevents text from wrapping */
+  text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
+}
+
+.staff-detail-table td {
+  font-size: 12px;
+}
+
+/* Responsive Layout */
+@media (max-width: 768px) {
+  .staff-info-container {
+    width: 90%;
+    padding: 15px;
+  }
+
+  .staff-detail-table th,
+  .staff-detail-table td {
+    font-size: 12px;
+  }
+}
+
+.update-button {
+  margin-top: 20px;
+  font-family: "Montserrat", sans-serif;
+  text-align: center;
+  width: 100%;
+  border-radius: 5px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #0083ca; /* Consistent blue border */
+  font-size: 14px;
+  padding: 12px;
+  transition: background-color 500ms, color 500ms;
+  background-color: #0083ca;
+  color: white;
+  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+}

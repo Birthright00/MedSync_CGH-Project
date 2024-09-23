@@ -65,6 +65,8 @@ const LoginPage = () => {
       //-----------------------------------------------------------------/
       // Handling Responses
       if (response.ok) {
+        // Store the token in localStorage
+        localStorage.setItem("token", data.token); // Save the JWT token in localStorage
         // Successful login
         toast.success("Login successful! Welcome Back!");
         setTimeout(() => {

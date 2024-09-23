@@ -23,13 +23,21 @@ const ManagementHomePage = () => {
     setDepartmentFilter("");
     setAppointmentFilter("");
     setTrainingHoursFilter("");
+    setFilteredData(data);
   };
 
   // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("http://localhost:3001/database");
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.log("No token found");
+          return;
+        }
+        const response = await axios.get("http://localhost:3001/database", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setData(response.data);
         setFilteredData(response.data); // Initialize filtered data
       } catch (error) {

@@ -221,11 +221,13 @@ Here are some potential errors you may encounter during installation, along with
 
 2. **Error:** Installation issues with VSC
 
-## Backend Data Management using mySQL workbench
+## All about Backend
 
 ---
 
-### The API and request
+### How it works?
+
+#### The API and request
 
 1. API Endpoint
 
@@ -251,7 +253,7 @@ Here are some potential errors you may encounter during installation, along with
 - The data sent in the body includes the username, password, and the selected role (management or staff)
 - `JSON.stringify({mcr_number: username, password: password, selectedRole: selectedRole})` converts the data to a JSON string, which is required for sending the data in the request body.
 
-### Verification
+#### Verification
 
 When backend server receives the login request it wil :
 
@@ -275,5 +277,27 @@ When backend server receives the login request it wil :
      - Role + Correct Username + Wrong PW = 401 (Unauthorised)
      - Role + Wrong Username + Correct PW = 404 (Not Found)
      - Wrong Role + Correct Username + Correct PW = 403 (Forbidden)
+
+---
+
+## Frequently Used Things
+
+### mySQL
+
+```sql
+set global sql_safe_updates = 0;
+set session sql_safe_updates = 0;
+use main_db;
+select * from user_data;
+select * from main_data;
+```
+
+### Deleting row/ data
+
+```sql
+DELETE FROM table_name
+WHERE column_name = 'row_name';
+
+```
 
 ---

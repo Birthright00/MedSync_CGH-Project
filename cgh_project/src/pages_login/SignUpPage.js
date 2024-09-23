@@ -26,6 +26,10 @@ const SignUpPage = () => {
   const [selectedRole, setSelectedRole] = useState(null); // State to track selected role
   const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
   // console.log("Selected role:", selectedRole);
+  const validateMCRNumber = (mcrNumber) => {
+    const mcrPattern = /^[Mm]\d{5}[A-Za-z]$/;
+    return mcrPattern.test(mcrNumber); // Returns true if it matches, false otherwise
+  };
 
   const handleBack = () => {
     nav("/");
@@ -47,6 +51,12 @@ const SignUpPage = () => {
     // Makes sure all fields are filled
     if (!username || !password || !cfrmpassword) {
       toast.warn("Please enter all the fields");
+      return;
+    }
+    if (!validateMCRNumber(username)) {
+      toast.error(
+        "Invalid MCR Number. It must start with 'M', followed by 5 digits, and end with a letter."
+      );
       return;
     }
 

@@ -14,7 +14,7 @@ const ManagementHomePage = () => {
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [appointmentFilter, setAppointmentFilter] = useState("");
   const [trainingHoursFilter, setTrainingHoursFilter] = useState("");
-  const [entriesPerPage, setEntriesPerPage] = useState(10); // State to hold number of entries per page
+  const [entriesPerPage, setEntriesPerPage] = useState(5); // State to hold number of entries per page
 
   // Reset filters
   const resetFilters = () => {

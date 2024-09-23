@@ -24,6 +24,10 @@ const LoginPage = () => {
   const [password, passwordupdate] = useState("");
   const [selectedRole, setSelectedRole] = useState(null); // State to track selected role
   const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
+  const validateMCRNumber = (mcrNumber) => {
+    const mcrPattern = /^[Mm]\d{5}[A-Za-z]$/;
+    return mcrPattern.test(mcrNumber); // Returns true if it matches, false otherwise
+  };
 
   //-----------------------------------------------------------------/
   // TBC --> Not sure if we want to allow anyone to register //
@@ -39,6 +43,12 @@ const LoginPage = () => {
     // Making sure users select a role
     if (!selectedRole) {
       toast.warn("Please select a role (Management or Staff)");
+      return;
+    }
+    if (!validateMCRNumber(username)) {
+      toast.error(
+        "Invalid MCR Number. It must start with 'M', followed by 5 digits, and end with a letter."
+      );
       return;
     }
 

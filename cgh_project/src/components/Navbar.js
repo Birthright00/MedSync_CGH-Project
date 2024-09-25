@@ -23,6 +23,10 @@ const Navbar = ({ homeRoute }) => {
     nav(-1);
   };
 
+  const handleEntry = () => {
+    nav("/entry");
+  };
+
   // useEffect(() => {
   //   const handleScroll = () => {
   //     if (window.scrollY > 100) {
@@ -55,6 +59,7 @@ const Navbar = ({ homeRoute }) => {
           className="navbarbutton"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
+          onClick={handleEntry}
         >
           Entry
         </motion.button>

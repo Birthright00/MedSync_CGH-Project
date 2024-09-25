@@ -263,6 +263,100 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// Database Input - Add New Staff Details, POST route to input NEW staff details
+// -------------------------------------------------------------------------------------------------------------//
+app.post("/entry", verifyToken, (req, res) => {
+  const {
+    mcr_number,
+    first_name,
+    last_name,
+    department,
+    appointment,
+    teaching_training_hours,
+    start_date,
+    end_date,
+    renewal_start_date,
+    renewal_end_date,
+    email,
+  } = req.body;
+
+  // Validate required fields (you can add more validations if needed)
+  if (
+    !mcr_number ||
+    !first_name ||
+    !last_name ||
+    !department ||
+    !appointment ||
+    !email
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Please provide all required fields" });
+  }
+
+  // SQL query to insert the new staff details
+  const q = `
+    INSERT INTO main_data 
+    (mcr_number, first_name, last_name, department, appointment, teaching_training_hours, start_date, end_date, renewal_start_date, renewal_end_date, email) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  const values = [
+    mcr_number,
+    first_name,
+    last_name,
+    department,
+    appointment,
+    teaching_training_hours,
+    start_date,
+    end_date,
+    renewal_start_date,
+    renewal_end_date,
+    email,
+  ];
+
+  // Execute the query to insert new staff details
+  db.query(q, values, (err, data) => {
+    if (err) {
+      console.error("Error inserting new staff details:", err); // Log any error
+      return res.status(500).json({ error: "Failed to add new staff details" });
+    }
+    return res
+      .status(201)
+      .json({ message: "New staff details added successfully", data });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// Database Delete - Staff Details, DELETE route to delete staff details
+// -------------------------------------------------------------------------------------------------------------//
+// -------------------------------------------------------------------------------------------------------------//
+// Database Delete - Staff Details, DELETE route to delete staff details
+// -------------------------------------------------------------------------------------------------------------//
+app.delete("/staff/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params;
+
+  // SQL query to delete staff details by mcr_number
+  const q = "DELETE FROM main_data WHERE mcr_number = ?";
+
+  db.query(q, [mcr_number], (err, data) => {
+    if (err) {
+      console.error("Error deleting staff details:", err); // Log any error
+      return res.status(500).json({ error: "Failed to delete staff details" });
+    }
+
+    // If no rows were affected, the mcr_number does not exist
+    if (data.affectedRows === 0) {
+      return res.status(404).json({ message: "Staff not found" });
+    }
+
+    return res.json({
+      message: `Staff with MCR Number ${mcr_number} deleted successfully`,
+    });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start
 // -------------------------------------------------------------------------------------------------------------//
 db.connect((err) => {

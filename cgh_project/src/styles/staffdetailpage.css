@@ -38,7 +38,7 @@
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
   width: 60%;
   max-width: 400px;
-  max-height: 700px;
+  height: 525px;
   margin: 20px;
   z-index: 1; /* Ensure content is on top of the background */
   opacity: 1; /* Full opacity for the content */
@@ -71,7 +71,7 @@
   font-size: 12px;
   max-height: 5px;
   min-height: 5px;
-  max-width: 200px;
+  width: 200px;
   overflow: hidden; /* Ensures no content overflow */
   white-space: nowrap; /* Prevents text from wrapping */
   text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
@@ -107,6 +107,23 @@
   padding: 12px;
   transition: background-color 500ms, color 500ms;
   background-color: #0083ca;
+  color: white;
+  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+}
+
+.delete-button {
+  margin-top: 20px;
+  font-family: "Montserrat", sans-serif;
+  text-align: center;
+  width: 100%;
+  border-radius: 5px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #0083ca; /* Consistent blue border */
+  font-size: 14px;
+  padding: 12px;
+  transition: background-color 500ms, color 500ms;
+  background-color: red;
   color: white;
   box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
 }

@@ -6,6 +6,7 @@ import ManagementHomePage from "./pages_management/ManagementHomePage";
 import StaffHomePage from "./pages_staff/StaffHomePage";
 import SignUpPage from "./pages_login/SignUpPage";
 import StaffDetailPage from "./components/StaffDetailPage";
+import Entry from "./components/Entry";
 function App() {
   return (
     <Router>
@@ -25,6 +26,7 @@ function App() {
             path="/staff/:mcr_number"
             element={<StaffDetailPage />}
           />
+          <Route exact path="/entry" element={<Entry />} />
         </Routes>
       </div>
     </Router>

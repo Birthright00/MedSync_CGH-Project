@@ -1,15 +1,13 @@
-import "../styles/staffdetailpage.css"; // Create a new CSS file for this page
+import "../styles/staffdetailpage.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/footer";
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom"; // Added useNavigate for navigation
+import { useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const StaffDetailPage = () => {
-  const { mcr_number } = useParams(); // Get the MCR number from route params
+const Entry = () => {
   const [staffDetails, setStaffDetails] = useState({
     mcr_number: "",
     first_name: "",
@@ -23,13 +21,63 @@ const StaffDetailPage = () => {
     renewal_end_date: "",
     email: "",
   });
-  const navigate = useNavigate(); // Use navigate to redirect after delete
+
+  const validateFields = () => {
+    const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/;
+    const nameMaxLength = 50;
+    const emailRegex = /\S+@\S+\.\S+/;
+
+    if (!mcrRegex.test(staffDetails.mcr_number)) {
+      toast.error("MCR Number must follow the pattern: MxxxxxA");
+      return false;
+    }
+    if (
+      staffDetails.first_name.length > nameMaxLength ||
+      staffDetails.last_name.length > nameMaxLength ||
+      staffDetails.department.length > nameMaxLength ||
+      staffDetails.appointment.length > nameMaxLength
+    ) {
+      toast.error(
+        "First Name, Last Name, Department, and Appointment should not exceed 50 characters"
+      );
+      return false;
+    }
+    if (!Number.isInteger(parseInt(staffDetails.teaching_training_hours))) {
+      toast.error("Teaching Training Hours must be an integer");
+      return false;
+    }
+    if (!emailRegex.test(staffDetails.email)) {
+      toast.error("Invalid email format");
+      return false;
+    }
+
+    // Ensure all fields are filled
+    const requiredFields = [
+      "mcr_number",
+      "first_name",
+      "last_name",
+      "department",
+      "appointment",
+      "teaching_training_hours",
+      "email",
+    ];
+
+    for (const field of requiredFields) {
+      if (!staffDetails[field]) {
+        toast.error(`\ ${field.replace(/_/g, " ")} is required`);
+        return false;
+      }
+    }
+
+    return true;
+  };
 
   const handleSubmit = async () => {
+    if (!validateFields()) return; // Stop submission if validation fails
+
     try {
       const token = localStorage.getItem("token");
 
-      // Send PUT request to update staff details
       const dataToSubmit = {
         ...staffDetails,
         start_date: staffDetails.start_date
@@ -58,90 +106,34 @@ const StaffDetailPage = () => {
           : null,
       };
 
-      await axios.put(
-        `http://localhost:3001/staff/${mcr_number}`,
-        dataToSubmit,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.success("Staff details updated successfully!");
-    } catch (error) {
-      console.error(
-        "Error updating staff details:",
-        error.response ? error.response.data : error
-      );
-      toast.error("Failed to update staff details");
-    }
-  };
-
-  // Function to handle deletion
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this staff?")) {
-      return; // If user cancels the action, don't proceed with deletion
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      // Send DELETE request to delete the staff details
-      await axios.delete(`http://localhost:3001/staff/${mcr_number}`, {
+      // Send POST request to create new staff details
+      await axios.post("http://localhost:3001/entry", dataToSubmit, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      toast.success("New staff details added successfully!");
 
-      toast.success("Staff details deleted successfully!");
-
-      // Redirect to management home page after successful deletion
-      setTimeout(() => {
-        navigate("/management-home");
-      }, 1000); // Small delay for toast visibility
+      // Clear the form after successful submission
+      setStaffDetails({
+        mcr_number: "",
+        first_name: "",
+        last_name: "",
+        department: "",
+        appointment: "",
+        teaching_training_hours: "",
+        start_date: "",
+        end_date: "",
+        renewal_start_date: "",
+        renewal_end_date: "",
+        email: "",
+      });
     } catch (error) {
       console.error(
-        "Error deleting staff details:",
+        "Error submitting staff details:",
         error.response ? error.response.data : error
       );
-      toast.error("Failed to delete staff details");
+      toast.error("Failed to submit staff details");
     }
   };
-
-  const [loading, setLoading] = useState(true);
-
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return ""; // Return empty string if date is null or undefined
-
-    const date = new Date(dateStr);
-
-    // Get year, month, day, hours, and minutes, adding leading zeros where necessary
-    const year = date.getFullYear();
-    const month = ("0" + (date.getMonth() + 1)).slice(-2); // Ensure two digits for month
-    const day = ("0" + date.getDate()).slice(-2); // Ensure two digits for day
-    const hours = ("0" + date.getHours()).slice(-2); // Ensure two digits for hours
-    const minutes = ("0" + date.getMinutes()).slice(-2); // Ensure two digits for minutes
-
-    // Format it as YYYY-MM-DDTHH:MM (required for datetime-local input type)
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  useEffect(() => {
-    const fetchStaffDetails = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          `http://localhost:3001/staff/${mcr_number}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setStaffDetails(response.data);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching staff details:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchStaffDetails();
-  }, [mcr_number]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -151,21 +143,13 @@ const StaffDetailPage = () => {
     }));
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!staffDetails) {
-    return <div>No staff data found</div>;
-  }
-
   return (
     <>
       <ToastContainer />
       <Navbar homeRoute="/management-home" />
       <div className="staff-detail-page">
         <div className="staff-info-container">
-          <h2>Staff Details</h2>
+          <h2>Add New Staff</h2>
           <table className="staff-detail-table">
             <tbody>
               <tr>
@@ -176,7 +160,6 @@ const StaffDetailPage = () => {
                     name="mcr_number"
                     value={staffDetails.mcr_number}
                     onChange={handleInputChange}
-                    disabled
                   />
                 </td>
               </tr>
@@ -241,7 +224,7 @@ const StaffDetailPage = () => {
                   <input
                     type="datetime-local"
                     name="start_date"
-                    value={formatDateTime(staffDetails.start_date)}
+                    value={staffDetails.start_date}
                     onChange={handleInputChange}
                   />
                 </td>
@@ -252,7 +235,7 @@ const StaffDetailPage = () => {
                   <input
                     type="datetime-local"
                     name="end_date"
-                    value={formatDateTime(staffDetails.end_date)}
+                    value={staffDetails.end_date}
                     onChange={handleInputChange}
                   />
                 </td>
@@ -263,7 +246,7 @@ const StaffDetailPage = () => {
                   <input
                     type="datetime-local"
                     name="renewal_start_date"
-                    value={formatDateTime(staffDetails.renewal_start_date)}
+                    value={staffDetails.renewal_start_date}
                     onChange={handleInputChange}
                   />
                 </td>
@@ -274,7 +257,7 @@ const StaffDetailPage = () => {
                   <input
                     type="datetime-local"
                     name="renewal_end_date"
-                    value={formatDateTime(staffDetails.renewal_end_date)}
+                    value={staffDetails.renewal_end_date}
                     onChange={handleInputChange}
                   />
                 </td>
@@ -282,78 +265,17 @@ const StaffDetailPage = () => {
             </tbody>
           </table>
         </div>
+
+        {/* ------------------------------------------------------- */}
+        {/* End of Left Form */}
+        {/* ------------------------------------------------------- */}
+
         <div className="staff-info-container">
-          <h2>Staff Details</h2>
+          <h2>Add New Staff</h2>
           <table className="staff-detail-table">
             <tbody>
               <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
+                <th>Email</th>
                 <td>
                   <input
                     type="email"
@@ -364,29 +286,20 @@ const StaffDetailPage = () => {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </table>{" "}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="update-button"
             onClick={handleSubmit}
           >
-            Submit
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            className="delete-button"
-            onClick={handleDelete}
-          >
-            Delete
+            Add New Staff
           </motion.button>
         </div>
       </div>
-
       <Footer />
     </>
   );
 };
 
-export default StaffDetailPage;
+export default Entry;

@@ -67,6 +67,9 @@ const StaffDetailPage = () => {
       );
 
       toast.success("Staff details updated successfully!");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // Small delay for toast visibility
     } catch (error) {
       console.error(
         "Error updating staff details:",
@@ -74,8 +77,6 @@ const StaffDetailPage = () => {
       );
       toast.error("Failed to update staff details");
     }
-
-    window.location.reload();
   };
 
   // Function to handle deletion
@@ -281,9 +282,47 @@ const StaffDetailPage = () => {
                   />
                 </td>
               </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
+
+        {/* ------------------------------------------------------- */}
+        {/* End of Left Form */}
+        {/* ------------------------------------------------------- */}
+
         <div className="staff-info-container">
           <h2>Staff Details</h2>
           <table className="staff-detail-table">
@@ -322,19 +361,74 @@ const StaffDetailPage = () => {
                 </td>
               </tr>
               <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>{" "}
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
                 <th>Created At</th>
                 <td>{formatDateTime(staffDetails.created_at)}</td>
               </tr>
               <tr>
-                <th>Last Updated at</th>
+                <th>Last Updated At</th>
                 <td>{formatDateTime(staffDetails.updated_at)}</td>
               </tr>
               <tr>
-                <th>Created by</th>
+                <th>Created By</th>
                 <td>{staffDetails.created_by}</td>
               </tr>
               <tr>
-                <th>Last Updated by</th>
+                <th>Last Updated By</th>
                 <td>{staffDetails.updated_by}</td>
               </tr>
             </tbody>
@@ -358,7 +452,7 @@ const StaffDetailPage = () => {
         </div>
       </div>
 
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 };

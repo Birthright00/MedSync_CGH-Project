@@ -6,7 +6,6 @@
   display: flex;
   justify-content: center;
   flex-direction: row;
-  padding: 10px;
 }
 
 .management-home-page:before {
@@ -18,7 +17,7 @@
   height: 100%; /* Cover the full height */
   background-image: url("../images/login-background-img.jpg");
   background-repeat: no-repeat; /* Ensure no repetition */
-  background-size: cover; /* Cover the entire container */
+  background-size: cover; /* Cover the entire containe  r */
   background-position: center; /* Center the background image */
   opacity: 0.6;
   z-index: -1;
@@ -34,8 +33,9 @@
   z-index: 1;
   border-right: 1px solid #ddd;
   margin: 10px;
-  margin-left: 100px;
+  margin-left: 50px;
   margin-right: -50px;
+  margin-top: 30px;
   display: flex;
   flex-direction: column;
 }
@@ -81,12 +81,12 @@
 /* Table Container */
 .table-container {
   width: 80%;
-  max-height: 550px;
+  max-height: 400px;
   overflow-y: auto; /* This allows the table to scroll vertically */
   background-color: white;
   opacity: 0.9;
   z-index: 1;
-  margin-top: 10px;
+  margin-top: 30px;
   margin-left: 100px;
 }
 
@@ -136,6 +136,13 @@
   font-size: 12px;
 }
 
+/* Darker background on row hover */
+/* Darker background on row hover */
+.data-table tr:hover {
+  background-color: #e0e0e0 !important; /* Force hover color to override other background styles */
+  transition: background-color 0.3s ease;
+}
+
 .data-table th,
 .data-table td {
   border: 1px solid #ddd;
@@ -154,26 +161,53 @@ td:first-child {
   text-align: center;
 }
 
-/* Sticky Table Headers */
+/* Sortable Table Headers */
 .data-table th {
   position: sticky;
   top: 0;
-  background-color: #f2f2f2; /* Ensure the background doesn't turn transparent */
-  z-index: 2; /* Make sure it stays above the table rows */
+  background-color: #f2f2f2; /* Background color for header */
+  z-index: 2;
   font-size: 14px;
   color: #0083ca;
   border: 1px solid #ddd;
   padding: 8px;
   text-align: center;
   height: 50px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+/* Add a sorting icon or arrow */
+.sort-icon {
+  margin-left: 8px;
+  font-size: 12px; /* Adjust size for the arrow */
+  opacity: 0.6; /* Slightly faded to avoid overpowering */
 }
 
+.sort-asc .sort-icon::before {
+  content: "▲"; /* Up arrow for ascending order */
+}
+
+.sort-desc .sort-icon::before {
+  content: "▼"; /* Down arrow for descending order */
+}
+
+/* Active sorting header styles */
+.data-table th.sorted-asc {
+  background-color: #006699; /* Background for active sort in ascending order */
+  color: white;
+}
+
+.data-table th.sorted-desc {
+  background-color: #006699; /* Background for active sort in descending order */
+  color: white;
+}
 .data-table tr:nth-child(even) {
   background-color: #f9f9f9;
 }
 
-.data-table tr:hover {
-  background-color: #ddd;
+.data-table th:hover {
+  background-color: #0083ca; /* Darker background on hover */
+  color: white; /* Change text color on hover */
 }
 
 /* Pagination */
@@ -267,4 +301,10 @@ td:first-child {
   color: white;
   border: none;
   border-radius: 4px;
+}
+
+.bi {
+  margin-left: 5px; /* Adds some space between the text and the icon */
+  font-size: 12px;
+  vertical-align: middle; /* Aligns the icon with the text */
 }

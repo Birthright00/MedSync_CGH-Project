@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CSVLink } from "react-csv";
+import bootstrap from "bootstrap";
 
 const ManagementHomePage = () => {
   const [data, setData] = useState([]);
@@ -15,8 +16,11 @@ const ManagementHomePage = () => {
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [appointmentFilter, setAppointmentFilter] = useState("");
   const [trainingHoursFilter, setTrainingHoursFilter] = useState("");
-  const [entriesPerPage, setEntriesPerPage] = useState(5); // State to hold number of entries per page
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: null }); // State to track sorting
   const nav = useNavigate();
+  const [entriesPerPage, setEntriesPerPage] = useState(
+    () => Number(localStorage.getItem("entriesPerPage")) || 10
+  );
   const handleRowClick = (mcr_number) => {
     nav(`/staff/${mcr_number}`); // Navigate to the detail page
   };
@@ -28,6 +32,10 @@ const ManagementHomePage = () => {
     setAppointmentFilter("");
     setTrainingHoursFilter("");
     setFilteredData(data);
+  };
+
+  const handleRefresh = () => {
+    window.location.reload();
   };
 
   // Fetch data
@@ -50,6 +58,26 @@ const ManagementHomePage = () => {
     };
     fetchData();
   }, []);
+  // Function to handle sorting
+
+  const handleSort = (column) => {
+    let direction = "asc";
+    if (sortConfig.key === column && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key: column, direction });
+
+    const sortedData = [...data].sort((a, b) => {
+      if (a[column] < b[column]) {
+        return direction === "asc" ? -1 : 1;
+      }
+      if (a[column] > b[column]) {
+        return direction === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
+    setFilteredData(sortedData);
+  };
 
   // Filter data when filters change
   useEffect(() => {
@@ -118,7 +146,9 @@ const ManagementHomePage = () => {
 
   // Handle entries per page change
   const handleEntriesPerPageChange = (e) => {
-    setEntriesPerPage(Number(e.target.value)); // Update the number of entries per page
+    const value = Number(e.target.value);
+    setEntriesPerPage(value);
+    localStorage.setItem("entriesPerPage", value); // Save to localStorage
     setCurrentPage(1); // Reset to the first page
   };
 
@@ -136,6 +166,7 @@ const ManagementHomePage = () => {
             value={firstNameFilter}
             onChange={(e) => setFirstNameFilter(e.target.value)}
             placeholder="First name"
+            autoComplete="off"
           />
 
           <label htmlFor="last-name-filter">Last Name:</label>
@@ -145,6 +176,7 @@ const ManagementHomePage = () => {
             value={lastNameFilter}
             onChange={(e) => setLastNameFilter(e.target.value)}
             placeholder="Last name"
+            autoComplete="off"
           />
 
           <label htmlFor="department-filter">Department:</label>
@@ -154,6 +186,7 @@ const ManagementHomePage = () => {
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
             placeholder="Department"
+            autoComplete="off"
           />
 
           <label htmlFor="appointment-filter">Appointment:</label>
@@ -163,6 +196,7 @@ const ManagementHomePage = () => {
             value={appointmentFilter}
             onChange={(e) => setAppointmentFilter(e.target.value)}
             placeholder="Appointment"
+            autoComplete="off"
           />
 
           <label htmlFor="training-hours-filter">
@@ -174,6 +208,7 @@ const ManagementHomePage = () => {
             value={trainingHoursFilter}
             onChange={(e) => setTrainingHoursFilter(e.target.value)}
             placeholder="Training hours"
+            autoComplete="off"
           />
           <button className="reset-button" onClick={resetFilters}>
             Reset
@@ -184,15 +219,82 @@ const ManagementHomePage = () => {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>No</th> {/* Add this line */}
-                  <th>MCR Number</th>
-                  <th>First Name</th>
-                  <th>Last Name</th>
-                  <th>Department</th>
-                  <th>Appointment</th>
-                  <th>Teaching Training Hours</th>
+                  <th>No</th> {/* No sorting for this column */}
+                  <th onClick={() => handleSort("mcr_number")}>
+                    MCR Number
+                    <i
+                      className={`bi ${
+                        sortConfig.key === "mcr_number"
+                          ? sortConfig.direction === "asc"
+                            ? "bi-sort-up"
+                            : "bi-sort-down"
+                          : "bi-sort"
+                      }`}
+                    ></i>
+                  </th>
+                  <th onClick={() => handleSort("first_name")}>
+                    First Name
+                    <i
+                      className={`bi ${
+                        sortConfig.key === "first_name"
+                          ? sortConfig.direction === "asc"
+                            ? "bi-sort-up"
+                            : "bi-sort-down"
+                          : "bi-sort"
+                      }`}
+                    ></i>
+                  </th>
+                  <th onClick={() => handleSort("last_name")}>
+                    Last Name
+                    <i
+                      className={`bi ${
+                        sortConfig.key === "last_name"
+                          ? sortConfig.direction === "asc"
+                            ? "bi-sort-up"
+                            : "bi-sort-down"
+                          : "bi-sort"
+                      }`}
+                    ></i>
+                  </th>
+                  <th onClick={() => handleSort("department")}>
+                    Department
+                    <i
+                      className={`bi ${
+                        sortConfig.key === "department"
+                          ? sortConfig.direction === "asc"
+                            ? "bi-sort-up"
+                            : "bi-sort-down"
+                          : "bi-sort"
+                      }`}
+                    ></i>
+                  </th>
+                  <th onClick={() => handleSort("appointment")}>
+                    Appointment
+                    <i
+                      className={`bi ${
+                        sortConfig.key === "appointment"
+                          ? sortConfig.direction === "asc"
+                            ? "bi-sort-up"
+                            : "bi-sort-down"
+                          : "bi-sort"
+                      }`}
+                    ></i>
+                  </th>
+                  <th onClick={() => handleSort("teaching_training_hours")}>
+                    Teaching Training Hours
+                    <i
+                      className={`bi ${
+                        sortConfig.key === "teaching_training_hours"
+                          ? sortConfig.direction === "asc"
+                            ? "bi-sort-up"
+                            : "bi-sort-down"
+                          : "bi-sort"
+                      }`}
+                    ></i>
+                  </th>
                 </tr>
               </thead>
+
               <tbody>
                 {rowsToDisplay.map((staff, index) => (
                   <tr
@@ -216,16 +318,28 @@ const ManagementHomePage = () => {
           <div className="pagination-background">
             <div className="entries-per-page">
               <label htmlFor="entries-per-page">Entries per page : </label>
-              <select
+              <input
+                id="entries-per-page"
+                value={entriesPerPage}
+                onChange={handleEntriesPerPageChange}
+                autoComplete="off"
+              />
+              {/* <select
                 id="entries-per-page"
                 value={entriesPerPage}
                 onChange={handleEntriesPerPageChange}
               >
                 <option value="5">5</option>
                 <option value="10">10</option>
+                <option value="15">15</option>
+                <option value="20">20</option>
                 <option value="25">25</option>
+                <option value="30">30</option>
+                <option value="35">35</option>
+                <option value="40">40</option>
+                <option value="45">45</option>
                 <option value="50">50</option>
-              </select>
+              </select> */}
             </div>
 
             <div className="pagination-container">
@@ -244,6 +358,12 @@ const ManagementHomePage = () => {
                   disabled={indexOfLastEntry >= filteredData.length}
                 >
                   Next
+                </button>
+                <button
+                  onClick={handleRefresh}
+                  disabled={indexOfLastEntry >= filteredData.length}
+                >
+                  Refresh
                 </button>
               </div>
               <div className="download-section">

@@ -7,6 +7,22 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return ""; // Return empty string if date is null or undefined
+
+  const date = new Date(dateStr);
+
+  // Get year, month, day, hours, and minutes, adding leading zeros where necessary
+  const year = date.getFullYear();
+  const month = ("0" + (date.getMonth() + 1)).slice(-2); // Ensure two digits for month
+  const day = ("0" + date.getDate()).slice(-2); // Ensure two digits for day
+  const hours = ("0" + date.getHours()).slice(-2); // Ensure two digits for hours
+  const minutes = ("0" + date.getMinutes()).slice(-2); // Ensure two digits for minutes
+
+  // Format it as YYYY-MM-DDTHH:MM (required for datetime-local input type)
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 const Entry = () => {
   const [staffDetails, setStaffDetails] = useState({
     mcr_number: "",
@@ -149,7 +165,7 @@ const Entry = () => {
       <Navbar homeRoute="/management-home" />
       <div className="staff-detail-page">
         <div className="staff-info-container">
-          <h2>Add New Staff</h2>
+          <h2>Staff Details</h2>
           <table className="staff-detail-table">
             <tbody>
               <tr>
@@ -224,7 +240,7 @@ const Entry = () => {
                   <input
                     type="datetime-local"
                     name="start_date"
-                    value={staffDetails.start_date}
+                    value={formatDateTime(staffDetails.start_date)}
                     onChange={handleInputChange}
                   />
                 </td>
@@ -235,7 +251,7 @@ const Entry = () => {
                   <input
                     type="datetime-local"
                     name="end_date"
-                    value={staffDetails.end_date}
+                    value={formatDateTime(staffDetails.end_date)}
                     onChange={handleInputChange}
                   />
                 </td>
@@ -246,7 +262,7 @@ const Entry = () => {
                   <input
                     type="datetime-local"
                     name="renewal_start_date"
-                    value={staffDetails.renewal_start_date}
+                    value={formatDateTime(staffDetails.renewal_start_date)}
                     onChange={handleInputChange}
                   />
                 </td>
@@ -257,7 +273,18 @@ const Entry = () => {
                   <input
                     type="datetime-local"
                     name="renewal_end_date"
-                    value={staffDetails.renewal_end_date}
+                    value={formatDateTime(staffDetails.renewal_end_date)}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
                     onChange={handleInputChange}
                   />
                 </td>
@@ -271,11 +298,11 @@ const Entry = () => {
         {/* ------------------------------------------------------- */}
 
         <div className="staff-info-container">
-          <h2>Add New Staff</h2>
+          <h2>Staff Details</h2>
           <table className="staff-detail-table">
             <tbody>
               <tr>
-                <th>Email</th>
+                <th>Email Address</th>
                 <td>
                   <input
                     type="email"
@@ -285,8 +312,101 @@ const Entry = () => {
                   />
                 </td>
               </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>{" "}
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>Created At</th>
+                <td>{formatDateTime(staffDetails.created_at)}</td>
+              </tr>
+              <tr>
+                <th>Last Updated At</th>
+                <td>{formatDateTime(staffDetails.updated_at)}</td>
+              </tr>
+              <tr>
+                <th>Created By</th>
+                <td>{staffDetails.created_by}</td>
+              </tr>
+              <tr>
+                <th>Last Updated By</th>
+                <td>{staffDetails.updated_by}</td>
+              </tr>
             </tbody>
-          </table>{" "}
+          </table>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
@@ -297,7 +417,7 @@ const Entry = () => {
           </motion.button>
         </div>
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 };

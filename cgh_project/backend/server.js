@@ -171,22 +171,48 @@ app.get("/database", verifyToken, (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 // PROTECTED Database POST - For Postman (Development purposes only)
 // -------------------------------------------------------------------------------------------------------------//
-app.post("/database", verifyToken, (req, res) => {
-  // Added token verification
-  const q =
-    "INSERT INTO main_data (mcr_number, first_name, last_name, department, appointment, teaching_training_hours) VALUES (?, ?, ?, ?, ?, ?)";
-  const values = [
-    req.body.mcr_number,
-    req.body.first_name,
-    req.body.last_name,
-    req.body.department,
-    req.body.appointment,
-    req.body.teaching_training_hours,
-  ];
+app.post("/login", (req, res) => {
+  const { mcr_number, password, selectedRole } = req.body;
 
-  db.query(q, values, (err, data) => {
-    if (err) return res.status(500).json(err);
-    return res.json(data);
+  const q = "SELECT * FROM user_data WHERE mcr_number = ?";
+
+  db.query(q, [mcr_number], (err, data) => {
+    if (err) {
+      return res.status(500).json({ error: "Database error occurred" });
+    }
+
+    if (data.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = data[0];
+
+    bcrypt.compare(password, user.user_password, (err, isMatch) => {
+      if (err) {
+        return res.status(500).json({ error: "Error comparing passwords" });
+      }
+
+      if (!isMatch) {
+        return res.status(401).json({ error: "Incorrect password" });
+      }
+
+      if (user.role !== selectedRole) {
+        return res.status(403).json({ error: "Role does not match" });
+      }
+
+      // Create a JWT token, storing the mcr_number in the token payload
+      const token = jwt.sign(
+        { id: user.mcr_number, role: user.role },
+        JWT_SECRET,
+        { expiresIn: "1h" }
+      );
+
+      return res.status(200).json({
+        message: "Authentication successful",
+        token,
+        role: user.role,
+      });
+    });
   });
 });
 
@@ -229,15 +255,15 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
     email,
   } = req.body;
 
-  console.log("Request body:", req.body); // Log the request body to check if everything is received correctly
-  console.log("MCR Number:", mcr_number); // Log the MCR number
+  const userMcrNumber = req.user.id; // Get the MCR number of the logged-in user from the token
 
   const q = `
     UPDATE main_data 
     SET first_name = ?, last_name = ?, department = ?, appointment = ?, 
         teaching_training_hours = ?, start_date = ?, end_date = ?, 
-        renewal_start_date = ?, renewal_end_date = ?, email = ?
-    WHERE mcr_number = ?`;
+        renewal_start_date = ?, renewal_end_date = ?, email = ?, updated_by = ?
+    WHERE mcr_number = ?
+  `;
 
   const values = [
     first_name,
@@ -250,12 +276,13 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
     renewal_start_date,
     renewal_end_date,
     email,
+    userMcrNumber, // Log who updated the record (the currently logged-in user)
     mcr_number,
   ];
 
   db.query(q, values, (err, data) => {
     if (err) {
-      console.error("Error during the query execution:", err); // Log the error
+      console.error("Error during the query execution:", err);
       return res.status(500).json({ error: "Failed to update staff details" });
     }
     return res.json({ message: "Staff details updated successfully" });
@@ -280,7 +307,9 @@ app.post("/entry", verifyToken, (req, res) => {
     email,
   } = req.body;
 
-  // Validate required fields (you can add more validations if needed)
+  const userMcrNumber = req.user.id; // Get the MCR number of the logged-in user from the token
+
+  // Validate required fields
   if (
     !mcr_number ||
     !first_name ||
@@ -294,11 +323,10 @@ app.post("/entry", verifyToken, (req, res) => {
       .json({ error: "Please provide all required fields" });
   }
 
-  // SQL query to insert the new staff details
   const q = `
     INSERT INTO main_data 
-    (mcr_number, first_name, last_name, department, appointment, teaching_training_hours, start_date, end_date, renewal_start_date, renewal_end_date, email) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (mcr_number, first_name, last_name, department, appointment, teaching_training_hours, start_date, end_date, renewal_start_date, renewal_end_date, email, created_by) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const values = [
@@ -313,12 +341,12 @@ app.post("/entry", verifyToken, (req, res) => {
     renewal_start_date,
     renewal_end_date,
     email,
+    userMcrNumber, // Log who created the record (the currently logged-in user)
   ];
 
-  // Execute the query to insert new staff details
   db.query(q, values, (err, data) => {
     if (err) {
-      console.error("Error inserting new staff details:", err); // Log any error
+      console.error("Error inserting new staff details:", err);
       return res.status(500).json({ error: "Failed to add new staff details" });
     }
     return res
@@ -327,9 +355,6 @@ app.post("/entry", verifyToken, (req, res) => {
   });
 });
 
-// -------------------------------------------------------------------------------------------------------------//
-// Database Delete - Staff Details, DELETE route to delete staff details
-// -------------------------------------------------------------------------------------------------------------//
 // -------------------------------------------------------------------------------------------------------------//
 // Database Delete - Staff Details, DELETE route to delete staff details
 // -------------------------------------------------------------------------------------------------------------//

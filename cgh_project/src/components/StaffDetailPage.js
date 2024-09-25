@@ -74,6 +74,8 @@ const StaffDetailPage = () => {
       );
       toast.error("Failed to update staff details");
     }
+
+    window.location.reload();
   };
 
   // Function to handle deletion
@@ -320,48 +322,20 @@ const StaffDetailPage = () => {
                 </td>
               </tr>
               <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
+                <th>Created At</th>
+                <td>{formatDateTime(staffDetails.created_at)}</td>
               </tr>
               <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
+                <th>Last Updated at</th>
+                <td>{formatDateTime(staffDetails.updated_at)}</td>
               </tr>
               <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
+                <th>Created by</th>
+                <td>{staffDetails.created_by}</td>
               </tr>
               <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
+                <th>Last Updated by</th>
+                <td>{staffDetails.updated_by}</td>
               </tr>
             </tbody>
           </table>

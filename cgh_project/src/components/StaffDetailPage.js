@@ -439,7 +439,7 @@ const StaffDetailPage = () => {
             className="update-button"
             onClick={handleSubmit}
           >
-            Submit
+            Update
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}

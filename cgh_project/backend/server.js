@@ -238,7 +238,7 @@ app.get("/staff/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// Database Update - Staff Details, PUT route to update staff details
+// Database Update - PUT Request to update Staff Details and Contracts
 // -------------------------------------------------------------------------------------------------------------//
 app.put("/staff/:mcr_number", verifyToken, (req, res) => {
   const mcr_number = req.params.mcr_number;
@@ -260,8 +260,7 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
   const q = `
     UPDATE main_data 
     SET first_name = ?, last_name = ?, department = ?, appointment = ?, 
-        teaching_training_hours = ?, start_date = ?, end_date = ?, 
-        renewal_start_date = ?, renewal_end_date = ?, email = ?, updated_by = ?
+        teaching_training_hours = ?, email = ?, updated_by = ?
     WHERE mcr_number = ?
   `;
 
@@ -271,10 +270,6 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
     department,
     appointment,
     teaching_training_hours,
-    start_date,
-    end_date,
-    renewal_start_date,
-    renewal_end_date,
     email,
     userMcrNumber, // Log who updated the record (the currently logged-in user)
     mcr_number,
@@ -378,6 +373,67 @@ app.delete("/staff/:mcr_number", verifyToken, (req, res) => {
     return res.json({
       message: `Staff with MCR Number ${mcr_number} deleted successfully`,
     });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// Contracts Table --> GET Request for contracts data by mcr_number
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params;
+
+  // Query to get all contracts for the given doctor MCR number
+  const q = `
+    SELECT * FROM contracts
+    WHERE mcr_number = ?
+    ORDER BY start_date ASC;
+  `;
+
+  db.query(q, [mcr_number], (err, data) => {
+    if (err) {
+      console.error("Error retrieving contracts data:", err);
+      return res
+        .status(500)
+        .json({ message: "Error retrieving contracts data" });
+    }
+
+    if (data.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No contracts found for this doctor" });
+    }
+
+    res.json(data);
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// Get doctor details along with contracts for specific MCR numbers
+// -------------------------------------------------------------------------------------------------------------//
+
+app.post("/doctors/contracts", verifyToken, (req, res) => {
+  const { mcr_numbers } = req.body;
+
+  if (!mcr_numbers || mcr_numbers.length === 0) {
+    return res.status(400).json({ message: "MCR numbers are required" });
+  }
+
+  // Construct a query to fetch data from both `main_data` and `contracts`
+  const q = `
+    SELECT main_data.*, contracts.school_name, contracts.start_date, contracts.end_date, contracts.status
+    FROM main_data
+    LEFT JOIN contracts ON main_data.mcr_number = contracts.mcr_number
+    WHERE main_data.mcr_number IN (?);
+  `;
+
+  db.query(q, [mcr_numbers], (err, data) => {
+    if (err) {
+      console.error("Error retrieving doctors and contracts data:", err);
+      return res.status(500).json({ message: "Error retrieving data" });
+    }
+
+    // Respond with the combined data
+    res.json(data);
   });
 });
 

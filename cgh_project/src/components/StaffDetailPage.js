@@ -1,9 +1,8 @@
 import "../styles/staffdetailpage.css"; // Create a new CSS file for this page
 import Navbar from "../components/Navbar";
-import Footer from "../components/footer";
+import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom"; // Added useNavigate for navigation
-import { motion } from "framer-motion";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -17,17 +16,38 @@ const StaffDetailPage = () => {
     department: "",
     appointment: "",
     teaching_training_hours: "",
-    start_date: "",
-    end_date: "",
-    renewal_start_date: "",
-    renewal_end_date: "",
     email: "",
   });
+
+  const [contracts, setContracts] = useState([]);
+
+  // Function to fetch contracts by MCR number
+  const fetchContracts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3001/contracts/${mcr_number}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      console.log("Contracts Data: ", response.data); // <-- Add this line
+      setContracts(response.data);
+    } catch (error) {
+      console.error("Error fetching contracts:", error);
+
+      toast.error("Failed to fetch contracts");
+    }
+  };
+
   const navigate = useNavigate(); // Use navigate to redirect after delete
 
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem("token");
+
+      // Log staff details state before submission
+      console.log("Staff details state before submit: ", staffDetails);
 
       // Send PUT request to update staff details
       const dataToSubmit = {
@@ -57,6 +77,9 @@ const StaffDetailPage = () => {
               .replace("T", " ")
           : null,
       };
+
+      // Log the data being submitted
+      console.log("Data being submitted: ", dataToSubmit);
 
       await axios.put(
         `http://localhost:3001/staff/${mcr_number}`,
@@ -143,6 +166,7 @@ const StaffDetailPage = () => {
       }
     };
 
+    fetchContracts();
     fetchStaffDetails();
   }, [mcr_number]);
 
@@ -237,173 +261,7 @@ const StaffDetailPage = () => {
                     onChange={handleInputChange}
                   />
                 </td>
-              </tr>
-              <tr>
-                <th>Start Date</th>
-                <td>
-                  <input
-                    type="datetime-local"
-                    name="start_date"
-                    value={formatDateTime(staffDetails.start_date)}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>End Date</th>
-                <td>
-                  <input
-                    type="datetime-local"
-                    name="end_date"
-                    value={formatDateTime(staffDetails.end_date)}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Renewal Start Date</th>
-                <td>
-                  <input
-                    type="datetime-local"
-                    name="renewal_start_date"
-                    value={formatDateTime(staffDetails.renewal_start_date)}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Renewal End Date</th>
-                <td>
-                  <input
-                    type="datetime-local"
-                    name="renewal_end_date"
-                    value={formatDateTime(staffDetails.renewal_end_date)}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* ------------------------------------------------------- */}
-        {/* End of Left Form */}
-        {/* ------------------------------------------------------- */}
-
-        <div className="staff-info-container">
-          <h2>Staff Details</h2>
-          <table className="staff-detail-table">
-            <tbody>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
               </tr>{" "}
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
               <tr>
                 <th>Email Address</th>
                 <td>
@@ -432,14 +290,14 @@ const StaffDetailPage = () => {
                 <td>{staffDetails.updated_by}</td>
               </tr>
             </tbody>
-          </table>
+          </table>{" "}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="update-button"
             onClick={handleSubmit}
           >
-            Update
+            Update Data
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -450,9 +308,86 @@ const StaffDetailPage = () => {
             Delete
           </motion.button>
         </div>
-      </div>
 
-      {/* <Footer /> */}
+        {/* ------------------------------------------------------- */}
+        {/* End of Left Form | Start of Contracts Section*/}
+        {/* ------------------------------------------------------- */}
+
+        <div className="staff-info-container">
+          <h2>Contracts</h2>
+          <div className="contracts-table-container">
+            <table className="contracts-table">
+              <thead>
+                <tr>
+                  <th>School Name</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contracts.length > 0 ? (
+                  contracts.map((contract, index) => (
+                    <tr key={index}>
+                      <td>{contract.school_name}</td>
+                      <td>
+                        {new Date(contract.start_date).toLocaleDateString()}
+                      </td>
+                      <td>
+                        {new Date(contract.end_date).toLocaleDateString()}
+                      </td>
+                      <td>{contract.status}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4">No contracts found for this doctor.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>{" "}
+          </div>{" "}
+          <h2>Promotion</h2>
+          <div className="contracts-table-container">
+            <table className="contracts-table">
+              <thead>
+                <tr>
+                  <th>New Title</th>
+                  <th>Prev Title</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contracts.length > 0 ? (
+                  contracts.map((contract, index) => (
+                    <tr key={index}>
+                      <td>{contract.school_name}</td>
+                      <td>
+                        {new Date(contract.start_date).toLocaleDateString()}
+                      </td>
+                      <td>
+                        {new Date(contract.end_date).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4">No contracts found for this doctor.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>{" "}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="update-button"
+            onClick={handleSubmit}
+          >
+            Download All
+          </motion.button>
+        </div>
+      </div>
     </>
   );
 };

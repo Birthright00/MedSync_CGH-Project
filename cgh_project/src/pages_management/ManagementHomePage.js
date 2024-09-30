@@ -11,6 +11,7 @@ const ManagementHomePage = () => {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [mcrNumberFilter, setMcrNumberFilter] = useState("");
   const [firstNameFilter, setFirstNameFilter] = useState("");
   const [lastNameFilter, setLastNameFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
@@ -21,11 +22,13 @@ const ManagementHomePage = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(
     () => Number(localStorage.getItem("entriesPerPage")) || 10
   );
+
   const handleRowClick = (mcr_number) => {
     nav(`/staff/${mcr_number}`); // Navigate to the detail page
   };
   // Reset filters
   const resetFilters = () => {
+    setMcrNumberFilter("");
     setFirstNameFilter("");
     setLastNameFilter("");
     setDepartmentFilter("");
@@ -83,6 +86,7 @@ const ManagementHomePage = () => {
   useEffect(() => {
     const filtered = data.filter(
       (staff) =>
+        staff.mcr_number.toString().includes(mcrNumberFilter) &&
         staff.first_name
           .toLowerCase()
           .includes(firstNameFilter.toLowerCase()) &&
@@ -101,6 +105,7 @@ const ManagementHomePage = () => {
     setFilteredData(filtered);
     setCurrentPage(1); // Reset to first page when filter changes
   }, [
+    mcrNumberFilter,
     firstNameFilter,
     lastNameFilter,
     departmentFilter,
@@ -159,6 +164,15 @@ const ManagementHomePage = () => {
         <div className="filter-section">
           <h3>Filter</h3>
 
+          <label htmlFor="mcr-number-filter">MCR Number:</label>
+          <input
+            type="text"
+            id="mcr-number-filter"
+            value={mcrNumberFilter}
+            onChange={(e) => setMcrNumberFilter(e.target.value)}
+            placeholder="MCR Number"
+            autoComplete="off"
+          />
           <label htmlFor="first-name-filter">First Name:</label>
           <input
             type="text"
@@ -280,7 +294,7 @@ const ManagementHomePage = () => {
                       }`}
                     ></i>
                   </th>
-                  <th onClick={() => handleSort("teaching_training_hours")}>
+                  {/* <th onClick={() => handleSort("teaching_training_hours")}>
                     Teaching Training Hours
                     <i
                       className={`bi ${
@@ -291,7 +305,7 @@ const ManagementHomePage = () => {
                           : "bi-sort"
                       }`}
                     ></i>
-                  </th>
+                  </th> */}
                 </tr>
               </thead>
 
@@ -308,7 +322,7 @@ const ManagementHomePage = () => {
                     <td>{staff.last_name}</td>
                     <td>{staff.department}</td>
                     <td>{staff.appointment}</td>
-                    <td>{staff.teaching_training_hours}</td>
+                    {/* <td>{staff.teaching_training_hours}</td> */}
                   </tr>
                 ))}
               </tbody>

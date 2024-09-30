@@ -81,7 +81,7 @@
 /* Table Container */
 .table-container {
   width: 80%;
-  max-height: 400px;
+  max-height: 600px;
   overflow-y: auto; /* This allows the table to scroll vertically */
   background-color: white;
   opacity: 0.9;
@@ -152,7 +152,9 @@
   overflow: hidden; /* Ensures no content overflow */
   white-space: nowrap; /* Prevents text from wrapping */
   text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
+  font-weight: bold ;
 }
+
 
 /* Making the first column "no" thinner */
 th:first-child,

@@ -1,9 +1,7 @@
 import "../styles/staffdetailpage.css"; // Create a new CSS file for this page
 import Navbar from "../components/Navbar";
-import Footer from "../components/footer";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom"; // Added useNavigate for navigation
-import { motion } from "framer-motion";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -17,13 +15,29 @@ const StaffDetailPage = () => {
     department: "",
     appointment: "",
     teaching_training_hours: "",
-    start_date: "",
-    end_date: "",
-    renewal_start_date: "",
-    renewal_end_date: "",
     email: "",
   });
+
+  const [contracts, setContracts] = useState([]);
   const navigate = useNavigate(); // Use navigate to redirect after delete
+
+  // Function to fetch contracts by MCR number
+  const fetchContracts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3001/contracts/${mcr_number}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      console.log("Contracts Data: ", response.data); // Log the contracts data
+      setContracts(response.data); // Set the contracts state
+    } catch (error) {
+      console.error("Error fetching contracts:", error);
+      toast.error("Failed to fetch contracts");
+    }
+  };
 
   const handleSubmit = async () => {
     try {
@@ -136,14 +150,13 @@ const StaffDetailPage = () => {
           }
         );
         setStaffDetails(response.data);
-        setLoading(false);
       } catch (error) {
         console.error("Error fetching staff details:", error);
-        setLoading(false);
       }
     };
 
     fetchStaffDetails();
+    fetchContracts(); // Fetch contracts as well
   }, [mcr_number]);
 
   const handleInputChange = (e) => {
@@ -237,8 +250,19 @@ const StaffDetailPage = () => {
                     onChange={handleInputChange}
                   />
                 </td>
-              </tr>
+              </tr>{" "}
               <tr>
+                <th>Email Address</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              {/* <tr>
                 <th>Start Date</th>
                 <td>
                   <input
@@ -281,140 +305,8 @@ const StaffDetailPage = () => {
                     onChange={handleInputChange}
                   />
                 </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* ------------------------------------------------------- */}
-        {/* End of Left Form */}
-        {/* ------------------------------------------------------- */}
-
-        <div className="staff-info-container">
-          <h2>Staff Details</h2>
-          <table className="staff-detail-table">
-            <tbody>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>{" "}
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
+              </tr> */}
+              <h2>Data History</h2>
               <tr>
                 <th>Created At</th>
                 <td>{formatDateTime(staffDetails.created_at)}</td>
@@ -433,26 +325,48 @@ const StaffDetailPage = () => {
               </tr>
             </tbody>
           </table>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            className="update-button"
-            onClick={handleSubmit}
-          >
-            Update
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            className="delete-button"
-            onClick={handleDelete}
-          >
-            Delete
-          </motion.button>
+        </div>
+
+        {/* ------------------------------------------------------- */}
+        {/* End of Left Form | Start of Contracts Section*/}
+        {/* ------------------------------------------------------- */}
+
+        <div className="staff-info-container">
+          <h2>Contracts</h2>
+          <div className="contracts-table-container">
+            <table className="contracts-table">
+              <thead>
+                <tr>
+                  <th>School Name</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contracts.length > 0 ? (
+                  contracts.map((contract, index) => (
+                    <tr key={index}>
+                      <td>{contract.school_name}</td>
+                      <td>
+                        {new Date(contract.start_date).toLocaleDateString()}
+                      </td>
+                      <td>
+                        {new Date(contract.end_date).toLocaleDateString()}
+                      </td>
+                      <td>{contract.status}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4">No contracts found for this doctor.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-
-      {/* <Footer /> */}
     </>
   );
 };

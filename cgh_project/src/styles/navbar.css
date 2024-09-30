@@ -2,6 +2,8 @@
 
 /* General Navbar Styles */
 .navbar {
+  position: sticky;
+  top: 0;
   font-family: "Montserrat", sans-serif;
   background-color: white;
   background-size: cover;

@@ -382,6 +382,37 @@ app.delete("/staff/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// Contracts Table --> GET Request for contracts data by mcr_number
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params;
+
+  // Query to get all contracts for the given doctor MCR number
+  const q = `
+    SELECT * FROM contracts
+    WHERE mcr_number = ?
+    ORDER BY start_date ASC;
+  `;
+
+  db.query(q, [mcr_number], (err, data) => {
+    if (err) {
+      console.error("Error retrieving contracts data:", err);
+      return res
+        .status(500)
+        .json({ message: "Error retrieving contracts data" });
+    }
+
+    if (data.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No contracts found for this doctor" });
+    }
+
+    res.json(data);
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start
 // -------------------------------------------------------------------------------------------------------------//
 db.connect((err) => {

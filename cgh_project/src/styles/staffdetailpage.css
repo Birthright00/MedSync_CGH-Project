@@ -41,62 +41,112 @@
 .staff-info-container h2 {
   color: #0083ca;
   margin-bottom: 20px;
-  font-size: 14px;
+  font-size: 16px;
   text-align: center;
+  justify-content: center;
 }
 
 /* Table Style for Staff Information */
 .staff-detail-table {
   width: 100%;
-
   border-collapse: collapse;
+  margin-top: 20px; /* Add spacing above tables */
+  font-size: 12px; /* Match font size for consistency */
 }
 
 .staff-detail-table th,
-.staff-detail-table td {
+.contracts-table th,
+.staff-detail-table td,
+.contracts-table td {
   padding: 12px 15px;
   border: 1px solid #ddd;
   text-align: left;
 }
 
-.staff-detail-table th {
+/* Header styling for both tables */
+.staff-detail-table th,
+.contracts-table th {
   background-color: #f2f2f2;
   font-weight: bold;
   color: #0083ca;
   font-size: 12px;
   width: 150px; /* Fixed width for the header */
-  overflow: hidden; /* Ensures no content overflow */
-  white-space: nowrap; /* Prevents text from wrapping */
+  overflow: hidden;
+  white-space: nowrap; /* Prevent text from wrapping */
   text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
 }
 
-.staff-detail-table td {
+/* Body styling for both tables */
+.staff-detail-table td,
+.contracts-table td {
   font-size: 12px;
 }
 
-/* Centralize the input fields */
+/* Input fields styling for both tables */
 .staff-detail-table td input {
   width: 100%; /* Full width within the table cell */
-  padding: 5px; /* Consistent padding for input fields */
+  padding: 5px;
   font-size: 12px;
   box-sizing: border-box;
-  text-align: left; /* Align input text to the left */
-  margin: 0; /* Remove margin for cleaner look */
+  text-align: left;
+  margin: 0;
 }
 
-/* Responsive Layout */
-@media (max-width: 768px) {
-  .staff-info-container {
-    width: 90%;
-    padding: 15px;
-  }
-
-  .staff-detail-table th,
-  .staff-detail-table td {
-    font-size: 12px;
-  }
+/* Scrollable Contract Table Container */
+.contracts-table-container {
+  max-height: 580px; /* Set maximum height */
+  overflow-y: auto; /* Enable vertical scrolling */
+  border: 1px solid #ddd; /* Border around the scrollable table */
+  border-radius: 5px; /* Add slight rounding */
+  margin-top: 0; /* Remove any additional margin */
+  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px; /* Subtle shadow */
 }
 
+/* Table Styling for Contracts */
+.contracts-table {
+  width: 100%;
+  border-collapse: collapse; /* Ensure no spacing between table cells */
+}
+
+/* Sticky Header */
+.contracts-table th {
+  background-color: #f2f2f2;
+  color: #0083ca;
+  position: sticky;
+  top: 0; /* Stick the header to the top */
+  z-index: 1; /* Ensure the header stays above the table content */
+  padding: 12px 15px; /* Consistent padding */
+  text-align: left; /* Align text to the left */
+  border-bottom: 2px solid #ddd; /* Thicker bottom border for distinction */
+}
+
+/* Table Row and Cell Styling */
+.contracts-table td {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+/* Highlight Alternate Rows with Grey */
+.contracts-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9; /* Light grey color */
+}
+
+/* Make the scroll bar narrower */
+.contracts-table-container::-webkit-scrollbar {
+  width: 8px; /* Set the width of the scrollbar */
+}
+
+.contracts-table-container::-webkit-scrollbar-thumb {
+  background-color: #888; /* Set the scrollbar thumb color */
+  border-radius: 5px; /* Rounded edges */
+}
+
+.contracts-table-container::-webkit-scrollbar-thumb:hover {
+  background-color: #555; /* Change color on hover */
+}
+
+/* Consistent styling for update and delete buttons */
 .update-button {
   margin-top: 20px;
   font-family: "Montserrat", sans-serif;
@@ -105,7 +155,7 @@
   border-radius: 5px;
   border-style: solid;
   border-width: 1px;
-  border-color: #0083ca; /* Consistent blue border */
+  border-color: #0083ca;
   font-size: 14px;
   padding: 12px;
   transition: background-color 500ms, color 500ms;
@@ -122,11 +172,26 @@
   border-radius: 5px;
   border-style: solid;
   border-width: 1px;
-  border-color: black; /* Consistent blue border */
+  border-color: black;
   font-size: 14px;
   padding: 12px;
   transition: background-color 500ms, color 500ms;
   background-color: red;
   color: white;
   box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+}
+
+/* Responsive Layout */
+@media (max-width: 768px) {
+  .staff-info-container {
+    width: 90%;
+    padding: 15px;
+  }
+
+  .staff-detail-table th,
+  .staff-detail-table td,
+  .contracts-table th,
+  .contracts-table td {
+    font-size: 12px;
+  }
 }

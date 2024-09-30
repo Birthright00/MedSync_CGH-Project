@@ -280,7 +280,7 @@ const ManagementHomePage = () => {
                       }`}
                     ></i>
                   </th>
-                  <th onClick={() => handleSort("teaching_training_hours")}>
+                  {/* <th onClick={() => handleSort("teaching_training_hours")}>
                     Teaching Training Hours
                     <i
                       className={`bi ${
@@ -291,7 +291,7 @@ const ManagementHomePage = () => {
                           : "bi-sort"
                       }`}
                     ></i>
-                  </th>
+                  </th> */}
                 </tr>
               </thead>
 
@@ -308,7 +308,7 @@ const ManagementHomePage = () => {
                     <td>{staff.last_name}</td>
                     <td>{staff.department}</td>
                     <td>{staff.appointment}</td>
-                    <td>{staff.teaching_training_hours}</td>
+                    {/* <td>{staff.teaching_training_hours}</td> */}
                   </tr>
                 ))}
               </tbody>

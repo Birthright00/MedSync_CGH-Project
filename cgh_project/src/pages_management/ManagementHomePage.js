@@ -22,7 +22,21 @@ const ManagementHomePage = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(
     () => Number(localStorage.getItem("entriesPerPage")) || 10
   );
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return ""; // Return empty string if date is null or undefined
 
+    const date = new Date(dateStr);
+
+    // Get year, month, day, hours, and minutes, adding leading zeros where necessary
+    const year = date.getFullYear();
+    const month = ("0" + (date.getMonth() + 1)).slice(-2); // Ensure two digits for month
+    const day = ("0" + date.getDate()).slice(-2); // Ensure two digits for day
+    const hours = ("0" + date.getHours()).slice(-2); // Ensure two digits for hours
+    const minutes = ("0" + date.getMinutes()).slice(-2); // Ensure two digits for minutes
+
+    // Format it as YYYY-MM-DDTHH:MM (required for datetime-local input type)
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
   const handleRowClick = (mcr_number) => {
     nav(`/staff/${mcr_number}`); // Navigate to the detail page
   };
@@ -169,10 +183,14 @@ const ManagementHomePage = () => {
             type="text"
             id="mcr-number-filter"
             value={mcrNumberFilter}
-            onChange={(e) => setMcrNumberFilter(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setMcrNumberFilter(value.replace(/^m/i, "M")); // Replace the first 'm' or 'M' with 'M'
+            }}
             placeholder="MCR Number"
             autoComplete="off"
           />
+
           <label htmlFor="first-name-filter">First Name:</label>
           <input
             type="text"
@@ -294,7 +312,7 @@ const ManagementHomePage = () => {
                       }`}
                     ></i>
                   </th>
-                  {/* <th onClick={() => handleSort("teaching_training_hours")}>
+                  <th onClick={() => handleSort("teaching_training_hours")}>
                     Teaching Training Hours
                     <i
                       className={`bi ${
@@ -305,7 +323,15 @@ const ManagementHomePage = () => {
                           : "bi-sort"
                       }`}
                     ></i>
-                  </th> */}
+                  </th>
+                  <th>Email</th>
+                  <th>Created At</th>
+                  <th>Updated At</th>
+                  <th>Created By</th>
+                  <th>Updated By</th>
+                  <th>Deleted By</th>
+                  <th>Deleted At</th>
+                  <th>FTE</th>
                 </tr>
               </thead>
 
@@ -322,7 +348,15 @@ const ManagementHomePage = () => {
                     <td>{staff.last_name}</td>
                     <td>{staff.department}</td>
                     <td>{staff.appointment}</td>
-                    {/* <td>{staff.teaching_training_hours}</td> */}
+                    <td>{staff.teaching_training_hours}</td>
+                    <td>{staff.email}</td>
+                    <td>{formatDateTime(staff.created_at)}</td>
+                    <td>{formatDateTime(staff.updated_at)}</td>
+                    <td>{formatDateTime(staff.created_by)}</td>
+                    <td>{staff.updated_by}</td>
+                    <td>{staff.deleted_by || "N/A"}</td>{" "}
+                    <td>{formatDateTime(staff.deleted_at)}</td>
+                    <td>{staff.fte}</td>
                   </tr>
                 ))}
               </tbody>
@@ -338,22 +372,6 @@ const ManagementHomePage = () => {
                 onChange={handleEntriesPerPageChange}
                 autoComplete="off"
               />
-              {/* <select
-                id="entries-per-page"
-                value={entriesPerPage}
-                onChange={handleEntriesPerPageChange}
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="15">15</option>
-                <option value="20">20</option>
-                <option value="25">25</option>
-                <option value="30">30</option>
-                <option value="35">35</option>
-                <option value="40">40</option>
-                <option value="45">45</option>
-                <option value="50">50</option>
-              </select> */}
             </div>
 
             <div className="pagination-container">

@@ -20,6 +20,7 @@ const StaffDetailPage = () => {
   });
 
   const [contracts, setContracts] = useState([]);
+  const [promotions, setPromotions] = useState([]);
 
   // Function to fetch contracts by MCR number
   const fetchContracts = async () => {
@@ -37,6 +38,24 @@ const StaffDetailPage = () => {
       console.error("Error fetching contracts:", error);
 
       toast.error("Failed to fetch contracts");
+    }
+  };
+  const fetchPromotions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3001/promotions/${mcr_number}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      console.log("Fetched Promotions Data: ", response.data);
+      if (JSON.stringify(response.data) !== JSON.stringify(promotions)) {
+        setPromotions(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching promotions:", error);
+      toast.error("Failed to fetch promotions");
     }
   };
 
@@ -165,7 +184,7 @@ const StaffDetailPage = () => {
         setLoading(false);
       }
     };
-
+    fetchPromotions(); // Ensure only one call
     fetchContracts();
     fetchStaffDetails();
   }, [mcr_number]);
@@ -347,37 +366,37 @@ const StaffDetailPage = () => {
               </tbody>
             </table>{" "}
           </div>{" "}
-          <h2>Promotion</h2>
+          <h2>Promotions</h2>
           <div className="contracts-table-container">
             <table className="contracts-table">
               <thead>
                 <tr>
                   <th>New Title</th>
-                  <th>Prev Title</th>
+                  <th>Previous Title</th>
                   <th>Date</th>
                 </tr>
               </thead>
               <tbody>
-                {contracts.length > 0 ? (
-                  contracts.map((contract, index) => (
+                {promotions.length > 0 ? (
+                  promotions.map((promotion, index) => (
                     <tr key={index}>
-                      <td>{contract.school_name}</td>
+                      <td>{promotion.new_title}</td>
+                      <td>{promotion.previous_title}</td>
                       <td>
-                        {new Date(contract.start_date).toLocaleDateString()}
-                      </td>
-                      <td>
-                        {new Date(contract.end_date).toLocaleDateString()}
+                        {new Date(
+                          promotion.promotion_date
+                        ).toLocaleDateString()}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4">No contracts found for this doctor.</td>
+                    <td colSpan="3">No promotions found for this doctor.</td>
                   </tr>
                 )}
               </tbody>
             </table>
-          </div>{" "}
+          </div>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}

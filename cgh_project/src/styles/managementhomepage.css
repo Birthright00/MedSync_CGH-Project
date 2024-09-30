@@ -17,7 +17,7 @@
   height: 100%; /* Cover the full height */
   background-image: url("../images/login-background-img.jpg");
   background-repeat: no-repeat; /* Ensure no repetition */
-  background-size: cover; /* Cover the entire containe  r */
+  background-size: cover; /* Cover the entire container */
   background-position: center; /* Center the background image */
   opacity: 0.6;
   z-index: -1;
@@ -41,7 +41,7 @@
 }
 
 .filter-section h3 {
-  font-size: 14px;
+  font-size: 16px; /* Increased from 14px */
   color: #0083ca;
   text-align: left; /* Aligning left to match column alignment */
   margin-bottom: 20px; /* Spacing under the "Filter" heading */
@@ -50,7 +50,7 @@
 .filter-section label {
   display: block;
   margin-bottom: 3px;
-  font-size: 12px;
+  font-size: 14px; /* Increased from 12px */
   color: #0083ca;
 }
 
@@ -60,14 +60,14 @@
   margin-bottom: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 14px; /* Increased from 12px */
   box-sizing: border-box;
 }
 
 .reset-button {
   width: 100%;
   padding: 10px;
-  font-size: 12px !important;
+  font-size: 14px !important; /* Increased from 12px */
   background-color: #0083ca;
   color: white;
   border: none;
@@ -81,13 +81,16 @@
 /* Table Container */
 .table-container {
   width: 80%;
-  max-height: 600px;
-  overflow-y: auto; /* This allows the table to scroll vertically */
+  max-width: 1000px;
+  max-height: 500px;
+  overflow-x: auto; /* Enable horizontal scrolling */
+  overflow-y: auto; /* Enable vertical scrolling */
   background-color: white;
   opacity: 0.9;
   z-index: 1;
   margin-top: 30px;
   margin-left: 100px;
+  white-space: nowrap; /* Prevent wrapping of text to maintain horizontal structure */
 }
 
 .entries-per-page {
@@ -101,18 +104,18 @@
   display: flex;
   justify-content: center;
   align-items: center; /* Ensures the label and select dropdown are vertically aligned */
-  font-size: 12px;
+  font-size: 14px; /* Increased from 12px */
 }
 
 .entries-per-page label {
   margin-right: 10px; /* Add space between label and dropdown */
-  font-size: 12px; /* Make sure the font size matches the select dropdown */
+  font-size: 14px; /* Increased from 12px */
   color: #555;
 }
 
 .entries-per-page select {
   padding: 10px;
-  font-size: 12px;
+  font-size: 14px; /* Increased from 12px */
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: #0083ca; /* Button color */
@@ -130,13 +133,12 @@
 }
 
 .data-table {
-  width: 100%;
+  width: max-content; /* Adjust table width based on content */
   border-collapse: collapse;
-  table-layout: fixed;
-  font-size: 12px;
+  table-layout: auto; /* Use automatic table layout for dynamic column sizing */
+  font-size: 14px; /* Increased from 12px */
 }
 
-/* Darker background on row hover */
 /* Darker background on row hover */
 .data-table tr:hover {
   background-color: #e0e0e0 !important; /* Force hover color to override other background styles */
@@ -152,9 +154,9 @@
   overflow: hidden; /* Ensures no content overflow */
   white-space: nowrap; /* Prevents text from wrapping */
   text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
-  font-weight: bold ;
+  font-weight: bold;
+  font-size: 14px; /* Increased from 12px */
 }
-
 
 /* Making the first column "no" thinner */
 th:first-child,
@@ -169,7 +171,7 @@ td:first-child {
   top: 0;
   background-color: #f2f2f2; /* Background color for header */
   z-index: 2;
-  font-size: 14px;
+  font-size: 16px; /* Increased from 14px */
   color: #0083ca;
   border: 1px solid #ddd;
   padding: 8px;
@@ -181,7 +183,7 @@ td:first-child {
 /* Add a sorting icon or arrow */
 .sort-icon {
   margin-left: 8px;
-  font-size: 12px; /* Adjust size for the arrow */
+  font-size: 14px; /* Increased from 12px */
   opacity: 0.6; /* Slightly faded to avoid overpowering */
 }
 
@@ -215,7 +217,7 @@ td:first-child {
 /* Pagination */
 .current-page {
   margin-right: 50px;
-  font-size: 12px;
+  font-size: 14px; /* Increased from 12px */
   color: black;
   margin-bottom: 20px;
 }
@@ -235,7 +237,8 @@ td:first-child {
   align-items: center;
   white-space: nowrap; /* Prevent text wrapping */
 }
-/* New styles for the pagination background */
+
+/* Pagination background */
 .pagination-background {
   width: 80%;
   overflow-y: auto;
@@ -252,7 +255,7 @@ td:first-child {
   margin-right: 20px;
   margin-bottom: 20px;
   padding: 10px;
-  font-size: 12px;
+  font-size: 14px; /* Increased from 12px */
   cursor: pointer;
   background-color: #0083ca;
   color: white;
@@ -267,8 +270,7 @@ td:first-child {
   color: #666;
 }
 
-/* Download Section
-
+/* Download Section */
 .download-button:hover {
   background-color: #006699;
 }
@@ -289,15 +291,11 @@ td:first-child {
   background-color: #006699;
 }
 
-.download-button:hover {
-  background-color: #006699;
-}
-
 /* Reset Button */
 .reset-button {
   margin-right: 50px;
   padding: 10px 20px;
-  font-size: 14px;
+  font-size: 16px; /* Increased from 14px */
   cursor: pointer;
   background-color: #0083ca;
   color: white;
@@ -307,6 +305,6 @@ td:first-child {
 
 .bi {
   margin-left: 5px; /* Adds some space between the text and the icon */
-  font-size: 12px;
+  font-size: 14px; /* Increased from 12px */
   vertical-align: middle; /* Aligns the icon with the text */
 }

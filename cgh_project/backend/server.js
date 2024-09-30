@@ -406,6 +406,39 @@ app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
     res.json(data);
   });
 });
+// -------------------------------------------------------------------------------------------------------------//
+// Promotions Table --> GET Request for promotion data by mcr_number
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/promotions/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params;
+
+  const q = `
+    SELECT mcr_number, previous_title, new_title, promotion_date
+    FROM promotions
+    WHERE mcr_number = ?
+    ORDER BY promotion_date ASC;
+  `;
+
+  db.query(q, [mcr_number], (err, data) => {
+    if (err) {
+      console.error("Error retrieving promotion data:", err);
+      return res
+        .status(500)
+        .json({ message: "Error retrieving promotion data" });
+    }
+
+    // Log the data being returned
+    console.log("Promotion data fetched: ", data);
+
+    if (data.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No promotions found for this doctor" });
+    }
+
+    res.json(data);
+  });
+});
 
 // -------------------------------------------------------------------------------------------------------------//
 // Get doctor details along with contracts for specific MCR numbers
@@ -442,7 +475,23 @@ app.post("/doctors/contracts", verifyToken, (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 db.connect((err) => {
   if (err) {
-    console.log(err);
+    console.log("Error connecting to the database:", err);
+  } else {
+    console.log("Connection Successful. Backend server is running!");
+
+    // Create indexes on the necessary columns
+    const createIndexes = `
+      CREATE INDEX IF NOT EXISTS idx_mcr_number_main_data ON main_data(mcr_number);
+      CREATE INDEX IF NOT EXISTS idx_mcr_number_contracts ON contracts(mcr_number);
+    `;
+
+    db.query(createIndexes, (err, result) => {
+      if (err) {
+        console.error("Error creating indexes:", err);
+      } else {
+        console.log("Indexes created successfully.");
+      }
+    });
   }
 });
 

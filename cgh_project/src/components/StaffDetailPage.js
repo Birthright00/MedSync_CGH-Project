@@ -15,11 +15,14 @@ const StaffDetailPage = () => {
     department: "",
     appointment: "",
     teaching_training_hours: "",
+    start_date: "",
+    end_date: "",
+    renewal_start_date: "",
+    renewal_end_date: "",
     email: "",
   });
 
   const [contracts, setContracts] = useState([]);
-  const navigate = useNavigate(); // Use navigate to redirect after delete
 
   // Function to fetch contracts by MCR number
   const fetchContracts = async () => {
@@ -31,13 +34,16 @@ const StaffDetailPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      console.log("Contracts Data: ", response.data); // Log the contracts data
-      setContracts(response.data); // Set the contracts state
+      console.log("Contracts Data: ", response.data); // <-- Add this line
+      setContracts(response.data);
     } catch (error) {
       console.error("Error fetching contracts:", error);
+
       toast.error("Failed to fetch contracts");
     }
   };
+
+  const navigate = useNavigate(); // Use navigate to redirect after delete
 
   const handleSubmit = async () => {
     try {
@@ -150,13 +156,15 @@ const StaffDetailPage = () => {
           }
         );
         setStaffDetails(response.data);
+        setLoading(false);
       } catch (error) {
         console.error("Error fetching staff details:", error);
+        setLoading(false);
       }
     };
 
+    fetchContracts();
     fetchStaffDetails();
-    fetchContracts(); // Fetch contracts as well
   }, [mcr_number]);
 
   const handleInputChange = (e) => {
@@ -262,51 +270,6 @@ const StaffDetailPage = () => {
                   />
                 </td>
               </tr>
-              {/* <tr>
-                <th>Start Date</th>
-                <td>
-                  <input
-                    type="datetime-local"
-                    name="start_date"
-                    value={formatDateTime(staffDetails.start_date)}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>End Date</th>
-                <td>
-                  <input
-                    type="datetime-local"
-                    name="end_date"
-                    value={formatDateTime(staffDetails.end_date)}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Renewal Start Date</th>
-                <td>
-                  <input
-                    type="datetime-local"
-                    name="renewal_start_date"
-                    value={formatDateTime(staffDetails.renewal_start_date)}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Renewal End Date</th>
-                <td>
-                  <input
-                    type="datetime-local"
-                    name="renewal_end_date"
-                    value={formatDateTime(staffDetails.renewal_end_date)}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr> */}
-              <h2>Data History</h2>
               <tr>
                 <th>Created At</th>
                 <td>{formatDateTime(staffDetails.created_at)}</td>

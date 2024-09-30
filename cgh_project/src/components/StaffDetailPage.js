@@ -1,5 +1,6 @@
 import "../styles/staffdetailpage.css"; // Create a new CSS file for this page
 import Navbar from "../components/Navbar";
+import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom"; // Added useNavigate for navigation
 import axios from "axios";
@@ -15,10 +16,6 @@ const StaffDetailPage = () => {
     department: "",
     appointment: "",
     teaching_training_hours: "",
-    start_date: "",
-    end_date: "",
-    renewal_start_date: "",
-    renewal_end_date: "",
     email: "",
   });
 
@@ -49,6 +46,9 @@ const StaffDetailPage = () => {
     try {
       const token = localStorage.getItem("token");
 
+      // Log staff details state before submission
+      console.log("Staff details state before submit: ", staffDetails);
+
       // Send PUT request to update staff details
       const dataToSubmit = {
         ...staffDetails,
@@ -77,6 +77,9 @@ const StaffDetailPage = () => {
               .replace("T", " ")
           : null,
       };
+
+      // Log the data being submitted
+      console.log("Data being submitted: ", dataToSubmit);
 
       await axios.put(
         `http://localhost:3001/staff/${mcr_number}`,
@@ -326,8 +329,24 @@ const StaffDetailPage = () => {
                   </tr>
                 )}
               </tbody>
-            </table>
-          </div>
+            </table>{" "}
+          </div>{" "}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="update-button"
+            onClick={handleSubmit}
+          >
+            Submit
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="delete-button"
+            onClick={handleDelete}
+          >
+            Delete
+          </motion.button>
         </div>
       </div>
     </>

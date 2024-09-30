@@ -238,7 +238,7 @@ app.get("/staff/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// Database Update - Staff Details, PUT route to update staff details
+// Database Update - PUT Request to update Staff Details and Contracts
 // -------------------------------------------------------------------------------------------------------------//
 app.put("/staff/:mcr_number", verifyToken, (req, res) => {
   const mcr_number = req.params.mcr_number;
@@ -260,8 +260,7 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
   const q = `
     UPDATE main_data 
     SET first_name = ?, last_name = ?, department = ?, appointment = ?, 
-        teaching_training_hours = ?, start_date = ?, end_date = ?, 
-        renewal_start_date = ?, renewal_end_date = ?, email = ?, updated_by = ?
+        teaching_training_hours = ?, email = ?, updated_by = ?
     WHERE mcr_number = ?
   `;
 
@@ -271,10 +270,6 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
     department,
     appointment,
     teaching_training_hours,
-    start_date,
-    end_date,
-    renewal_start_date,
-    renewal_end_date,
     email,
     userMcrNumber, // Log who updated the record (the currently logged-in user)
     mcr_number,

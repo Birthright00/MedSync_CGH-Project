@@ -408,6 +408,36 @@ app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// Get doctor details along with contracts for specific MCR numbers
+// -------------------------------------------------------------------------------------------------------------//
+
+app.post("/doctors/contracts", verifyToken, (req, res) => {
+  const { mcr_numbers } = req.body;
+
+  if (!mcr_numbers || mcr_numbers.length === 0) {
+    return res.status(400).json({ message: "MCR numbers are required" });
+  }
+
+  // Construct a query to fetch data from both `main_data` and `contracts`
+  const q = `
+    SELECT main_data.*, contracts.school_name, contracts.start_date, contracts.end_date, contracts.status
+    FROM main_data
+    LEFT JOIN contracts ON main_data.mcr_number = contracts.mcr_number
+    WHERE main_data.mcr_number IN (?);
+  `;
+
+  db.query(q, [mcr_numbers], (err, data) => {
+    if (err) {
+      console.error("Error retrieving doctors and contracts data:", err);
+      return res.status(500).json({ message: "Error retrieving data" });
+    }
+
+    // Respond with the combined data
+    res.json(data);
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start
 // -------------------------------------------------------------------------------------------------------------//
 db.connect((err) => {

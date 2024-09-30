@@ -290,7 +290,23 @@ const StaffDetailPage = () => {
                 <td>{staffDetails.updated_by}</td>
               </tr>
             </tbody>
-          </table>
+          </table>{" "}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="update-button"
+            onClick={handleSubmit}
+          >
+            Update Data
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="delete-button"
+            onClick={handleDelete}
+          >
+            Delete
+          </motion.button>
         </div>
 
         {/* ------------------------------------------------------- */}
@@ -331,21 +347,44 @@ const StaffDetailPage = () => {
               </tbody>
             </table>{" "}
           </div>{" "}
+          <h2>Promotion</h2>
+          <div className="contracts-table-container">
+            <table className="contracts-table">
+              <thead>
+                <tr>
+                  <th>New Title</th>
+                  <th>Prev Title</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contracts.length > 0 ? (
+                  contracts.map((contract, index) => (
+                    <tr key={index}>
+                      <td>{contract.school_name}</td>
+                      <td>
+                        {new Date(contract.start_date).toLocaleDateString()}
+                      </td>
+                      <td>
+                        {new Date(contract.end_date).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4">No contracts found for this doctor.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>{" "}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="update-button"
             onClick={handleSubmit}
           >
-            Submit
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            className="delete-button"
-            onClick={handleDelete}
-          >
-            Delete
+            Download All
           </motion.button>
         </div>
       </div>

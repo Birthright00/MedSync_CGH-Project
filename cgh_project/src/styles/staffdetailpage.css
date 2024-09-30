@@ -44,6 +44,7 @@
   font-size: 16px;
   text-align: center;
   justify-content: center;
+  margin-top: 20px;
 }
 
 /* Table Style for Staff Information */
@@ -94,7 +95,8 @@
 
 /* Scrollable Contract Table Container */
 .contracts-table-container {
-  max-height: 580px; /* Set maximum height */
+  max-height: 280px; /* Set maximum height */
+
   overflow-y: auto; /* Enable vertical scrolling */
   border: 1px solid #ddd; /* Border around the scrollable table */
   border-radius: 5px; /* Add slight rounding */
@@ -105,7 +107,8 @@
 /* Table Styling for Contracts */
 .contracts-table {
   width: 100%;
-  border-collapse: collapse; /* Ensure no spacing between table cells */
+  border-collapse: collapse;
+  font-size: 12px; /* Match font size for consistency */
 }
 
 /* Sticky Header */
@@ -118,6 +121,8 @@
   padding: 12px 15px; /* Consistent padding */
   text-align: left; /* Align text to the left */
   border-bottom: 2px solid #ddd; /* Thicker bottom border for distinction */
+  text-align: center; /* Center align the text horizontally */
+  vertical-align: middle; /* Center align the text vertically */
 }
 
 /* Table Row and Cell Styling */
@@ -125,6 +130,10 @@
   padding: 12px 15px;
   border: 1px solid #ddd;
   text-align: left;
+  white-space: nowrap; /* Prevent text from wrapping */
+  text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
+  text-align: center; /* Center-align text in the header */
+  vertical-align: middle; /* Center-align text vertically */
 }
 
 /* Highlight Alternate Rows with Grey */

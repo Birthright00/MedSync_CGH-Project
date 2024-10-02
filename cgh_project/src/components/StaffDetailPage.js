@@ -223,6 +223,7 @@ const StaffDetailPage = () => {
                     value={staffDetails.mcr_number}
                     onChange={handleInputChange}
                     disabled
+                    className="staff-detail-input" // Add a specific class name
                   />
                 </td>
               </tr>

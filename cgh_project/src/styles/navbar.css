@@ -37,6 +37,7 @@
   color: #0083ca;
   transition: background-color 300ms, color 300ms;
   border-width: 0px;
+  font-weight: 500;
 }
 
 .navbarbutton:hover {

@@ -33,7 +33,7 @@
   border-radius: 10px;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
   width: 60%;
-  max-width: 400px;
+  max-width: 500px;
   margin: 20px;
   z-index: 1; /* Ensure content is on top of the background */
 }
@@ -53,6 +53,7 @@
   border-collapse: collapse;
   margin-top: 20px; /* Add spacing above tables */
   font-size: 12px; /* Match font size for consistency */
+  font-weight: 500;
 }
 
 .staff-detail-table th,
@@ -134,6 +135,7 @@
   text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
   text-align: center; /* Center-align text in the header */
   vertical-align: middle; /* Center-align text vertically */
+  font-weight: 500;
 }
 
 /* Highlight Alternate Rows with Grey */

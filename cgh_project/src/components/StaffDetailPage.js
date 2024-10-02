@@ -164,7 +164,7 @@ const StaffDetailPage = () => {
     const minutes = ("0" + date.getMinutes()).slice(-2); // Ensure two digits for minutes
 
     // Format it as YYYY-MM-DDTHH:MM (required for datetime-local input type)
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+    return `${year}-${month}-${day} | ${hours}${minutes}H`;
   };
 
   useEffect(() => {

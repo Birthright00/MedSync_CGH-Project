@@ -432,6 +432,42 @@ app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// POST REQUEST FOR ADDING NEW CONTRACT DETAILS TO CONTRACTS TABLE
+// -------------------------------------------------------------------------------------------------------------//
+
+app.post("/new-contracts/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params; // Get the MCR number from the URL
+  const { school_name, start_date, end_date, status } = req.body;
+
+  // Validate required fields
+  if (!school_name || !start_date || !end_date || !status) {
+    return res
+      .status(400)
+      .json({ error: "Please provide all required fields" });
+  }
+
+  const q = `
+    INSERT INTO contracts 
+    (mcr_number, school_name, start_date, end_date, status) 
+    VALUES (?, ?, ?, ?, ?)
+  `;
+
+  const values = [mcr_number, school_name, start_date, end_date, status];
+
+  db.query(q, values, (err, data) => {
+    if (err) {
+      console.error("Error inserting new contract details:", err);
+      return res
+        .status(500)
+        .json({ error: "Failed to add new contract details" });
+    }
+    return res
+      .status(201)
+      .json({ message: "New contract details added successfully", data });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FOR PROMOTIONS DETAILS BY 'mcr_number' FROM MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/promotions/:mcr_number", verifyToken, (req, res) => {

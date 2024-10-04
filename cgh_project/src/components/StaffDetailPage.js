@@ -20,6 +20,13 @@ const StaffDetailPage = () => {
     email: "",
     deleted: 0, // Include deleted field in the state
   });
+  const [newContract, setNewContract] = useState({
+    school_name: "",
+    start_date: "Start Date",
+    end_date: "End Date",
+    status: "",
+  });
+
   const [contracts, setContracts] = useState([]);
   const [promotions, setPromotions] = useState([]);
 
@@ -110,6 +117,46 @@ const StaffDetailPage = () => {
         error.response ? error.response.data : error
       );
       toast.error("Failed to update staff details");
+    }
+  };
+
+  const handleNewContract = async () => {
+    if (
+      !newContract.school_name ||
+      !newContract.start_date ||
+      !newContract.end_date ||
+      !newContract.status
+    ) {
+      toast.error("Please fill all contract fields before submitting");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `http://localhost:3001/new-contracts/${mcr_number}`,
+        newContract,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      toast.success("New contract added successfully!");
+      setNewContract({
+        school_name: "",
+        start_date: "",
+        end_date: "",
+        status: "",
+      }); // Reset the form fields
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error(
+        "Error adding new contract:",
+        error.response ? error.response.data : error
+      );
+      toast.error("Failed to add new contract");
     }
   };
 
@@ -318,7 +365,6 @@ const StaffDetailPage = () => {
             </tbody>
           </table>
 
-          {/* Always show the update button */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
@@ -349,7 +395,6 @@ const StaffDetailPage = () => {
           )}
         </div>
 
-        {/* Contracts and Promotions Section */}
         <div className="staff-info-container">
           <h2>Contracts</h2>
           <div className="contracts-table-container">
@@ -383,13 +428,66 @@ const StaffDetailPage = () => {
                 )}
               </tbody>
             </table>
+          </div>{" "}
+          <h2>Add New Contract</h2>
+          <div className="contract-input-container">
+            <select
+              value={newContract.school_name}
+              onChange={(e) =>
+                setNewContract({
+                  ...newContract,
+                  school_name: e.target.value,
+                })
+              }
+            >
+              <option value="">Select School</option>
+              <option value="Duke NUS">Duke NUS</option>
+              <option value="SingHealth Residency">SingHealth Residency</option>
+              <option value="SUTD">SUTD</option>
+              <option value="NUS Yong Loo Lin School of Medicine">
+                NUS Yong Loo Lin School of Medicine
+              </option>
+              <option value="NTU LKC">NTU LKC</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Start Date"
+              value={newContract.start_date}
+              onFocus={(e) => (e.target.type = "date")} // Change type to date on focus
+              onBlur={(e) => (e.target.type = "text")} // Revert back to text on blur if no date selected
+              onChange={(e) =>
+                setNewContract({ ...newContract, start_date: e.target.value })
+              }
+            />
+
+            <input
+              type="date"
+              placeholder="End Date"
+              value={newContract.end_date}
+              onFocus={(e) => (e.target.type = "date")} // Change type to date on focus
+              onBlur={(e) => (e.target.type = "text")} // Revert back to text on blur if no date selected
+              onChange={(e) =>
+                setNewContract({ ...newContract, end_date: e.target.value })
+              }
+            />
+            <select
+              value={newContract.status}
+              onChange={(e) =>
+                setNewContract({ ...newContract, status: e.target.value })
+              }
+            >
+              <option value="">Select Status</option>
+              <option value="Active">Active</option>
+              <option value="Expired">Expired</option>
+            </select>
           </div>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="add-contract-button"
+            onClick={handleNewContract}
           >
-            Add new contract
+            Add New Contract
           </motion.button>
           <h2>Promotions</h2>
           <div className="contracts-table-container">
@@ -422,13 +520,6 @@ const StaffDetailPage = () => {
               </tbody>
             </table>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            className="add-contract-button"
-          >
-            Add new Promotion
-          </motion.button>
           <CSVLink
             data={combinedData}
             filename={`staff_details_${mcr_number}.csv`}

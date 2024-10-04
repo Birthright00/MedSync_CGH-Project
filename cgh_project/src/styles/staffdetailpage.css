@@ -78,12 +78,6 @@
   text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
 }
 
-/* Body styling for both tables */
-.staff-detail-table td,
-.contracts-table td {
-  font-size: 12px;
-}
-
 /* Input fields styling for both tables */
 .staff-detail-table td input {
   width: 100%; /* Full width within the table cell */
@@ -97,12 +91,36 @@
 /* Scrollable Contract Table Container */
 .contracts-table-container {
   max-height: 280px; /* Set maximum height */
-
   overflow-y: auto; /* Enable vertical scrolling */
   border: 1px solid #ddd; /* Border around the scrollable table */
   border-radius: 5px; /* Add slight rounding */
   margin-top: 0; /* Remove any additional margin */
   box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px; /* Subtle shadow */
+}
+
+/* Styling for the New Contract Input Container */
+.contract-input-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.contract-input-container select,
+.contract-input-container input {
+  width: 100%; /* Set to 100% of the parent container */
+  padding: 10px;
+  margin: 5px 0;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+  transition: border 300ms;
+  box-sizing: border-box; /* Ensure consistent sizing */
+}
+
+.contract-input-container select:focus,
+.contract-input-container input:focus {
+  border: 1px solid #0083ca; /* Highlight border on focus */
 }
 
 /* Table Styling for Contracts */
@@ -120,8 +138,6 @@
   top: 0; /* Stick the header to the top */
   z-index: 1; /* Ensure the header stays above the table content */
   padding: 12px 15px; /* Consistent padding */
-  text-align: left; /* Align text to the left */
-  border-bottom: 2px solid #ddd; /* Thicker bottom border for distinction */
   text-align: center; /* Center align the text horizontally */
   vertical-align: middle; /* Center align the text vertically */
 }
@@ -130,9 +146,6 @@
 .contracts-table td {
   padding: 12px 15px;
   border: 1px solid #ddd;
-  text-align: left;
-  white-space: nowrap; /* Prevent text from wrapping */
-  text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
   text-align: center; /* Center-align text in the header */
   vertical-align: middle; /* Center-align text vertically */
   font-weight: 500;
@@ -159,7 +172,10 @@
 
 /* Consistent styling for update and delete buttons */
 .update-button,
-.add-contract-button {
+.download-button,
+.add-contract-button,
+.restore-button,
+.delete-button {
   margin-top: 20px;
   font-family: "Montserrat", sans-serif;
   text-align: center;
@@ -169,69 +185,39 @@
   border-radius: 5px;
   border-style: solid;
   border-width: 1px;
-  border-color: #0083ca;
   font-size: 14px;
   padding: 12px;
   transition: background-color 500ms, color 500ms;
-  background-color: #0083ca;
-  color: white;
   box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
-}
-
-.download-button {
-  margin-top: 20px;
-  font-family: "Montserrat", sans-serif;
-  text-align: center;
-  align-items: center;
-  justify-content: center;
-  border-radius: 5px;
-  border-style: solid;
-  border-width: 1px;
-  border-color: #0083ca;
-  font-size: 14px;
-  padding: 12px;
-  transition: background-color 500ms, color 500ms;
-  background-color: #0083ca;
-  color: white;
-  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
-  margin-left: 20px;
 }
 
 .restore-button {
-  margin-top: 20px;
-  font-family: "Montserrat", sans-serif;
-  text-align: center;
-  width: 100%;
-  border-radius: 5px;
-  border-style: solid;
-  border-width: 1px;
   border-color: green;
-  font-size: 14px;
-  padding: 12px;
-  transition: background-color 500ms, color 500ms;
   background-color: green;
-  color: white;
-  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
 }
 
 .delete-button {
-  margin-top: 10px;
-  font-family: "Montserrat", sans-serif;
-  text-align: center;
-  width: 100%;
-  border-radius: 5px;
-  border-style: solid;
-  border-width: 1px;
-  border-color: black;
-  font-size: 14px;
-  padding: 12px;
-  transition: background-color 500ms, color 500ms;
+  border-color: red;
   background-color: red;
-  color: white;
-  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
 }
 
-/* Responsive Layout */
+.update-button {
+  background-color: #0083ca;
+  color: white;
+}
+
+.add-contract-button {
+  background-color: #0083ca;
+  color: white;
+}
+
+.download-button {
+  background-color: #0083ca;
+  color: white;
+  width: 100px;
+  margin-left: 20px;
+}
+
 @media (max-width: 768px) {
   .staff-info-container {
     width: 90%;

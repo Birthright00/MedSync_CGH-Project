@@ -17,7 +17,7 @@
   height: 100%; /* Cover the full height */
   background-image: url("../images/login-background-img.jpg");
   background-repeat: no-repeat; /* Ensure no repetition */
-  background-size: cover; /* Cover the entire containe  r */
+  background-size: cover; /* Cover the entire container */
   background-position: center; /* Center the background image */
   opacity: 0.6;
   z-index: -1;
@@ -38,20 +38,23 @@
   margin-top: 30px;
   display: flex;
   flex-direction: column;
+  font-weight: 500;
 }
 
 .filter-section h3 {
-  font-size: 14px;
+  font-size: 16px; /* Increased from 14px */
   color: #0083ca;
-  text-align: left; /* Aligning left to match column alignment */
+  text-align: center; /* Aligning left to match column alignment */
   margin-bottom: 20px; /* Spacing under the "Filter" heading */
+  font-weight: 500;
 }
 
 .filter-section label {
   display: block;
   margin-bottom: 3px;
-  font-size: 12px;
+  font-size: 14px; /* Increased from 12px */
   color: #0083ca;
+  font-weight: 500;
 }
 
 .filter-section input {
@@ -60,18 +63,20 @@
   margin-bottom: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 14px; /* Increased from 12px */
   box-sizing: border-box;
+  font-weight: 500;
 }
 
 .reset-button {
   width: 100%;
   padding: 10px;
-  font-size: 12px !important;
+  font-size: 14px !important; /* Increased from 12px */
   background-color: #0083ca;
   color: white;
   border: none;
   border-radius: 4px;
+  font-weight: 500;
 }
 
 .reset-button:hover {
@@ -81,13 +86,16 @@
 /* Table Container */
 .table-container {
   width: 80%;
-  max-height: 600px;
-  overflow-y: auto; /* This allows the table to scroll vertically */
+  max-width: 1200px;
+  max-height: 500px;
+  overflow-x: auto; /* Enable horizontal scrolling */
+  overflow-y: auto; /* Enable vertical scrolling */
   background-color: white;
   opacity: 0.9;
   z-index: 1;
   margin-top: 30px;
   margin-left: 100px;
+  white-space: nowrap; /* Prevent wrapping of text to maintain horizontal structure */
 }
 
 .entries-per-page {
@@ -101,23 +109,15 @@
   display: flex;
   justify-content: center;
   align-items: center; /* Ensures the label and select dropdown are vertically aligned */
-  font-size: 12px;
+  font-size: 16px; /* Increased from 12px */
+  font-weight: 500;
 }
 
 .entries-per-page label {
   margin-right: 10px; /* Add space between label and dropdown */
-  font-size: 12px; /* Make sure the font size matches the select dropdown */
+  font-size: 16px; /* Increased from 12px */
   color: #555;
-}
-
-.entries-per-page select {
-  padding: 10px;
-  font-size: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: #0083ca; /* Button color */
-  color: white; /* Text color to match the buttons */
-  cursor: pointer;
+  font-weight: 500;
 }
 
 .entries-per-page select:hover {
@@ -130,13 +130,13 @@
 }
 
 .data-table {
-  width: 100%;
+  width: max-content; /* Adjust table width based on content */
   border-collapse: collapse;
-  table-layout: fixed;
-  font-size: 12px;
+  table-layout: auto; /* Use automatic table layout for dynamic column sizing */
+  font-size: 14px; /* Increased from 12px */
+  font-weight: 500;
 }
 
-/* Darker background on row hover */
 /* Darker background on row hover */
 .data-table tr:hover {
   background-color: #e0e0e0 !important; /* Force hover color to override other background styles */
@@ -152,9 +152,9 @@
   overflow: hidden; /* Ensures no content overflow */
   white-space: nowrap; /* Prevents text from wrapping */
   text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
-  font-weight: bold ;
+  font-weight: 500; /* Increased from 400 */
+  font-size: 14px; /* Increased from 12px */
 }
-
 
 /* Making the first column "no" thinner */
 th:first-child,
@@ -169,7 +169,7 @@ td:first-child {
   top: 0;
   background-color: #f2f2f2; /* Background color for header */
   z-index: 2;
-  font-size: 14px;
+  font-size: 16px; /* Increased from 14px */
   color: #0083ca;
   border: 1px solid #ddd;
   padding: 8px;
@@ -177,12 +177,14 @@ td:first-child {
   height: 50px;
   cursor: pointer;
   transition: background-color 0.3s ease, color 0.3s ease;
+  font-weight: 500;
 }
 /* Add a sorting icon or arrow */
 .sort-icon {
   margin-left: 8px;
-  font-size: 12px; /* Adjust size for the arrow */
+  font-size: 14px; /* Increased from 12px */
   opacity: 0.6; /* Slightly faded to avoid overpowering */
+  font-weight: 500;
 }
 
 .sort-asc .sort-icon::before {
@@ -197,11 +199,13 @@ td:first-child {
 .data-table th.sorted-asc {
   background-color: #006699; /* Background for active sort in ascending order */
   color: white;
+  font-weight: 500;
 }
 
 .data-table th.sorted-desc {
   background-color: #006699; /* Background for active sort in descending order */
   color: white;
+  font-weight: 500;
 }
 .data-table tr:nth-child(even) {
   background-color: #f9f9f9;
@@ -210,14 +214,16 @@ td:first-child {
 .data-table th:hover {
   background-color: #0083ca; /* Darker background on hover */
   color: white; /* Change text color on hover */
+  font-weight: 500;
 }
 
 /* Pagination */
 .current-page {
   margin-right: 50px;
-  font-size: 12px;
+  font-size: 14px; /* Increased from 12px */
   color: black;
   margin-bottom: 20px;
+  font-weight: 500;
 }
 
 .pagination-container {
@@ -234,8 +240,10 @@ td:first-child {
   justify-content: center;
   align-items: center;
   white-space: nowrap; /* Prevent text wrapping */
+  font-weight: 500;
 }
-/* New styles for the pagination background */
+
+/* Pagination background */
 .pagination-background {
   width: 80%;
   overflow-y: auto;
@@ -252,12 +260,13 @@ td:first-child {
   margin-right: 20px;
   margin-bottom: 20px;
   padding: 10px;
-  font-size: 12px;
+  font-size: 14px; /* Increased from 12px */
   cursor: pointer;
   background-color: #0083ca;
   color: white;
   border: none;
   border-radius: 4px;
+  font-weight: 500;
 }
 
 .pagination button:disabled {
@@ -267,10 +276,10 @@ td:first-child {
   color: #666;
 }
 
-/* Download Section
-
+/* Download Section */
 .download-button:hover {
   background-color: #006699;
+  font-weight: 500;
 }
 
 /* Ensure CSV link inside behaves like a button */
@@ -283,21 +292,17 @@ td:first-child {
   justify-content: center;
   align-items: center;
   box-sizing: border-box;
+  font-weight: 500;
 }
 
 .download-button:hover {
   background-color: #006699;
 }
 
-.download-button:hover {
-  background-color: #006699;
-}
-
-/* Reset Button */
 .reset-button {
   margin-right: 50px;
   padding: 10px 20px;
-  font-size: 14px;
+  font-size: 16px; /* Increased from 14px */
   cursor: pointer;
   background-color: #0083ca;
   color: white;
@@ -307,6 +312,10 @@ td:first-child {
 
 .bi {
   margin-left: 5px; /* Adds some space between the text and the icon */
-  font-size: 12px;
+  font-size: 14px; /* Increased from 12px */
   vertical-align: middle; /* Aligns the icon with the text */
+}
+.greyed-out {
+  opacity: 0.5;
+  text-decoration: line-through;
 }

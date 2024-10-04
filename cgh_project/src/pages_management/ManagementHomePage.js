@@ -17,16 +17,29 @@ const ManagementHomePage = () => {
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [appointmentFilter, setAppointmentFilter] = useState("");
   const [trainingHoursFilter, setTrainingHoursFilter] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: null }); // State to track sorting
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const nav = useNavigate();
+  const [showDeleted, setShowDeleted] = useState(false);
+
   const [entriesPerPage, setEntriesPerPage] = useState(
     () => Number(localStorage.getItem("entriesPerPage")) || 10
   );
 
-  const handleRowClick = (mcr_number) => {
-    nav(`/staff/${mcr_number}`); // Navigate to the detail page
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = ("0" + (date.getMonth() + 1)).slice(-2);
+    const day = ("0" + date.getDate()).slice(-2);
+    const hours = ("0" + date.getHours()).slice(-2);
+    const minutes = ("0" + date.getMinutes()).slice(-2);
+    return `${year}-${month}-${day} | ${hours}${minutes}H`;
   };
-  // Reset filters
+
+  const handleRowClick = (mcr_number) => {
+    nav(`/staff/${mcr_number}`);
+  };
+
   const resetFilters = () => {
     setMcrNumberFilter("");
     setFirstNameFilter("");
@@ -41,7 +54,6 @@ const ManagementHomePage = () => {
     window.location.reload();
   };
 
-  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -50,18 +62,17 @@ const ManagementHomePage = () => {
           console.log("No token found");
           return;
         }
-        const response = await axios.get("http://localhost:3001/database", {
+        const response = await axios.get("http://localhost:3001/database?includeDeleted=true", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setData(response.data);
-        setFilteredData(response.data); // Initialize filtered data
+        setFilteredData(response.data);
       } catch (error) {
         console.log(error);
       }
     };
     fetchData();
   }, []);
-  // Function to handle sorting
 
   const handleSort = (column) => {
     let direction = "asc";
@@ -82,28 +93,19 @@ const ManagementHomePage = () => {
     setFilteredData(sortedData);
   };
 
-  // Filter data when filters change
   useEffect(() => {
     const filtered = data.filter(
       (staff) =>
         staff.mcr_number.toString().includes(mcrNumberFilter) &&
-        staff.first_name
-          .toLowerCase()
-          .includes(firstNameFilter.toLowerCase()) &&
+        staff.first_name.toLowerCase().includes(firstNameFilter.toLowerCase()) &&
         staff.last_name.toLowerCase().includes(lastNameFilter.toLowerCase()) &&
-        staff.department
-          .toLowerCase()
-          .includes(departmentFilter.toLowerCase()) &&
-        staff.appointment
-          .toLowerCase()
-          .includes(appointmentFilter.toLowerCase()) &&
-        (trainingHoursFilter === "" ||
-          staff.teaching_training_hours
-            .toString()
-            .includes(trainingHoursFilter))
+        staff.department.toLowerCase().includes(departmentFilter.toLowerCase()) &&
+        staff.appointment.toLowerCase().includes(appointmentFilter.toLowerCase()) &&
+        (trainingHoursFilter === "" || staff.teaching_training_hours.toString().includes(trainingHoursFilter)) &&
+        (!showDeleted ? staff.deleted === 0 : true) // Show or hide deleted based on state
     );
     setFilteredData(filtered);
-    setCurrentPage(1); // Reset to first page when filter changes
+    setCurrentPage(1);
   }, [
     mcrNumberFilter,
     firstNameFilter,
@@ -111,16 +113,13 @@ const ManagementHomePage = () => {
     departmentFilter,
     appointmentFilter,
     trainingHoursFilter,
+    showDeleted,
     data,
   ]);
 
-  // Pagination calculations
   const indexOfLastEntry = currentPage * entriesPerPage;
   const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
-  const currentEntries = filteredData.slice(
-    indexOfFirstEntry,
-    indexOfLastEntry
-  );
+  const currentEntries = filteredData.slice(indexOfFirstEntry, indexOfLastEntry);
 
   const totalPages = Math.ceil(filteredData.length / entriesPerPage);
 
@@ -136,7 +135,6 @@ const ManagementHomePage = () => {
     });
   }
 
-  // Handle next and previous page clicks
   const handleNextPage = () => {
     if (indexOfLastEntry < filteredData.length) {
       setCurrentPage(currentPage + 1);
@@ -149,12 +147,11 @@ const ManagementHomePage = () => {
     }
   };
 
-  // Handle entries per page change
   const handleEntriesPerPageChange = (e) => {
     const value = Number(e.target.value);
     setEntriesPerPage(value);
-    localStorage.setItem("entriesPerPage", value); // Save to localStorage
-    setCurrentPage(1); // Reset to the first page
+    localStorage.setItem("entriesPerPage", value);
+    setCurrentPage(1);
   };
 
   return (
@@ -163,13 +160,24 @@ const ManagementHomePage = () => {
       <div className="management-home-page">
         <div className="filter-section">
           <h3>Filter</h3>
-
+          <label htmlFor="show-deleted">
+            Show Deleted:
+            <input
+              type="checkbox"
+              id="show-deleted"
+              checked={showDeleted}
+              onChange={() => setShowDeleted((prev) => !prev)}
+            />
+          </label>
           <label htmlFor="mcr-number-filter">MCR Number:</label>
           <input
             type="text"
             id="mcr-number-filter"
             value={mcrNumberFilter}
-            onChange={(e) => setMcrNumberFilter(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setMcrNumberFilter(value.replace(/^m/i, "M"));
+            }}
             placeholder="MCR Number"
             autoComplete="off"
           />
@@ -182,7 +190,6 @@ const ManagementHomePage = () => {
             placeholder="First name"
             autoComplete="off"
           />
-
           <label htmlFor="last-name-filter">Last Name:</label>
           <input
             type="text"
@@ -192,7 +199,6 @@ const ManagementHomePage = () => {
             placeholder="Last name"
             autoComplete="off"
           />
-
           <label htmlFor="department-filter">Department:</label>
           <input
             type="text"
@@ -202,7 +208,6 @@ const ManagementHomePage = () => {
             placeholder="Department"
             autoComplete="off"
           />
-
           <label htmlFor="appointment-filter">Appointment:</label>
           <input
             type="text"
@@ -212,10 +217,7 @@ const ManagementHomePage = () => {
             placeholder="Appointment"
             autoComplete="off"
           />
-
-          <label htmlFor="training-hours-filter">
-            Teaching Training Hours:
-          </label>
+          <label htmlFor="training-hours-filter">Teaching Training Hours:</label>
           <input
             type="text"
             id="training-hours-filter"
@@ -233,102 +235,52 @@ const ManagementHomePage = () => {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>No</th> {/* No sorting for this column */}
-                  <th onClick={() => handleSort("mcr_number")}>
-                    MCR Number
-                    <i
-                      className={`bi ${
-                        sortConfig.key === "mcr_number"
-                          ? sortConfig.direction === "asc"
-                            ? "bi-sort-up"
-                            : "bi-sort-down"
-                          : "bi-sort"
-                      }`}
-                    ></i>
-                  </th>
-                  <th onClick={() => handleSort("first_name")}>
-                    First Name
-                    <i
-                      className={`bi ${
-                        sortConfig.key === "first_name"
-                          ? sortConfig.direction === "asc"
-                            ? "bi-sort-up"
-                            : "bi-sort-down"
-                          : "bi-sort"
-                      }`}
-                    ></i>
-                  </th>
-                  <th onClick={() => handleSort("last_name")}>
-                    Last Name
-                    <i
-                      className={`bi ${
-                        sortConfig.key === "last_name"
-                          ? sortConfig.direction === "asc"
-                            ? "bi-sort-up"
-                            : "bi-sort-down"
-                          : "bi-sort"
-                      }`}
-                    ></i>
-                  </th>
-                  <th onClick={() => handleSort("department")}>
-                    Department
-                    <i
-                      className={`bi ${
-                        sortConfig.key === "department"
-                          ? sortConfig.direction === "asc"
-                            ? "bi-sort-up"
-                            : "bi-sort-down"
-                          : "bi-sort"
-                      }`}
-                    ></i>
-                  </th>
-                  <th onClick={() => handleSort("appointment")}>
-                    Appointment
-                    <i
-                      className={`bi ${
-                        sortConfig.key === "appointment"
-                          ? sortConfig.direction === "asc"
-                            ? "bi-sort-up"
-                            : "bi-sort-down"
-                          : "bi-sort"
-                      }`}
-                    ></i>
-                  </th>
-                  {/* <th onClick={() => handleSort("teaching_training_hours")}>
+                  <th>No</th>
+                  <th onClick={() => handleSort("mcr_number")}>MCR Number</th>
+                  <th onClick={() => handleSort("first_name")}>First Name</th>
+                  <th onClick={() => handleSort("last_name")}>Last Name</th>
+                  <th onClick={() => handleSort("department")}>Department</th>
+                  <th onClick={() => handleSort("appointment")}>Appointment</th>
+                  <th onClick={() => handleSort("teaching_training_hours")}>
                     Teaching Training Hours
-                    <i
-                      className={`bi ${
-                        sortConfig.key === "teaching_training_hours"
-                          ? sortConfig.direction === "asc"
-                            ? "bi-sort-up"
-                            : "bi-sort-down"
-                          : "bi-sort"
-                      }`}
-                    ></i>
-                  </th> */}
+                  </th>
+                  <th>Email</th>
+                  <th>Promotion History</th>
+                  <th>Contract Details</th>
+                  <th>Created At</th>
+                  <th>Updated At</th>
+                  <th>Created By</th>
+                  <th>Updated By</th>
+                  <th>Deleted By</th>
+                  <th>Deleted At</th>
+                  <th>FTE</th>
                 </tr>
               </thead>
-
               <tbody>
                 {rowsToDisplay.map((staff, index) => (
-                  <tr
-                    key={index}
-                    onClick={() => handleRowClick(staff.mcr_number)}
-                  >
-                    <td>{indexOfFirstEntry + index + 1}</td>{" "}
-                    {/* Fix row numbering */}
+                  <tr key={index} onClick={() => handleRowClick(staff.mcr_number)} className={staff.deleted ? 'greyed-out' : ''}>
+                    <td>{indexOfFirstEntry + index + 1}</td>
                     <td>{staff.mcr_number}</td>
                     <td>{staff.first_name}</td>
                     <td>{staff.last_name}</td>
                     <td>{staff.department}</td>
                     <td>{staff.appointment}</td>
-                    {/* <td>{staff.teaching_training_hours}</td> */}
+                    <td>{staff.teaching_training_hours}</td>
+                    <td>{staff.email}</td>
+                    <td>{staff.promotion_history || "N/A"}</td>
+                    <td>{staff.contract_details || "N/A"}</td>
+                    <td>{formatDateTime(staff.created_at)}</td>
+                    <td>{formatDateTime(staff.updated_at)}</td>
+                    <td>{staff.created_by || "N/A"}</td>
+                    <td>{staff.updated_by || "N/A"}</td>
+                    <td>{staff.deleted_by || "N/A"}</td>
+                    <td>{formatDateTime(staff.deleted_at)}</td>
+                    <td>{staff.fte}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          {/* Entries Per Page Dropdown */}{" "}
           <div className="pagination-background">
             <div className="entries-per-page">
               <label htmlFor="entries-per-page">Entries per page : </label>
@@ -338,45 +290,19 @@ const ManagementHomePage = () => {
                 onChange={handleEntriesPerPageChange}
                 autoComplete="off"
               />
-              {/* <select
-                id="entries-per-page"
-                value={entriesPerPage}
-                onChange={handleEntriesPerPageChange}
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="15">15</option>
-                <option value="20">20</option>
-                <option value="25">25</option>
-                <option value="30">30</option>
-                <option value="35">35</option>
-                <option value="40">40</option>
-                <option value="45">45</option>
-                <option value="50">50</option>
-              </select> */}
             </div>
-
             <div className="pagination-container">
               <div className="pagination">
                 <span className="current-page">
                   Page {currentPage} of {totalPages}
                 </span>
-                <button
-                  onClick={handlePreviousPage}
-                  disabled={currentPage === 1}
-                >
+                <button onClick={handlePreviousPage} disabled={currentPage === 1}>
                   Previous
                 </button>
-                <button
-                  onClick={handleNextPage}
-                  disabled={indexOfLastEntry >= filteredData.length}
-                >
+                <button onClick={handleNextPage} disabled={indexOfLastEntry >= filteredData.length}>
                   Next
                 </button>
-                <button
-                  onClick={handleRefresh}
-                  disabled={indexOfLastEntry >= filteredData.length}
-                >
+                <button onClick={handleRefresh} disabled={indexOfLastEntry >= filteredData.length}>
                   Refresh
                 </button>
               </div>
@@ -395,7 +321,6 @@ const ManagementHomePage = () => {
           </div>
         </div>
       </div>
-      {/* <Footer /> */}
     </>
   );
 };

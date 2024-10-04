@@ -158,11 +158,14 @@
 }
 
 /* Consistent styling for update and delete buttons */
-.update-button, .add-contract-button {
+.update-button,
+.add-contract-button {
   margin-top: 20px;
   font-family: "Montserrat", sans-serif;
   text-align: center;
   width: 100%;
+  align-items: center;
+  justify-content: center;
   border-radius: 5px;
   border-style: solid;
   border-width: 1px;
@@ -173,6 +176,25 @@
   background-color: #0083ca;
   color: white;
   box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+}
+
+.download-button {
+  margin-top: 20px;
+  font-family: "Montserrat", sans-serif;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #0083ca;
+  font-size: 14px;
+  padding: 12px;
+  transition: background-color 500ms, color 500ms;
+  background-color: #0083ca;
+  color: white;
+  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+  margin-left: 20px;
 }
 
 .restore-button {

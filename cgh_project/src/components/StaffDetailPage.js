@@ -6,6 +6,7 @@ import { useParams, useNavigate } from "react-router-dom"; // Added useNavigate 
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { CSVLink } from "react-csv"; // Import CSVLink
 
 const StaffDetailPage = () => {
   const { mcr_number } = useParams(); // Get the MCR number from route params
@@ -19,9 +20,35 @@ const StaffDetailPage = () => {
     email: "",
     deleted: 0, // Include deleted field in the state
   });
-
   const [contracts, setContracts] = useState([]);
   const [promotions, setPromotions] = useState([]);
+
+  const combinedData = contracts.map((contract) => ({
+    "MCR Number": staffDetails.mcr_number,
+    "First Name": staffDetails.first_name,
+    "Last Name": staffDetails.last_name,
+    Department: staffDetails.department,
+    Appointment: staffDetails.appointment,
+    Email: staffDetails.email,
+    "Teaching Training Hours": staffDetails.teaching_training_hours,
+    "Contract School Name": contract.school_name,
+    "Contract Start Date": contract.start_date,
+    "Contract End Date": contract.end_date,
+    "Contract Status": contract.status,
+    "Promotion History":
+      promotions.length > 0
+        ? promotions
+            .map(
+              (promotion) =>
+                `${promotion.new_title} (From: ${
+                  promotion.previous_title
+                } on ${new Date(
+                  promotion.promotion_date
+                ).toLocaleDateString()})`
+            )
+            .join(", ")
+        : "No Promotions",
+  }));
 
   const navigate = useNavigate(); // Use navigate to redirect after delete
 
@@ -402,6 +429,19 @@ const StaffDetailPage = () => {
           >
             Add new Promotion
           </motion.button>
+          <CSVLink
+            data={combinedData}
+            filename={`staff_details_${mcr_number}.csv`}
+            className="csv-link"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.9 }}
+              className="download-button"
+            >
+              Download
+            </motion.button>
+          </CSVLink>
         </div>
       </div>
     </>

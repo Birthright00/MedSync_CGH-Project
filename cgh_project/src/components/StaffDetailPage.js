@@ -17,12 +17,14 @@ const StaffDetailPage = () => {
     appointment: "",
     teaching_training_hours: "",
     email: "",
+    deleted: 0, // Include deleted field in the state
   });
 
   const [contracts, setContracts] = useState([]);
   const [promotions, setPromotions] = useState([]);
 
-  // Function to fetch contracts by MCR number
+  const navigate = useNavigate(); // Use navigate to redirect after delete
+
   const fetchContracts = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -32,14 +34,13 @@ const StaffDetailPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      console.log("Contracts Data: ", response.data); // <-- Add this line
       setContracts(response.data);
     } catch (error) {
       console.error("Error fetching contracts:", error);
-
       toast.error("Failed to fetch contracts");
     }
   };
+
   const fetchPromotions = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -49,56 +50,20 @@ const StaffDetailPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      console.log("Fetched Promotions Data: ", response.data);
-      if (JSON.stringify(response.data) !== JSON.stringify(promotions)) {
-        setPromotions(response.data);
-      }
+      setPromotions(response.data);
     } catch (error) {
       console.error("Error fetching promotions:", error);
       toast.error("Failed to fetch promotions");
     }
   };
 
-  const navigate = useNavigate(); // Use navigate to redirect after delete
-
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem("token");
 
-      // Log staff details state before submission
-      console.log("Staff details state before submit: ", staffDetails);
-
-      // Send PUT request to update staff details
       const dataToSubmit = {
         ...staffDetails,
-        start_date: staffDetails.start_date
-          ? new Date(staffDetails.start_date)
-              .toISOString()
-              .slice(0, 19)
-              .replace("T", " ")
-          : null,
-        end_date: staffDetails.end_date
-          ? new Date(staffDetails.end_date)
-              .toISOString()
-              .slice(0, 19)
-              .replace("T", " ")
-          : null,
-        renewal_start_date: staffDetails.renewal_start_date
-          ? new Date(staffDetails.renewal_start_date)
-              .toISOString()
-              .slice(0, 19)
-              .replace("T", " ")
-          : null,
-        renewal_end_date: staffDetails.renewal_end_date
-          ? new Date(staffDetails.renewal_end_date)
-              .toISOString()
-              .slice(0, 19)
-              .replace("T", " ")
-          : null,
       };
-
-      // Log the data being submitted
-      console.log("Data being submitted: ", dataToSubmit);
 
       await axios.put(
         `http://localhost:3001/staff/${mcr_number}`,
@@ -111,7 +76,7 @@ const StaffDetailPage = () => {
       toast.success("Staff details updated successfully!");
       setTimeout(() => {
         window.location.reload();
-      }, 1000); // Small delay for toast visibility
+      }, 1000);
     } catch (error) {
       console.error(
         "Error updating staff details:",
@@ -129,17 +94,14 @@ const StaffDetailPage = () => {
 
     try {
       const token = localStorage.getItem("token");
-      // Send DELETE request to delete the staff details
       await axios.delete(`http://localhost:3001/staff/${mcr_number}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       toast.success("Staff details deleted successfully!");
-
-      // Redirect to management home page after successful deletion
       setTimeout(() => {
         navigate("/management-home");
-      }, 1000); // Small delay for toast visibility
+      }, 1000);
     } catch (error) {
       console.error(
         "Error deleting staff details:",
@@ -149,21 +111,38 @@ const StaffDetailPage = () => {
     }
   };
 
+  // Function to handle restoration
+  const handleRestore = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `http://localhost:3001/restore/${mcr_number}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      toast.success("Staff details restored successfully!");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error("Error restoring staff details:", error);
+      toast.error("Failed to restore staff details");
+    }
+  };
+
   const [loading, setLoading] = useState(true);
 
   const formatDateTime = (dateStr) => {
-    if (!dateStr) return ""; // Return empty string if date is null or undefined
-
+    if (!dateStr) return "";
     const date = new Date(dateStr);
-
-    // Get year, month, day, hours, and minutes, adding leading zeros where necessary
     const year = date.getFullYear();
-    const month = ("0" + (date.getMonth() + 1)).slice(-2); // Ensure two digits for month
-    const day = ("0" + date.getDate()).slice(-2); // Ensure two digits for day
-    const hours = ("0" + date.getHours()).slice(-2); // Ensure two digits for hours
-    const minutes = ("0" + date.getMinutes()).slice(-2); // Ensure two digits for minutes
-
-    // Format it as YYYY-MM-DDTHH:MM (required for datetime-local input type)
+    const month = ("0" + (date.getMonth() + 1)).slice(-2);
+    const day = ("0" + date.getDate()).slice(-2);
+    const hours = ("0" + date.getHours()).slice(-2);
+    const minutes = ("0" + date.getMinutes()).slice(-2);
     return `${year}-${month}-${day} | ${hours}${minutes}H`;
   };
 
@@ -211,7 +190,7 @@ const StaffDetailPage = () => {
       <Navbar homeRoute="/management-home" />
       <div className="staff-detail-page">
         <div className="staff-info-container">
-          <h2>Staff Details</h2>
+          <h2>Staff Details {staffDetails.deleted === 1 ? "(Deleted)" : ""}</h2>
           <table className="staff-detail-table">
             <tbody>
               <tr>
@@ -223,7 +202,7 @@ const StaffDetailPage = () => {
                     value={staffDetails.mcr_number}
                     onChange={handleInputChange}
                     disabled
-                    className="staff-detail-input" // Add a specific class name
+                    className="staff-detail-input"
                   />
                 </td>
               </tr>
@@ -281,7 +260,7 @@ const StaffDetailPage = () => {
                     onChange={handleInputChange}
                   />
                 </td>
-              </tr>{" "}
+              </tr>
               <tr>
                 <th>Email Address</th>
                 <td>
@@ -310,29 +289,40 @@ const StaffDetailPage = () => {
                 <td>{staffDetails.updated_by}</td>
               </tr>
             </tbody>
-          </table>{" "}
+          </table>
+
+          {/* Always show the update button */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="update-button"
             onClick={handleSubmit}
           >
-            Update Data
+            Update Details
           </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            className="delete-button"
-            onClick={handleDelete}
-          >
-            Delete
-          </motion.button>
+
+          {staffDetails.deleted === 1 ? (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.9 }}
+              className="restore-button"
+              onClick={handleRestore}
+            >
+              Restore
+            </motion.button>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.9 }}
+              className="delete-button"
+              onClick={handleDelete}
+            >
+              Delete
+            </motion.button>
+          )}
         </div>
 
-        {/* ------------------------------------------------------- */}
-        {/* End of Left Form | Start of Contracts Section*/}
-        {/* ------------------------------------------------------- */}
-
+        {/* Contracts and Promotions Section */}
         <div className="staff-info-container">
           <h2>Contracts</h2>
           <div className="contracts-table-container">
@@ -365,8 +355,15 @@ const StaffDetailPage = () => {
                   </tr>
                 )}
               </tbody>
-            </table>{" "}
-          </div>{" "}
+            </table>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="add-contract-button"
+          >
+            Add new contract
+          </motion.button>
           <h2>Promotions</h2>
           <div className="contracts-table-container">
             <table className="contracts-table">
@@ -401,10 +398,9 @@ const StaffDetailPage = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
-            className="update-button"
-            onClick={handleSubmit}
+            className="add-contract-button"
           >
-            Download All
+            Add new Promotion
           </motion.button>
         </div>
       </div>

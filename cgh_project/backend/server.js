@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 // -------------------------------------------------------------------------------------------------------------//
-// IMPORTS//
+// IMPORTS
 // -------------------------------------------------------------------------------------------------------------//
 // express: A framework for building web servers in Node.js --> simplifies routing and middleware setup
 // mysql2: A module for interacting with MySQL databases in Node.js
@@ -17,28 +17,30 @@ import jwt from "jsonwebtoken";
 const app = express(); // Create an instance of the express app
 
 // -------------------------------------------------------------------------------------------------------------//
-// MIDDLEWARE SETUP //
+// MIDDLEWARE SETUP
 // -------------------------------------------------------------------------------------------------------------//
 app.use(express.json()); // Parse incoming JSON requests, so you can access req.body in POST requests when the data is sent in JSON format.
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded data
 app.use(cors()); //Enables CORS, allowing cross-origin requests from browsers e.g. 3000 for frontend, 3001 for backend
 
-const JWT_SECRET =
-  "eae2a5f39b5de58a924b22b97e62030f29885b776d301a04af5d16f92143db17";
-
 // -------------------------------------------------------------------------------------------------------------//
-// DATABASE CONNECTION //
+// DATABASE CONNECTION SETUP
 // -------------------------------------------------------------------------------------------------------------//
 const db = mysql2.createConnection({
   user: "root",
   host: "localhost",
-  password: "Password",
-  database: "main_db",
+  password: "Password", // Password of the database you created
+  database: "main_db", // Name of the database you created
 });
+// Check mySql workbench if you forgot
 
 // -------------------------------------------------------------------------------------------------------------//
 // TOKEN VERIFICATION MIDDLEWARE //
 // -------------------------------------------------------------------------------------------------------------//
+// Secret Key for JWT-->
+const JWT_SECRET =
+  "eae2a5f39b5de58a924b22b97e62030f29885b776d301a04af5d16f92143db17";
+
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1]; // Extract token from Authorization header
 
@@ -58,7 +60,7 @@ const verifyToken = (req, res, next) => {
 // -------------------------------------------------------------------------------------------------------------//
 // ROUTES //
 // -------------------------------------------------------------------------------------------------------------//
-// Login Route
+// LOGIN ROUTE
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/login", (req, res) => {
   // req.body is the data sent by the client, commonly used when a user submits a form
@@ -108,14 +110,15 @@ app.post("/login", (req, res) => {
         { id: user.mcr_number, role: user.role },
         JWT_SECRET,
         {
-          expiresIn: "1h",
+          expiresIn: "12h",
         }
       );
 
       // When a user logs in, a token is created that contains information like
       // the user's MCR number, role, and expiration time.
       // This token is then SIGNED with the JWT_SECRET
-      // This signing ensures that if the user presents this token later, the server can verify that it hasn’t been tampered with.
+      // This signing ensures that if the user presents this token later,
+      // the server can decrypt and verify that it hasn’t been tampered with.
 
       return res.status(200).json({
         message: "Authentication successful",
@@ -127,7 +130,7 @@ app.post("/login", (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// Registration Route
+// REGISTRATION ROUTE (For Development Purposes Only)
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/register", (req, res) => {
   const q =
@@ -148,7 +151,7 @@ app.post("/register", (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// Testing Route
+// BACKEND TESTING ROUTE
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/", (req, res) => {
   res.send(
@@ -157,72 +160,43 @@ app.get("/", (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// PROTECTED Database GET //
+// GET REQUEST FOR DATABASE
+// -------------------------------------------------------------------------------------------------------------//
+
+// app.get("/database", verifyToken, (req, res) => {
+//   // Added token verification
+//   const q = "SELECT * FROM main_data";
+//   db.query(q, (err, data) => {
+//     if (err) return res.json(err);
+//     return res.json(data);
+//   });
+// });
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST FOR COMBINED DOCTORS DETAILS (FROM ALL 3 TABLES)
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/database", verifyToken, (req, res) => {
-  // Added token verification
-  const q = "SELECT * FROM main_data";
-  db.query(q, (err, data) => {
-    if (err) return res.json(err);
-    return res.json(data);
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// PROTECTED Database POST - For Postman (Development purposes only)
-// -------------------------------------------------------------------------------------------------------------//
-app.post("/login", (req, res) => {
-  const { mcr_number, password, selectedRole } = req.body;
-
-  const q = "SELECT * FROM user_data WHERE mcr_number = ?";
-
-  db.query(q, [mcr_number], (err, data) => {
+  const includeDeleted = req.query.includeDeleted === "true";
+  const query = includeDeleted
+    ? "SELECT * FROM main_data"
+    : "SELECT * FROM main_data WHERE deleted = 0";
+  db.query(query, (err, data) => {
     if (err) {
-      return res.status(500).json({ error: "Database error occurred" });
+      console.error("Error retrieving data:", err);
+      return res.status(500).json({ error: "Failed to retrieve data" });
     }
-
-    if (data.length === 0) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    const user = data[0];
-
-    bcrypt.compare(password, user.user_password, (err, isMatch) => {
-      if (err) {
-        return res.status(500).json({ error: "Error comparing passwords" });
-      }
-
-      if (!isMatch) {
-        return res.status(401).json({ error: "Incorrect password" });
-      }
-
-      if (user.role !== selectedRole) {
-        return res.status(403).json({ error: "Role does not match" });
-      }
-
-      // Create a JWT token, storing the mcr_number in the token payload
-      const token = jwt.sign(
-        { id: user.mcr_number, role: user.role },
-        JWT_SECRET,
-        { expiresIn: "1h" }
-      );
-
-      return res.status(200).json({
-        message: "Authentication successful",
-        token,
-        role: user.role,
-      });
-    });
+    res.json(data);
   });
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// Database GET - Staff by mcr_number
+// GET REQUEST FOR STAFF DETAILS BY 'mcr_number' FROM MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/staff/:mcr_number", verifyToken, (req, res) => {
   const { mcr_number } = req.params;
 
-  const q = "SELECT * FROM main_data WHERE mcr_number = ?"; // Adjust table/column names as necessary
+  // Remove the deleted = 0 condition to include deleted entries
+  const q = "SELECT * FROM main_data WHERE mcr_number = ?";
 
   db.query(q, [mcr_number], (err, data) => {
     if (err) {
@@ -233,13 +207,20 @@ app.get("/staff/:mcr_number", verifyToken, (req, res) => {
     if (data.length === 0) {
       return res.status(404).json({ message: "Staff not found" });
     }
-    res.json(data[0]); // Send the first staff entry found in the response
+
+    res.json(data[0]); // Send the FIRST staff entry found in the response
   });
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// Database Update - PUT Request to update Staff Details and Contracts
+// PUT REQUEST FOR UPDATING EXISTING STAFF DETAILS TO MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
+// Why PUT instead of POST?
+// PUT Requests is idempotent --> i.e. if you make the same PUT request multiple times,
+// the result will be equivalent to making just one request
+// for example, making a PUT request will just overwrite the exisiting user data regardless
+// of how many times you sent, it wont create multiple entries
+
 app.put("/staff/:mcr_number", verifyToken, (req, res) => {
   const mcr_number = req.params.mcr_number;
   const {
@@ -255,6 +236,7 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
     email,
   } = req.body;
 
+  // To ensure accountability, we track who updated the record
   const userMcrNumber = req.user.id; // Get the MCR number of the logged-in user from the token
 
   const q = `
@@ -275,6 +257,9 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
     mcr_number,
   ];
 
+  // The updated_by column in main_data table will be the MCR number of the user who updated
+  // it every time a put request is made
+
   db.query(q, values, (err, data) => {
     if (err) {
       console.error("Error during the query execution:", err);
@@ -285,7 +270,7 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// Database Input - Add New Staff Details, POST route to input NEW staff details
+// POST REQUEST FOR ADDING NEW STAFF DETAILS TO MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/entry", verifyToken, (req, res) => {
   const {
@@ -302,7 +287,7 @@ app.post("/entry", verifyToken, (req, res) => {
     email,
   } = req.body;
 
-  const userMcrNumber = req.user.id; // Get the MCR number of the logged-in user from the token
+  const userMcrNumber = req.user.id;
 
   // Validate required fields
   if (
@@ -351,18 +336,24 @@ app.post("/entry", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// Database Delete - Staff Details, DELETE route to delete staff details
+// DELETE REQUEST FOR DELETING STAFF DETAILS FROM MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.delete("/staff/:mcr_number", verifyToken, (req, res) => {
   const { mcr_number } = req.params;
+  const userMcrNumber = req.user.id; // Get the MCR number of the logged-in user from the token
+  const deleteTime = new Date();
 
-  // SQL query to delete staff details by mcr_number
-  const q = "DELETE FROM main_data WHERE mcr_number = ?";
+  // Instead of DELETE, use UPDATE to mark the entry as deleted
+  const q = `
+    UPDATE main_data 
+    SET deleted = 1, deleted_by = ?, deleted_at = ?
+    WHERE mcr_number = ?
+  `;
 
-  db.query(q, [mcr_number], (err, data) => {
+  db.query(q, [userMcrNumber, deleteTime, mcr_number], (err, data) => {
     if (err) {
-      console.error("Error deleting staff details:", err); // Log any error
-      return res.status(500).json({ error: "Failed to delete staff details" });
+      console.error("Error marking staff as deleted:", err); // Log any error
+      return res.status(500).json({ error: "Failed to mark staff as deleted" });
     }
 
     // If no rows were affected, the mcr_number does not exist
@@ -371,13 +362,45 @@ app.delete("/staff/:mcr_number", verifyToken, (req, res) => {
     }
 
     return res.json({
-      message: `Staff with MCR Number ${mcr_number} deleted successfully`,
+      message: `Staff with MCR Number ${mcr_number} marked as deleted successfully`,
     });
   });
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// Contracts Table --> GET Request for contracts data by mcr_number
+// RESTORE REQUEST FOR RESTORING DELETED STAFF DETAILS IN MAIN_DATA TABLE
+// -------------------------------------------------------------------------------------------------------------//
+app.put("/restore/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params;
+  const userMcrNumber = req.user.id; // Get the MCR number of the logged-in user from the token
+
+  const q = `
+    UPDATE main_data 
+    SET deleted = 0, deleted_by = NULL, deleted_at = NULL
+    WHERE mcr_number = ? AND deleted = 1
+  `; // Only update entries marked as deleted (deleted = 1)
+
+  db.query(q, [mcr_number], (err, data) => {
+    if (err) {
+      console.error("Error restoring staff details:", err); // Log any error
+      return res.status(500).json({ error: "Failed to restore staff details" });
+    }
+
+    // If no rows were affected, it means either the MCR number does not exist or the entry is not marked as deleted
+    if (data.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ message: "Staff not found or already active" });
+    }
+
+    return res.json({
+      message: `Staff with MCR Number ${mcr_number} has been successfully restored`,
+    });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST FOR CONTRACTS DETAILS BY 'mcr_number' FROM MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
   const { mcr_number } = req.params;
@@ -392,6 +415,7 @@ app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
   db.query(q, [mcr_number], (err, data) => {
     if (err) {
       console.error("Error retrieving contracts data:", err);
+      d;
       return res
         .status(500)
         .json({ message: "Error retrieving contracts data" });
@@ -406,8 +430,9 @@ app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
     res.json(data);
   });
 });
+
 // -------------------------------------------------------------------------------------------------------------//
-// Promotions Table --> GET Request for promotion data by mcr_number
+// GET REQUEST FOR PROMOTIONS DETAILS BY 'mcr_number' FROM MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/promotions/:mcr_number", verifyToken, (req, res) => {
   const { mcr_number } = req.params;
@@ -436,36 +461,6 @@ app.get("/promotions/:mcr_number", verifyToken, (req, res) => {
         .json({ message: "No promotions found for this doctor" });
     }
 
-    res.json(data);
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// Get doctor details along with contracts for specific MCR numbers
-// -------------------------------------------------------------------------------------------------------------//
-
-app.post("/doctors/contracts", verifyToken, (req, res) => {
-  const { mcr_numbers } = req.body;
-
-  if (!mcr_numbers || mcr_numbers.length === 0) {
-    return res.status(400).json({ message: "MCR numbers are required" });
-  }
-
-  // Construct a query to fetch data from both `main_data` and `contracts`
-  const q = `
-    SELECT main_data.*, contracts.school_name, contracts.start_date, contracts.end_date, contracts.status
-    FROM main_data
-    LEFT JOIN contracts ON main_data.mcr_number = contracts.mcr_number
-    WHERE main_data.mcr_number IN (?);
-  `;
-
-  db.query(q, [mcr_numbers], (err, data) => {
-    if (err) {
-      console.error("Error retrieving doctors and contracts data:", err);
-      return res.status(500).json({ message: "Error retrieving data" });
-    }
-
-    // Respond with the combined data
     res.json(data);
   });
 });

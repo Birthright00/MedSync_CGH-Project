@@ -1,11 +1,14 @@
+/* ################################################# */
 /* Main Page Layout */
+/* ################################################# */
 .management-home-page {
-  width: 100vw;
-  min-height: 100vh; /* Use min-height instead of height */
-  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
   justify-content: center;
-  flex-direction: row;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow-x: hidden; /* Content is clipped (cut off) and not visible beyond the container. No scrollbars are added. */
 }
 
 .management-home-page:before {
@@ -14,45 +17,46 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%; /* Cover the full height */
+  height: 100%;
   background-image: url("../images/login-background-img.jpg");
-  background-repeat: no-repeat; /* Ensure no repetition */
-  background-size: cover; /* Cover the entire container */
-  background-position: center; /* Center the background image */
+  background-size: cover; /* will automatically scale and stretch the background image */
+  background-position: center;
   opacity: 0.6;
   z-index: -1;
 }
 
-/* Filter Section */
+/* ################################################# */
+/* Filter Section (General) */
+/* ################################################# */
 .filter-section {
-  width: 100%;
-  height: 100%;
+  width: 10%;
+  max-width: 300px;
+  max-height: 605px;
   padding: 20px;
   background-color: white;
-  opacity: 0.9;
+  opacity: 0.95;
   z-index: 1;
-  border-right: 1px solid #ddd;
-  margin: 10px;
-  margin-left: 50px;
-  margin-right: -50px;
-  margin-top: 30px;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   font-weight: 500;
+  margin-top: 30px;
+  margin-right: -75px;
+  margin-left: 100px;
 }
 
-.filter-section h3 {
-  font-size: 16px; /* Increased from 14px */
+Filter Header .filter-section h3 {
+  font-size: 16px;
   color: #0083ca;
-  text-align: center; /* Aligning left to match column alignment */
-  margin-bottom: 20px; /* Spacing under the "Filter" heading */
+  text-align: center;
+  margin-bottom: 20px;
   font-weight: 500;
 }
 
 .filter-section label {
   display: block;
   margin-bottom: 3px;
-  font-size: 14px; /* Increased from 12px */
+  font-size: 14px;
   color: #0083ca;
   font-weight: 500;
 }
@@ -63,15 +67,36 @@
   margin-bottom: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 14px; /* Increased from 12px */
+  font-size: 14px;
   box-sizing: border-box;
+  font-weight: 500;
+}
+
+/* ################################################# */
+/* Filter Section (Buttons)*/
+/* ################################################# */
+.filter-button {
+  width: 100%;
+  height: 50px;
+  margin-right: 20px;
+  margin-bottom: 10px;
+  padding: 10px;
+  font-size: 12px;
+  cursor: pointer;
+  background-color: #ccc;
+  color: #666;
+  border: none;
+  border-radius: 4px;
   font-weight: 500;
 }
 
 .reset-button {
   width: 100%;
+  margin-right: 20px;
+  margin-bottom: 20px;
   padding: 10px;
-  font-size: 14px !important; /* Increased from 12px */
+  font-size: 14px;
+  cursor: pointer;
   background-color: #0083ca;
   color: white;
   border: none;
@@ -80,12 +105,30 @@
 }
 
 .reset-button:hover {
-  background-color: #006699;
+  background-color: #006ea1;
 }
 
-/* Table Container */
+.filter-button.button-grey {
+  background-color: #ccc !important;
+}
+
+.filter-button.button-blue {
+  background-color: #0083ca !important;
+}
+
+.filter-button.button-blue:hover {
+  background-color: #006ea1 !important;
+}
+
+.filter-button.button-grey:hover {
+  background-color: #999 !important;
+}
+
+/* ################################################# */
+/* Data Table (General)*/
+/* ################################################# */
 .table-container {
-  width: 80%;
+  width: 87%;
   max-width: 1200px;
   max-height: 500px;
   overflow-x: auto; /* Enable horizontal scrolling */
@@ -95,137 +138,199 @@
   z-index: 1;
   margin-top: 30px;
   margin-left: 100px;
-  white-space: nowrap; /* Prevent wrapping of text to maintain horizontal structure */
-}
-
-.entries-per-page {
-  width: 80%;
-  overflow-y: auto;
-  background-color: transparent;
-  opacity: 0.9;
-  z-index: 1;
-  margin-top: 10px;
-  margin-left: 100px;
-  display: flex;
-  justify-content: center;
-  align-items: center; /* Ensures the label and select dropdown are vertically aligned */
-  font-size: 16px; /* Increased from 12px */
-  font-weight: 500;
-}
-
-.entries-per-page label {
-  margin-right: 10px; /* Add space between label and dropdown */
-  font-size: 16px; /* Increased from 12px */
-  color: #555;
-  font-weight: 500;
-}
-
-.entries-per-page select:hover {
-  background-color: #006699; /* Darken on hover to match button hover effect */
-}
-
-.entries-per-page select:focus {
-  outline: none;
-  box-shadow: 0 0 5px rgba(0, 131, 202, 0.5); /* Add focus effect */
+  white-space: nowrap;
+  border-radius: 5px;
 }
 
 .data-table {
-  width: max-content; /* Adjust table width based on content */
+  width: max-content;
   border-collapse: collapse;
   table-layout: auto; /* Use automatic table layout for dynamic column sizing */
-  font-size: 14px; /* Increased from 12px */
+  font-size: 14px;
   font-weight: 500;
 }
 
-/* Darker background on row hover */
-.data-table tr:hover {
-  background-color: #e0e0e0 !important; /* Force hover color to override other background styles */
-  transition: background-color 0.3s ease;
-}
-
+/* ################################################# */
+/* Data Table (Rows)*/
+/* ################################################# */
 .data-table th,
 .data-table td {
-  border: 1px solid #ddd;
+  border: 1px solid #ccc;
   padding: 8px;
   text-align: center;
-  height: 30px; /* Set a consistent height for each row */
+  height: 20px; /* Set a consistent height for each row */
   overflow: hidden; /* Ensures no content overflow */
   white-space: nowrap; /* Prevents text from wrapping */
   text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
-  font-weight: 500; /* Increased from 400 */
-  font-size: 14px; /* Increased from 12px */
+  font-weight: 500;
+  font-size: 14px;
 }
 
-/* Making the first column "no" thinner */
+/* Hovering over rows */
+.data-table tr:hover {
+  background-color: #B7E0FF !important; /* Force hover color to override other background styles */
+  transition: background-color 0.3s ease;
+}
+
+/* "No" Column */
 th:first-child,
 td:first-child {
   width: 3%;
   text-align: center;
 }
 
-/* Sortable Table Headers */
+/* Alternate Rows Highlight */
+.data-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* ################################################# */
+/* Data Table (Header)*/
+/* ################################################# */
 .data-table th {
   position: sticky;
   top: 0;
-  background-color: #f2f2f2; /* Background color for header */
+  background-color: #f2f2f2;
   z-index: 2;
-  font-size: 16px; /* Increased from 14px */
+  font-size: 14px;
   color: #0083ca;
   border: 1px solid #ddd;
   padding: 8px;
   text-align: center;
-  height: 50px;
+  height: 30px;
   cursor: pointer;
   transition: background-color 0.3s ease, color 0.3s ease;
-  font-weight: 500;
+  font-weight: 550;
 }
-/* Add a sorting icon or arrow */
+
 .sort-icon {
   margin-left: 8px;
-  font-size: 14px; /* Increased from 12px */
-  opacity: 0.6; /* Slightly faded to avoid overpowering */
+  font-size: 14px;
+  opacity: 0.6;
   font-weight: 500;
 }
 
 .sort-asc .sort-icon::before {
-  content: "▲"; /* Up arrow for ascending order */
+  content: "▲";
 }
 
 .sort-desc .sort-icon::before {
-  content: "▼"; /* Down arrow for descending order */
+  content: "▼";
 }
 
-/* Active sorting header styles */
 .data-table th.sorted-asc {
-  background-color: #006699; /* Background for active sort in ascending order */
+  background-color: #006699;
   color: white;
   font-weight: 500;
 }
 
 .data-table th.sorted-desc {
-  background-color: #006699; /* Background for active sort in descending order */
+  background-color: #006699;
   color: white;
   font-weight: 500;
 }
-.data-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
 
 .data-table th:hover {
-  background-color: #0083ca; /* Darker background on hover */
-  color: white; /* Change text color on hover */
+  background-color: #0083ca;
+  color: white;
   font-weight: 500;
 }
 
-/* Pagination */
-.current-page {
-  margin-right: 50px;
+/* ################################################# */
+/* Entries Per Page (General) */
+/* ################################################# */
+.entries-per-page {
+  width: 100%;
+  overflow-y: auto;
+  background-color: transparent;
+  opacity: 0.9;
+  z-index: 1;
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 5px;
+}
+
+.entries-per-page label {
+  margin-right: 10px;
+  font-size: 16px;
+  color: #555;
+  font-weight: 500;
+  color: #0083ca;
+}
+
+.entries-per-page select:hover {
+  background-color: #006699;
+}
+
+.entries-per-page select:focus {
+  outline: none;
+}
+
+/* ################################################# */
+/* Entries Per Page (Buttons) */
+/* ################################################# */
+.entries-per-page-button {
+  width: 50px;
+  margin-right: 10px;
+  padding: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: #ccc;
+  color: #666;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.entries-per-page-button-grey {
+  background-color: #ccc;
+  color: #666;
+}
+.button-grey:hover {
+  background-color: #999;
+}
+
+.button-blue {
+  background-color: #0083ca;
+  color: white;
+}
+
+.button-blue:hover {
+  background-color: #006699; /* Darker blue on hover */
+}
+
+.entries-per-page-input {
+  width: 15%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   font-size: 14px; /* Increased from 12px */
-  color: black;
-  margin-bottom: 20px;
+  box-sizing: border-box;
   font-weight: 500;
+  margin-right: 20px;
 }
 
+/* ################################################# */
+/* Pagination White Div */
+.pagination-background {
+  width: 87%;
+  overflow-y: auto;
+  background-color: white;
+  opacity: 0.9;
+  z-index: 1;
+  margin-top: 10px;
+  margin-left: 100px;
+  border-radius: 5px;
+}
+/* ################################################# */
+
+/* ################################################# */
+/* Pagination (General) */
+/* ################################################# */
 .pagination-container {
   display: flex;
   justify-content: center;
@@ -233,40 +338,39 @@ td:first-child {
   margin-top: 20px;
   width: 100%;
   z-index: 1;
+  border-radius: 5px;
 }
-
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  white-space: nowrap; /* Prevent text wrapping */
+  white-space: nowrap;
   font-weight: 500;
 }
 
-/* Pagination background */
-.pagination-background {
-  width: 80%;
-  overflow-y: auto;
-  background-color: white;
-  opacity: 0.9;
-  z-index: 1;
-  margin-top: 10px;
-  margin-left: 100px;
+.current-page {
+  margin-right: 50px;
+  font-size: 14px;
+  color: black;
+  margin-bottom: 20px;
+  font-weight: 500;
 }
 
 .pagination button,
-.download-button {
+.homepg-download-button {
   width: 100px;
   margin-right: 20px;
   margin-bottom: 20px;
   padding: 10px;
-  font-size: 14px; /* Increased from 12px */
+  font-size: 14px;
   cursor: pointer;
   background-color: #0083ca;
   color: white;
   border: none;
   border-radius: 4px;
   font-weight: 500;
+  box-shadow: rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
+    rgba(14, 30, 37, 0.32) 0px 2px 16px 0px;
 }
 
 .pagination button:disabled {
@@ -276,13 +380,11 @@ td:first-child {
   color: #666;
 }
 
-/* Download Section */
-.download-button:hover {
+.pagination button:hover,
+.homepg-download-button:hover {
   background-color: #006699;
-  font-weight: 500;
 }
 
-/* Ensure CSV link inside behaves like a button */
 .csv-link {
   color: white;
   text-decoration: none;
@@ -295,26 +397,16 @@ td:first-child {
   font-weight: 500;
 }
 
-.download-button:hover {
-  background-color: #006699;
-}
-
-.reset-button {
-  margin-right: 50px;
-  padding: 10px 20px;
-  font-size: 16px; /* Increased from 14px */
-  cursor: pointer;
-  background-color: #0083ca;
-  color: white;
-  border: none;
-  border-radius: 4px;
-}
+/* ################################################# */
+/* Miscellaneous */
+/* ################################################# */
 
 .bi {
-  margin-left: 5px; /* Adds some space between the text and the icon */
-  font-size: 14px; /* Increased from 12px */
-  vertical-align: middle; /* Aligns the icon with the text */
+  margin-left: 5px;
+  font-size: 14px;
+  vertical-align: middle;
 }
+
 .greyed-out {
   opacity: 0.5;
   text-decoration: line-through;

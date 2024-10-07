@@ -173,13 +173,13 @@ app.get("/", (req, res) => {
 // });
 
 // -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR COMBINED DOCTORS DETAILS (FROM ALL 3 TABLES)
+// GET REQUEST FOR COMBINED DOCTORS DETAILS (FROM ALL 3 TABLES AS A VIEW)
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/database", verifyToken, (req, res) => {
   const includeDeleted = req.query.includeDeleted === "true";
   const query = includeDeleted
-    ? "SELECT * FROM main_data"
-    : "SELECT * FROM main_data WHERE deleted = 0";
+    ? "SELECT * FROM combined_doctor_data"
+    : "SELECT * FROM combined_doctor_data WHERE deleted = 0";
   db.query(query, (err, data) => {
     if (err) {
       console.error("Error retrieving data:", err);
@@ -400,6 +400,8 @@ app.put("/restore/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// CONTRACTS ROUTES
+// -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FOR CONTRACTS DETAILS BY 'mcr_number' FROM MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
@@ -468,6 +470,41 @@ app.post("/new-contracts/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// DELETE REQUEST FOR DELETING A SPECIFIC CONTRACT BASED ON MCR NUMBER, STATUS, START DATE, AND SCHOOL NAME
+// -------------------------------------------------------------------------------------------------------------//
+
+app.delete(
+  "/contracts/:mcr_number/:status/:start_date/:school_name",
+  verifyToken,
+  (req, res) => {
+    const { mcr_number, status, start_date, school_name } = req.params;
+
+    // SQL query now targets specific rows based on multiple fields
+    const q = `
+    DELETE FROM contracts 
+    WHERE mcr_number = ? AND status = ? AND start_date = ? AND school_name = ?
+  `;
+
+    const values = [mcr_number, status, start_date, school_name];
+
+    db.query(q, values, (err, data) => {
+      if (err) {
+        console.error("Error deleting contract:", err);
+        return res.status(500).json({ error: "Failed to delete contract" });
+      }
+
+      if (data.affectedRows === 0) {
+        return res.status(404).json({ message: "Contract not found" });
+      }
+
+      return res.status(200).json({ message: "Contract deleted successfully" });
+    });
+  }
+);
+
+// -------------------------------------------------------------------------------------------------------------//
+// PROMOTIONS ROUTES
+// -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FOR PROMOTIONS DETAILS BY 'mcr_number' FROM MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/promotions/:mcr_number", verifyToken, (req, res) => {
@@ -498,6 +535,107 @@ app.get("/promotions/:mcr_number", verifyToken, (req, res) => {
     }
 
     res.json(data);
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// POST REQUEST FOR ADDING NEW PROMOTION DETAILS TO PROMOTIONS TABLE
+// -------------------------------------------------------------------------------------------------------------//
+
+app.post("/new-promotions/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params; // Get the MCR number from the URL
+  const { new_title, previous_title, promotion_date } = req.body;
+
+  // Validate required fields
+  if (!new_title || !previous_title || !promotion_date) {
+    return res
+      .status(400)
+      .json({ error: "Please provide all required fields" });
+  }
+
+  // Corrected table name and columns
+  const q = `
+    INSERT INTO promotions 
+    (mcr_number, new_title, previous_title, promotion_date) 
+    VALUES (?, ?, ?, ?)
+  `;
+
+  const values = [mcr_number, new_title, previous_title, promotion_date];
+
+  db.query(q, values, (err, data) => {
+    if (err) {
+      console.error("Error inserting new promotion details:", err);
+      return res
+        .status(500)
+        .json({ error: "Failed to add new promotion details" });
+    }
+    return res
+      .status(201)
+      .json({ message: "New promotion details added successfully", data });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// DELETE REQUEST FOR DELETING A PROMOTION BASED ON NEW TITLE FROM PROMOTIONS TABLE
+// -------------------------------------------------------------------------------------------------------------//
+
+app.delete("/promotions/:mcr_number/:new_title", verifyToken, (req, res) => {
+  const { mcr_number, new_title } = req.params;
+
+  const q = `DELETE FROM promotions WHERE mcr_number = ? AND new_title = ?`;
+
+  const values = [mcr_number, new_title];
+
+  db.query(q, values, (err, data) => {
+    if (err) {
+      console.error("Error deleting promotion:", err);
+      return res.status(500).json({ error: "Failed to delete promotion" });
+    }
+
+    if (data.affectedRows === 0) {
+      return res.status(404).json({ message: "Promotion not found" });
+    }
+
+    return res.status(200).json({ message: "Promotion deleted successfully" });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// PUT REQUEST FOR UPDATING PROMOTION DETAILS BASED ON MCR NUMBER AND NEW TITLE
+// -------------------------------------------------------------------------------------------------------------//
+
+app.put("/promotions/:mcr_number/:new_title", verifyToken, (req, res) => {
+  const { mcr_number, new_title } = req.params; // Get the MCR number and new title from the URL
+  const { previous_title, promotion_date } = req.body; // Get the updated fields from the request body
+
+  // Validate the input fields
+  if (!previous_title || !promotion_date) {
+    return res
+      .status(400)
+      .json({ error: "Please provide all required fields" });
+  }
+
+  const q = `
+    UPDATE promotions 
+    SET previous_title = ?, promotion_date = ? 
+    WHERE mcr_number = ? AND new_title = ?
+  `;
+
+  const values = [previous_title, promotion_date, mcr_number, new_title];
+
+  db.query(q, values, (err, data) => {
+    if (err) {
+      console.error("Error updating promotion details:", err);
+      return res
+        .status(500)
+        .json({ error: "Failed to update promotion details" });
+    }
+
+    if (data.affectedRows === 0) {
+      return res.status(404).json({ message: "Promotion not found" });
+    }
+
+    return res.status(200).json({ message: "Promotion updated successfully" });
   });
 });
 

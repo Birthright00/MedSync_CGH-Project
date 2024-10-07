@@ -1,4 +1,6 @@
+/* ################################################# */
 /* Main Page Layout */
+/* ################################################# */
 .staff-detail-page {
   width: 100vw;
   min-height: 100vh;
@@ -10,7 +12,6 @@
   padding: 10px;
 }
 
-/* Background Image with Opacity */
 .staff-detail-page:before {
   content: "";
   position: absolute;
@@ -26,7 +27,9 @@
   z-index: -1; /* Place it behind the content */
 }
 
-/* Container for Staff Information */
+/* ################################################# */
+/* STAFF DETAILS (LEFT SIDE) */
+/* ################################################# */
 .staff-info-container {
   background-color: white;
   padding: 20px;
@@ -90,7 +93,7 @@
 
 /* Scrollable Contract Table Container */
 .contracts-table-container {
-  max-height: 280px; /* Set maximum height */
+  max-height: 235px; /* Set maximum height */
   overflow-y: auto; /* Enable vertical scrolling */
   border: 1px solid #ddd; /* Border around the scrollable table */
   border-radius: 5px; /* Add slight rounding */
@@ -174,6 +177,7 @@
 .update-button,
 .download-button,
 .add-contract-button,
+.toggle-add-contract-button,
 .restore-button,
 .delete-button {
   margin-top: 20px;
@@ -194,20 +198,23 @@
 .restore-button {
   border-color: green;
   background-color: green;
+  color: white;
 }
 
 .delete-button {
-  border-color: red;
-  background-color: red;
+  border-color: #ca4700;
+  background-color: #ca4700;
+  color: white;
 }
 
-.update-button {
+.update-button,
+.toggle-add-contract-button {
   background-color: #0083ca;
   color: white;
 }
 
 .add-contract-button {
-  background-color: #0083ca;
+  background-color: green;
   color: white;
 }
 
@@ -230,4 +237,15 @@
   .contracts-table td {
     font-size: 12px;
   }
+}
+
+.table-delete-button {
+  background-color: #ca4700;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }

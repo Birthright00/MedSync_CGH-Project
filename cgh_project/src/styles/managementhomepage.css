@@ -3,7 +3,7 @@
 /* ################################################# */
 .management-home-page {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
   display: flex;
   justify-content: center;
   padding: 20px;
@@ -19,7 +19,6 @@
   width: 100%;
   height: 100%;
   background-image: url("../images/login-background-img.jpg");
-  background-repeat: no-repeat;
   background-size: cover; /* will automatically scale and stretch the background image */
   background-position: center;
   opacity: 0.6;
@@ -43,7 +42,7 @@
   font-weight: 500;
   margin-top: 30px;
   margin-right: -75px;
-  margin-left: 50px;
+  margin-left: 100px;
 }
 
 Filter Header .filter-section h3 {
@@ -77,11 +76,12 @@ Filter Header .filter-section h3 {
 /* Filter Section (Buttons)*/
 /* ################################################# */
 .filter-button {
-  width: 100px;
+  width: 100%;
+  height: 50px;
   margin-right: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   padding: 10px;
-  font-size: 14px;
+  font-size: 12px;
   cursor: pointer;
   background-color: #ccc;
   color: #666;
@@ -91,7 +91,7 @@ Filter Header .filter-section h3 {
 }
 
 .reset-button {
-  width: 100px;
+  width: 100%;
   margin-right: 20px;
   margin-bottom: 20px;
   padding: 10px;
@@ -139,6 +139,7 @@ Filter Header .filter-section h3 {
   margin-top: 30px;
   margin-left: 100px;
   white-space: nowrap;
+  border-radius: 5px;
 }
 
 .data-table {
@@ -154,7 +155,7 @@ Filter Header .filter-section h3 {
 /* ################################################# */
 .data-table th,
 .data-table td {
-  border: 1px solid #ddd;
+  border: 1px solid #ccc;
   padding: 8px;
   text-align: center;
   height: 20px; /* Set a consistent height for each row */
@@ -167,7 +168,7 @@ Filter Header .filter-section h3 {
 
 /* Hovering over rows */
 .data-table tr:hover {
-  background-color: #e0e0e0 !important; /* Force hover color to override other background styles */
+  background-color: #B7E0FF !important; /* Force hover color to override other background styles */
   transition: background-color 0.3s ease;
 }
 
@@ -191,15 +192,15 @@ td:first-child {
   top: 0;
   background-color: #f2f2f2;
   z-index: 2;
-  font-size: 16px;
+  font-size: 14px;
   color: #0083ca;
   border: 1px solid #ddd;
   padding: 8px;
   text-align: center;
-  height: 50px;
+  height: 30px;
   cursor: pointer;
   transition: background-color 0.3s ease, color 0.3s ease;
-  font-weight: 500;
+  font-weight: 550;
 }
 
 .sort-icon {
@@ -250,6 +251,7 @@ td:first-child {
   align-items: center;
   font-size: 16px;
   font-weight: 500;
+  border-radius: 5px;
 }
 
 .entries-per-page label {
@@ -257,6 +259,7 @@ td:first-child {
   font-size: 16px;
   color: #555;
   font-weight: 500;
+  color: #0083ca;
 }
 
 .entries-per-page select:hover {
@@ -321,6 +324,7 @@ td:first-child {
   z-index: 1;
   margin-top: 10px;
   margin-left: 100px;
+  border-radius: 5px;
 }
 /* ################################################# */
 
@@ -334,6 +338,7 @@ td:first-child {
   margin-top: 20px;
   width: 100%;
   z-index: 1;
+  border-radius: 5px;
 }
 .pagination {
   display: flex;
@@ -351,7 +356,8 @@ td:first-child {
   font-weight: 500;
 }
 
-.pagination button {
+.pagination button,
+.homepg-download-button {
   width: 100px;
   margin-right: 20px;
   margin-bottom: 20px;
@@ -374,7 +380,8 @@ td:first-child {
   color: #666;
 }
 
-.pagination button:hover {
+.pagination button:hover,
+.homepg-download-button:hover {
   background-color: #006699;
 }
 

@@ -1,4 +1,6 @@
+/* ################################################# */
 /* Main Page Layout */
+/* ################################################# */
 .staff-detail-page {
   width: 100vw;
   min-height: 100vh;
@@ -10,7 +12,6 @@
   padding: 10px;
 }
 
-/* Background Image with Opacity */
 .staff-detail-page:before {
   content: "";
   position: absolute;
@@ -26,7 +27,9 @@
   z-index: -1; /* Place it behind the content */
 }
 
-/* Container for Staff Information */
+/* ################################################# */
+/* STAFF DETAILS (LEFT SIDE) */
+/* ################################################# */
 .staff-info-container {
   background-color: white;
   padding: 20px;
@@ -90,7 +93,7 @@
 
 /* Scrollable Contract Table Container */
 .contracts-table-container {
-  max-height: 280px; /* Set maximum height */
+  max-height: 235px; /* Set maximum height */
   overflow-y: auto; /* Enable vertical scrolling */
   border: 1px solid #ddd; /* Border around the scrollable table */
   border-radius: 5px; /* Add slight rounding */

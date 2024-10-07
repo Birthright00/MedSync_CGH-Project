@@ -187,7 +187,7 @@ const ManagementHomePage = () => {
               const value = e.target.value;
               setMcrNumberFilter(value.replace(/^m/i, "M"));
             }}
-            placeholder="MCR Number"
+            placeholder="MCR No."
             autoComplete="off"
           />
           <label htmlFor="first-name-filter">First Name:</label>
@@ -235,7 +235,7 @@ const ManagementHomePage = () => {
               setOnlyDeleted(false);
             }}
           >
-            Show Deleted
+            Include Deleted Data
           </button>
           <button
             className={`filter-button ${
@@ -246,7 +246,7 @@ const ManagementHomePage = () => {
               setShowDeleted(false);
             }}
           >
-            Only Show Deleted
+            Only Show Deleted Data
           </button>
           <button className="reset-button" onClick={resetFilters}>
             Reset
@@ -258,7 +258,7 @@ const ManagementHomePage = () => {
               <thead>
                 <tr>
                   <th>No</th>
-                  <th onClick={() => handleSort("mcr_number")}>MCR Number</th>
+                  <th onClick={() => handleSort("mcr_number")}>MCR No.</th>
                   <th onClick={() => handleSort("first_name")}>First Name</th>
                   <th onClick={() => handleSort("last_name")}>Last Name</th>
                   <th onClick={() => handleSort("department")}>Department</th>
@@ -383,8 +383,8 @@ const ManagementHomePage = () => {
                   Refresh
                 </button>
               </div>
-              <div className="download-section">
-                <button className="download-button">
+              <div className="homepg-download-section">
+                <button className="homepg-download-button">
                   <CSVLink
                     data={rowsToDisplay.filter((row) => row.mcr_number)}
                     filename={`page-${currentPage}-data.csv`}

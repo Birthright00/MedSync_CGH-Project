@@ -1,16 +1,20 @@
-import "../styles/staffdetailpage.css"; // Create a new CSS file for this page
+import "../styles/staffdetailpage.css";
 import Navbar from "../components/Navbar";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom"; // Added useNavigate for navigation
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { CSVLink } from "react-csv"; // Import CSVLink
-import { FaEdit, FaTrash } from "react-icons/fa"; // Import icons
+import { CSVLink } from "react-csv";
+import { FaEdit, FaTrash } from "react-icons/fa";
 
 const StaffDetailPage = () => {
+  // ########################################## //
+  // Generic Constants
+  // ########################################## //
   const { mcr_number } = useParams(); // Get the MCR number from route params
+  const navigate = useNavigate(); // Use navigate to redirect after delete
   const [staffDetails, setStaffDetails] = useState({
     mcr_number: "",
     first_name: "",
@@ -21,85 +25,23 @@ const StaffDetailPage = () => {
     email: "",
     deleted: 0, // Include deleted field in the state
   });
-  const [newContract, setNewContract] = useState({
-    school_name: "",
-    start_date: "Start Date",
-    end_date: "End Date",
-    status: "",
-  });
+  const [loading, setLoading] = useState(true);
 
-  const [newPromotion, setNewPromotion] = useState({
-    new_title: "",
-    previous_title: "",
-    promotion_date: "",
-  });
-
-  const [contracts, setContracts] = useState([]);
-  const [promotions, setPromotions] = useState([]);
-  const [isContractFormOpen, setContractFormOpen] = useState(false);
-  const [isPromotionFormOpen, setPromotionFormOpen] = useState(false);
-
-  const combinedData = contracts.map((contract) => ({
-    "MCR Number": staffDetails.mcr_number,
-    "First Name": staffDetails.first_name,
-    "Last Name": staffDetails.last_name,
-    Department: staffDetails.department,
-    Appointment: staffDetails.appointment,
-    Email: staffDetails.email,
-    "Teaching Training Hours": staffDetails.teaching_training_hours,
-    "Contract School Name": contract.school_name,
-    "Contract Start Date": contract.start_date,
-    "Contract End Date": contract.end_date,
-    "Contract Status": contract.status,
-    "Promotion History":
-      promotions.length > 0
-        ? promotions
-            .map(
-              (promotion) =>
-                `${promotion.new_title} (From: ${
-                  promotion.previous_title
-                } on ${new Date(
-                  promotion.promotion_date
-                ).toLocaleDateString()})`
-            )
-            .join(", ")
-        : "No Promotions",
-  }));
-
-  const navigate = useNavigate(); // Use navigate to redirect after delete
-
-  const fetchContracts = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:3001/contracts/${mcr_number}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setContracts(response.data);
-    } catch (error) {
-      console.error("Error fetching contracts:", error);
-      toast.error("Failed to fetch contracts");
-    }
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = ("0" + (date.getMonth() + 1)).slice(-2);
+    const day = ("0" + date.getDate()).slice(-2);
+    const hours = ("0" + date.getHours()).slice(-2);
+    const minutes = ("0" + date.getMinutes()).slice(-2);
+    return `${year}-${month}-${day} @ ${hours}${minutes}H`;
   };
-
-  const fetchPromotions = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:3001/promotions/${mcr_number}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setPromotions(response.data);
-    } catch (error) {
-      console.error("Error fetching promotions:", error);
-      toast.error("Failed to fetch promotions");
-    }
-  };
-
+  // ########################################## //
+  // General Staff Details
+  // ########################################## //
+  // Update Staff Details
+  // ########################################## //
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -129,6 +71,93 @@ const StaffDetailPage = () => {
     }
   };
 
+  // ########################################## //
+  // Delete Staff
+  // ########################################## //
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this staff?")) {
+      return; // If user cancels the action, don't proceed with deletion
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:3001/staff/${mcr_number}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      toast.success("Staff details deleted successfully!");
+      setTimeout(() => {
+        navigate("/management-home");
+      }, 1000);
+    } catch (error) {
+      console.error(
+        "Error deleting staff details:",
+        error.response ? error.response.data : error
+      );
+      toast.error("Failed to delete staff details");
+    }
+  };
+
+  // ########################################## //
+  // Restore Staff
+  // ########################################## //
+  const handleRestore = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `http://localhost:3001/restore/${mcr_number}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      toast.success("Staff details restored successfully!");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error("Error restoring staff details:", error);
+      toast.error("Failed to restore staff details");
+    }
+  };
+
+  // ########################################## //
+  // Contracts
+  // ########################################## //
+  // Contract Constants
+  // ########################################## //
+  const [newContract, setNewContract] = useState({
+    school_name: "",
+    start_date: "Start Date",
+    end_date: "End Date",
+    status: "",
+  });
+  const [contracts, setContracts] = useState([]);
+  const [isContractFormOpen, setContractFormOpen] = useState(false);
+
+  // ########################################## //
+  // Fetching Contracts Data
+  // ########################################## //
+  const fetchContracts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3001/contracts/${mcr_number}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setContracts(response.data);
+    } catch (error) {
+      console.error("Error fetching contracts:", error);
+      toast.error("Failed to fetch contracts");
+    }
+  };
+
+  // ########################################## //
+  // Adding New Contract
+  // ########################################## //
   const handleNewContract = async () => {
     if (
       !newContract.school_name ||
@@ -169,6 +198,66 @@ const StaffDetailPage = () => {
     }
   };
 
+  // ########################################## //
+  // Delete Contract
+  // ########################################## //
+  const handleDeleteContract = async (status, start_date, school_name) => {
+    if (!window.confirm(`Are you sure you want to delete this contract?`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(
+        `http://localhost:3001/contracts/${mcr_number}/${status}/${start_date}/${school_name}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      toast.success("Contract deleted successfully!");
+      fetchContracts(); // Refresh the contracts list after deletion
+    } catch (error) {
+      console.error("Error deleting contract:", error);
+      toast.error("Failed to delete contract");
+    }
+  };
+
+  // ########################################## //
+  // Promotion
+  // ########################################## //
+  // Promotion Constants
+  // ########################################## //
+  const [newPromotion, setNewPromotion] = useState({
+    new_title: "",
+    previous_title: "",
+    promotion_date: "",
+  });
+  const [promotions, setPromotions] = useState([]);
+  const [isPromotionFormOpen, setPromotionFormOpen] = useState(false);
+
+  // ########################################## //
+  // Fetching Promotions Data
+  // ########################################## //
+  const fetchPromotions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3001/promotions/${mcr_number}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setPromotions(response.data);
+    } catch (error) {
+      console.error("Error fetching promotions:", error);
+      toast.error("Failed to fetch promotions");
+    }
+  };
+
+  // ########################################## //
+  // Adding New Promotion
+  // ########################################## //
   const handleNewPromotion = async () => {
     if (
       !newPromotion.new_title ||
@@ -206,10 +295,10 @@ const StaffDetailPage = () => {
       toast.error("Failed to add new promotion");
     }
   };
-  const handleEditPromotion = (promotion) => {
-    setNewPromotion(promotion);
-    setPromotionFormOpen(true);
-  };
+
+  // ########################################## //
+  // Delete Promotion
+  // ########################################## //
   const handleDeletePromotion = async (newTitle) => {
     if (
       !window.confirm(
@@ -236,87 +325,39 @@ const StaffDetailPage = () => {
     }
   };
 
-  const handleDeleteContract = async (status, start_date, school_name) => {
-    if (!window.confirm(`Are you sure you want to delete this contract?`)) {
-      return;
-    }
+  // ########################################## //
+  // Table Display Logic to prevent duplicate of doctors
+  // ########################################## //
+  const combinedData = contracts.map((contract) => ({
+    "MCR Number": staffDetails.mcr_number,
+    "First Name": staffDetails.first_name,
+    "Last Name": staffDetails.last_name,
+    Department: staffDetails.department,
+    Appointment: staffDetails.appointment,
+    Email: staffDetails.email,
+    "Teaching Training Hours": staffDetails.teaching_training_hours,
+    "Contract School Name": contract.school_name,
+    "Contract Start Date": contract.start_date,
+    "Contract End Date": contract.end_date,
+    "Contract Status": contract.status,
+    "Promotion History":
+      promotions.length > 0
+        ? promotions
+            .map(
+              (promotion) =>
+                `${promotion.new_title} (From: ${
+                  promotion.previous_title
+                } on ${new Date(
+                  promotion.promotion_date
+                ).toLocaleDateString()})`
+            )
+            .join(", ")
+        : "No Promotions",
+  }));
 
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(
-        `http://localhost:3001/contracts/${mcr_number}/${status}/${start_date}/${school_name}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.success("Contract deleted successfully!");
-      fetchContracts(); // Refresh the contracts list after deletion
-    } catch (error) {
-      console.error("Error deleting contract:", error);
-      toast.error("Failed to delete contract");
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this staff?")) {
-      return; // If user cancels the action, don't proceed with deletion
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3001/staff/${mcr_number}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      toast.success("Staff details deleted successfully!");
-      setTimeout(() => {
-        navigate("/management-home");
-      }, 1000);
-    } catch (error) {
-      console.error(
-        "Error deleting staff details:",
-        error.response ? error.response.data : error
-      );
-      toast.error("Failed to delete staff details");
-    }
-  };
-
-  // Function to handle restoration
-  const handleRestore = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:3001/restore/${mcr_number}`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.success("Staff details restored successfully!");
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error) {
-      console.error("Error restoring staff details:", error);
-      toast.error("Failed to restore staff details");
-    }
-  };
-
-  const [loading, setLoading] = useState(true);
-
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    const year = date.getFullYear();
-    const month = ("0" + (date.getMonth() + 1)).slice(-2);
-    const day = ("0" + date.getDate()).slice(-2);
-    const hours = ("0" + date.getHours()).slice(-2);
-    const minutes = ("0" + date.getMinutes()).slice(-2);
-    return `${year}-${month}-${day} @ ${hours}${minutes}H`;
-  };
-
+  // ############################################
+  // Render
+  // ############################################
   useEffect(() => {
     const fetchStaffDetails = async () => {
       try {

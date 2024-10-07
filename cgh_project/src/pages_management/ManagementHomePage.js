@@ -33,7 +33,7 @@ const ManagementHomePage = () => {
     const day = ("0" + date.getDate()).slice(-2);
     const hours = ("0" + date.getHours()).slice(-2);
     const minutes = ("0" + date.getMinutes()).slice(-2);
-    return `${year}-${month}-${day} | ${hours}${minutes}H`;
+    return `${year}-${month}-${day} @ ${hours}${minutes}H`;
   };
 
   const handleRowClick = (mcr_number) => {
@@ -271,7 +271,7 @@ const ManagementHomePage = () => {
                   <th>Contract Details</th>
                   <th>FTE</th>
                   <th>Created At</th>
-                  <th>Updated At</th>
+                  <th>Updated At</th> 
                   <th>Created By</th>
                   <th>Updated By</th>
                   <th>Deleted By</th>

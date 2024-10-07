@@ -194,11 +194,13 @@
 .restore-button {
   border-color: green;
   background-color: green;
+  color: white;
 }
 
 .delete-button {
   border-color: red;
   background-color: red;
+  color: white;
 }
 
 .update-button {

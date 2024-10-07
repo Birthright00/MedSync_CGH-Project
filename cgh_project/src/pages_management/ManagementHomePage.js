@@ -20,6 +20,8 @@ const ManagementHomePage = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const nav = useNavigate();
   const [showDeleted, setShowDeleted] = useState(false);
+  const [onlyDeleted, setOnlyDeleted] = useState(false); // New state for Only Show Deleted
+  const [activeButton, setActiveButton] = useState(null); // Track which button is active
 
   const [entriesPerPage, setEntriesPerPage] = useState(
     () => Number(localStorage.getItem("entriesPerPage")) || 10
@@ -47,6 +49,8 @@ const ManagementHomePage = () => {
     setDepartmentFilter("");
     setAppointmentFilter("");
     setTrainingHoursFilter("");
+    setShowDeleted(false);
+    setOnlyDeleted(false);
     setFilteredData(data);
   };
 
@@ -62,9 +66,12 @@ const ManagementHomePage = () => {
           console.log("No token found");
           return;
         }
-        const response = await axios.get("http://localhost:3001/database?includeDeleted=true", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await axios.get(
+          "http://localhost:3001/database?includeDeleted=true",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setData(response.data);
         setFilteredData(response.data);
       } catch (error) {
@@ -94,16 +101,28 @@ const ManagementHomePage = () => {
   };
 
   useEffect(() => {
-    const filtered = data.filter(
-      (staff) =>
+    const filtered = data.filter((staff) => {
+      const matchesFilters =
         staff.mcr_number.toString().includes(mcrNumberFilter) &&
-        staff.first_name.toLowerCase().includes(firstNameFilter.toLowerCase()) &&
+        staff.first_name
+          .toLowerCase()
+          .includes(firstNameFilter.toLowerCase()) &&
         staff.last_name.toLowerCase().includes(lastNameFilter.toLowerCase()) &&
-        staff.department.toLowerCase().includes(departmentFilter.toLowerCase()) &&
-        staff.appointment.toLowerCase().includes(appointmentFilter.toLowerCase()) &&
-        (trainingHoursFilter === "" || staff.teaching_training_hours.toString().includes(trainingHoursFilter)) &&
-        (!showDeleted ? staff.deleted === 0 : true) // Show or hide deleted based on state
-    );
+        staff.department
+          .toLowerCase()
+          .includes(departmentFilter.toLowerCase()) &&
+        staff.appointment
+          .toLowerCase()
+          .includes(appointmentFilter.toLowerCase()) &&
+        (trainingHoursFilter === "" ||
+          staff.teaching_training_hours
+            .toString()
+            .includes(trainingHoursFilter));
+
+      if (onlyDeleted) return matchesFilters && staff.deleted === 1; // Only show deleted entries
+      return matchesFilters && (!showDeleted ? staff.deleted === 0 : true); // Show or hide deleted based on state
+    });
+
     setFilteredData(filtered);
     setCurrentPage(1);
   }, [
@@ -114,15 +133,18 @@ const ManagementHomePage = () => {
     appointmentFilter,
     trainingHoursFilter,
     showDeleted,
+    onlyDeleted,
     data,
   ]);
 
   const indexOfLastEntry = currentPage * entriesPerPage;
   const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
-  const currentEntries = filteredData.slice(indexOfFirstEntry, indexOfLastEntry);
+  const currentEntries = filteredData.slice(
+    indexOfFirstEntry,
+    indexOfLastEntry
+  );
 
   const totalPages = Math.ceil(filteredData.length / entriesPerPage);
-
   const rowsToDisplay = [...currentEntries];
   while (rowsToDisplay.length < entriesPerPage) {
     rowsToDisplay.push({
@@ -134,7 +156,6 @@ const ManagementHomePage = () => {
       teaching_training_hours: "",
     });
   }
-
   const handleNextPage = () => {
     if (indexOfLastEntry < filteredData.length) {
       setCurrentPage(currentPage + 1);
@@ -147,10 +168,10 @@ const ManagementHomePage = () => {
     }
   };
 
-  const handleEntriesPerPageChange = (e) => {
-    const value = Number(e.target.value);
-    setEntriesPerPage(value);
-    localStorage.setItem("entriesPerPage", value);
+  const handleEntriesPerPageChange = (entries) => {
+    setEntriesPerPage(entries);
+    localStorage.setItem("entriesPerPage", entries);
+    setActiveButton(entries); // Set the active button based on value
     setCurrentPage(1);
   };
 
@@ -159,16 +180,6 @@ const ManagementHomePage = () => {
       <Navbar homeRoute={"/management-home"} />
       <div className="management-home-page">
         <div className="filter-section">
-          <h3>Filter</h3>
-          <label htmlFor="show-deleted">
-            Show Deleted:
-            <input
-              type="checkbox"
-              id="show-deleted"
-              checked={showDeleted}
-              onChange={() => setShowDeleted((prev) => !prev)}
-            />
-          </label>
           <label htmlFor="mcr-number-filter">MCR Number:</label>
           <input
             type="text"
@@ -217,15 +228,28 @@ const ManagementHomePage = () => {
             placeholder="Appointment"
             autoComplete="off"
           />
-          <label htmlFor="training-hours-filter">Teaching Training Hours:</label>
-          <input
-            type="text"
-            id="training-hours-filter"
-            value={trainingHoursFilter}
-            onChange={(e) => setTrainingHoursFilter(e.target.value)}
-            placeholder="Training hours"
-            autoComplete="off"
-          />
+          <button
+            className={`filter-button ${
+              showDeleted ? "button-blue" : "button-grey"
+            }`}
+            onClick={() => {
+              setShowDeleted((prev) => !prev);
+              setOnlyDeleted(false);
+            }}
+          >
+            Show Deleted
+          </button>
+          <button
+            className={`filter-button ${
+              onlyDeleted ? "button-blue" : "button-grey"
+            }`}
+            onClick={() => {
+              setOnlyDeleted((prev) => !prev);
+              setShowDeleted(false);
+            }}
+          >
+            Only Show Deleted
+          </button>
           <button className="reset-button" onClick={resetFilters}>
             Reset
           </button>
@@ -247,18 +271,22 @@ const ManagementHomePage = () => {
                   <th>Email</th>
                   <th>Promotion History</th>
                   <th>Contract Details</th>
+                  <th>FTE</th>
                   <th>Created At</th>
                   <th>Updated At</th>
                   <th>Created By</th>
                   <th>Updated By</th>
                   <th>Deleted By</th>
                   <th>Deleted At</th>
-                  <th>FTE</th>
                 </tr>
               </thead>
               <tbody>
                 {rowsToDisplay.map((staff, index) => (
-                  <tr key={index} onClick={() => handleRowClick(staff.mcr_number)} className={staff.deleted ? 'greyed-out' : ''}>
+                  <tr
+                    key={index}
+                    onClick={() => handleRowClick(staff.mcr_number)}
+                    className={staff.deleted ? "greyed-out" : ""}
+                  >
                     <td>{indexOfFirstEntry + index + 1}</td>
                     <td>{staff.mcr_number}</td>
                     <td>{staff.first_name}</td>
@@ -269,13 +297,13 @@ const ManagementHomePage = () => {
                     <td>{staff.email}</td>
                     <td>{staff.promotion_history || "N/A"}</td>
                     <td>{staff.contract_details || "N/A"}</td>
+                    <td>{staff.fte}</td>
                     <td>{formatDateTime(staff.created_at)}</td>
                     <td>{formatDateTime(staff.updated_at)}</td>
                     <td>{staff.created_by || "N/A"}</td>
                     <td>{staff.updated_by || "N/A"}</td>
                     <td>{staff.deleted_by || "N/A"}</td>
                     <td>{formatDateTime(staff.deleted_at)}</td>
-                    <td>{staff.fte}</td>
                   </tr>
                 ))}
               </tbody>
@@ -285,24 +313,75 @@ const ManagementHomePage = () => {
             <div className="entries-per-page">
               <label htmlFor="entries-per-page">Entries per page : </label>
               <input
-                id="entries-per-page"
                 value={entriesPerPage}
                 onChange={handleEntriesPerPageChange}
                 autoComplete="off"
+                className="entries-per-page-input"
               />
+              <button
+                className={`entries-per-page-button ${
+                  activeButton === 10 ? "button-blue" : "button-grey"
+                }`}
+                onClick={() => handleEntriesPerPageChange(10)}
+              >
+                10
+              </button>
+              <button
+                className={`entries-per-page-button ${
+                  activeButton === 20 ? "button-blue" : "button-grey"
+                }`}
+                onClick={() => handleEntriesPerPageChange(20)}
+              >
+                20
+              </button>
+              <button
+                className={`entries-per-page-button ${
+                  activeButton === 50 ? "button-blue" : "button-grey"
+                }`}
+                onClick={() => handleEntriesPerPageChange(50)}
+              >
+                50
+              </button>
+              <button
+                className={`entries-per-page-button ${
+                  activeButton === 100 ? "button-blue" : "button-grey"
+                }`}
+                onClick={() => handleEntriesPerPageChange(100)}
+              >
+                100
+              </button>
+              <button
+                className={`entries-per-page-button ${
+                  activeButton === filteredData.length
+                    ? "button-blue"
+                    : "button-grey"
+                }`}
+                onClick={() => handleEntriesPerPageChange(filteredData.length)}
+              >
+                All
+              </button>
             </div>
             <div className="pagination-container">
               <div className="pagination">
                 <span className="current-page">
                   Page {currentPage} of {totalPages}
                 </span>
-                <button onClick={handlePreviousPage} disabled={currentPage === 1}>
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                >
                   Previous
                 </button>
-                <button onClick={handleNextPage} disabled={indexOfLastEntry >= filteredData.length}>
+                <button
+                  onClick={handleNextPage}
+                  disabled={indexOfLastEntry >= filteredData.length}
+                >
                   Next
                 </button>
-                <button onClick={handleRefresh} disabled={indexOfLastEntry >= filteredData.length}>
+                <button
+                  onClick={handleRefresh}
+                  disabled={indexOfLastEntry >= filteredData.length}
+                >
                   Refresh
                 </button>
               </div>

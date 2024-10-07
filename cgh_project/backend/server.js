@@ -178,8 +178,8 @@ app.get("/", (req, res) => {
 app.get("/database", verifyToken, (req, res) => {
   const includeDeleted = req.query.includeDeleted === "true";
   const query = includeDeleted
-    ? "SELECT * FROM main_data"
-    : "SELECT * FROM main_data WHERE deleted = 0";
+    ? "SELECT * FROM combined_doctor_data"
+    : "SELECT * FROM combined_doctor_data WHERE deleted = 0";
   db.query(query, (err, data) => {
     if (err) {
       console.error("Error retrieving data:", err);

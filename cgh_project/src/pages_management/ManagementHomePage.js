@@ -1,11 +1,9 @@
 import "../styles/managementhomepage.css";
 import Navbar from "../components/Navbar";
-import Footer from "../components/footer";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CSVLink } from "react-csv";
-import bootstrap from "bootstrap";
 
 const ManagementHomePage = () => {
   const [data, setData] = useState([]);

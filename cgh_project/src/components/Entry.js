@@ -1,29 +1,26 @@
+import React, { useState } from "react";
 import "../styles/staffdetailpage.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/footer";
-import { useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// Function to format date values for display in datetime-local input fields
 const formatDateTime = (dateStr) => {
   if (!dateStr) return ""; // Return empty string if date is null or undefined
-
   const date = new Date(dateStr);
-
-  // Get year, month, day, hours, and minutes, adding leading zeros where necessary
   const year = date.getFullYear();
   const month = ("0" + (date.getMonth() + 1)).slice(-2); // Ensure two digits for month
   const day = ("0" + date.getDate()).slice(-2); // Ensure two digits for day
   const hours = ("0" + date.getHours()).slice(-2); // Ensure two digits for hours
   const minutes = ("0" + date.getMinutes()).slice(-2); // Ensure two digits for minutes
-
-  // Format it as YYYY-MM-DDTHH:MM (required for datetime-local input type)
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
 const Entry = () => {
+  // State to manage staff details for the form inputs
   const [staffDetails, setStaffDetails] = useState({
     mcr_number: "",
     first_name: "",
@@ -38,15 +35,19 @@ const Entry = () => {
     email: "",
   });
 
+  // Function to validate input fields before submission
   const validateFields = () => {
     const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/;
     const nameMaxLength = 50;
     const emailRegex = /\S+@\S+\.\S+/;
 
+    console.log("Validating fields...");
+
     if (!mcrRegex.test(staffDetails.mcr_number)) {
       toast.error("MCR Number must follow the pattern: MxxxxxA");
       return false;
     }
+
     if (
       staffDetails.first_name.length > nameMaxLength ||
       staffDetails.last_name.length > nameMaxLength ||
@@ -58,16 +59,17 @@ const Entry = () => {
       );
       return false;
     }
+
     if (!Number.isInteger(parseInt(staffDetails.teaching_training_hours))) {
       toast.error("Teaching Training Hours must be an integer");
       return false;
     }
+
     if (!emailRegex.test(staffDetails.email)) {
       toast.error("Invalid email format");
       return false;
     }
 
-    // Ensure all fields are filled
     const requiredFields = [
       "mcr_number",
       "first_name",
@@ -80,68 +82,75 @@ const Entry = () => {
 
     for (const field of requiredFields) {
       if (!staffDetails[field]) {
-        toast.error(`\ ${field.replace(/_/g, " ")} is required`);
+        toast.error(`${field.replace(/_/g, " ")} is required`);
         return false;
       }
     }
 
+    console.log("All fields validated successfully!");
     return true;
   };
 
+  // Function to handle form submission
   const handleSubmit = async () => {
     if (!validateFields()) return; // Stop submission if validation fails
 
     try {
-      const token = localStorage.getItem("token");
+      console.log("Formatting dates...");
+
+      const formatDate = (dateStr) => {
+        if (!dateStr) return null;
+        return new Date(dateStr).toISOString().slice(0, 19).replace("T", " ");
+      };
 
       const dataToSubmit = {
         ...staffDetails,
-        start_date: staffDetails.start_date
-          ? new Date(staffDetails.start_date)
-              .toISOString()
-              .slice(0, 19)
-              .replace("T", " ")
-          : null,
-        end_date: staffDetails.end_date
-          ? new Date(staffDetails.end_date)
-              .toISOString()
-              .slice(0, 19)
-              .replace("T", " ")
-          : null,
-        renewal_start_date: staffDetails.renewal_start_date
-          ? new Date(staffDetails.renewal_start_date)
-              .toISOString()
-              .slice(0, 19)
-              .replace("T", " ")
-          : null,
-        renewal_end_date: staffDetails.renewal_end_date
-          ? new Date(staffDetails.renewal_end_date)
-              .toISOString()
-              .slice(0, 19)
-              .replace("T", " ")
-          : null,
+        start_date: formatDate(staffDetails.start_date),
+        end_date: formatDate(staffDetails.end_date),
+        renewal_start_date: formatDate(staffDetails.renewal_start_date),
+        renewal_end_date: formatDate(staffDetails.renewal_end_date),
+        teaching_training_hours:
+          parseInt(staffDetails.teaching_training_hours, 10) || 0,
       };
 
-      // Send POST request to create new staff details
-      await axios.post("http://localhost:3001/entry", dataToSubmit, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      toast.success("New staff details added successfully!");
+      console.log("Data to be submitted:", dataToSubmit);
 
-      // Clear the form after successful submission
-      setStaffDetails({
-        mcr_number: "",
-        first_name: "",
-        last_name: "",
-        department: "",
-        appointment: "",
-        teaching_training_hours: "",
-        start_date: "",
-        end_date: "",
-        renewal_start_date: "",
-        renewal_end_date: "",
-        email: "",
-      });
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Authentication token is missing!");
+        return;
+      }
+
+      console.log("Sending POST request to backend...");
+
+      const response = await axios.post(
+        "http://localhost:3001/entry",
+        dataToSubmit,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      console.log("Server response:", response.data);
+
+      if (response.status === 201) {
+        toast.success("New staff details added successfully!");
+        setStaffDetails({
+          mcr_number: "",
+          first_name: "",
+          last_name: "",
+          department: "",
+          appointment: "",
+          teaching_training_hours: "",
+          start_date: "",
+          end_date: "",
+          renewal_start_date: "",
+          renewal_end_date: "",
+          email: "",
+        });
+      } else {
+        toast.error("Failed to submit staff details. Please try again.");
+      }
     } catch (error) {
       console.error(
         "Error submitting staff details:",
@@ -151,6 +160,7 @@ const Entry = () => {
     }
   };
 
+  // Function to handle input changes and update the state
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setStaffDetails((prevDetails) => ({

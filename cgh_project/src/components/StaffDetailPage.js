@@ -37,6 +37,7 @@ const StaffDetailPage = () => {
     const minutes = ("0" + date.getMinutes()).slice(-2);
     return `${year}-${month}-${day} @ ${hours}${minutes}H`;
   };
+
   // ########################################## //
   // General Staff Details
   // ########################################## //

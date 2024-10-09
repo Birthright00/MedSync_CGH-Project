@@ -75,7 +75,8 @@ Filter Header .filter-section h3 {
 /* ################################################# */
 /* Filter Section (Buttons)*/
 /* ################################################# */
-.filter-button {
+.filter-button,
+.reset-button {
   width: 100%;
   height: 50px;
   margin-right: 20px;
@@ -91,17 +92,8 @@ Filter Header .filter-section h3 {
 }
 
 .reset-button {
-  width: 100%;
-  margin-right: 20px;
-  margin-bottom: 20px;
-  padding: 10px;
-  font-size: 14px;
-  cursor: pointer;
   background-color: #0083ca;
   color: white;
-  border: none;
-  border-radius: 4px;
-  font-weight: 500;
 }
 
 .reset-button:hover {
@@ -144,6 +136,7 @@ Filter Header .filter-section h3 {
 
 .data-table {
   width: max-content;
+  height: 500px;
   border-collapse: collapse;
   table-layout: auto; /* Use automatic table layout for dynamic column sizing */
   font-size: 14px;
@@ -168,7 +161,7 @@ Filter Header .filter-section h3 {
 
 /* Hovering over rows */
 .data-table tr:hover {
-  background-color: #B7E0FF !important; /* Force hover color to override other background styles */
+  background-color: #b7e0ff !important; /* Force hover color to override other background styles */
   transition: background-color 0.3s ease;
 }
 
@@ -249,12 +242,11 @@ td:first-child {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 16px;
-  font-weight: 500;
   border-radius: 5px;
 }
 
-.entries-per-page label {
+.entries-per-page label,
+.file-upload-label {
   margin-right: 10px;
   font-size: 16px;
   color: #555;
@@ -275,7 +267,7 @@ td:first-child {
 /* ################################################# */
 .entries-per-page-button {
   width: 50px;
-  margin-right: 10px;
+  margin-right: 5px;
   padding: 10px;
   font-size: 14px;
   cursor: pointer;
@@ -311,7 +303,7 @@ td:first-child {
   font-size: 14px; /* Increased from 12px */
   box-sizing: border-box;
   font-weight: 500;
-  margin-right: 20px;
+  margin-right: 10px;
 }
 
 /* ################################################# */
@@ -322,7 +314,7 @@ td:first-child {
   background-color: white;
   opacity: 0.9;
   z-index: 1;
-  margin-top: 10px;
+  margin-top: 20px;
   margin-left: 100px;
   border-radius: 5px;
 }
@@ -349,7 +341,7 @@ td:first-child {
 }
 
 .current-page {
-  margin-right: 50px;
+  margin-right: 30px;
   font-size: 14px;
   color: black;
   margin-bottom: 20px;
@@ -357,7 +349,8 @@ td:first-child {
 }
 
 .pagination button,
-.homepg-download-button {
+.homepg-download-button,
+.submit-file-button {
   width: 100px;
   margin-right: 20px;
   margin-bottom: 20px;
@@ -369,8 +362,10 @@ td:first-child {
   border: none;
   border-radius: 4px;
   font-weight: 500;
-  box-shadow: rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
-    rgba(14, 30, 37, 0.32) 0px 2px 16px 0px;
+}
+
+.submit-file-button {
+  background-color: #72BF78;
 }
 
 .pagination button:disabled {

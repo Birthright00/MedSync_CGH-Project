@@ -196,8 +196,8 @@
 }
 
 .restore-button {
-  border-color: green;
-  background-color: green;
+  border-color: #72BF78;
+  background-color: #72BF78;
   color: white;
 }
 
@@ -214,7 +214,7 @@
 }
 
 .add-contract-button {
-  background-color: green;
+  background-color: #72BF78;
   color: white;
 }
 

@@ -16,6 +16,9 @@ import csv from "csv-parser"; // Library for handling CSV files
 // bcrypt: A module for hashing and salting passwords
 // jsonwebtoken: This library is used to create and verify JSON Web Tokens (JWT),
 //  which are used for user authentication and authorization.
+// multer: A middleware module for handling file uploads
+// xlsx: A library for parsing Excel files
+// csv: A library for parsing CSV files
 
 const app = express(); // Create an instance of the express app
 const upload = multer({ storage: multer.memoryStorage() });
@@ -276,6 +279,7 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 // POST REQUEST FOR ADDING NEW STAFF DETAILS TO MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
+// POST REQUEST FOR ADDING NEW STAFF DETAILS TO MAIN_DATA TABLE
 app.post("/entry", verifyToken, (req, res) => {
   const {
     mcr_number,
@@ -284,16 +288,14 @@ app.post("/entry", verifyToken, (req, res) => {
     department,
     appointment,
     teaching_training_hours,
-    start_date,
-    end_date,
-    renewal_start_date,
-    renewal_end_date,
     email,
   } = req.body;
 
-  const userMcrNumber = req.user.id;
+  const userMcrNumber = req.user.id; // Get the user ID from the JWT token
 
-  // Validate required fields
+  console.log("Received new staff details request:", req.body); // Log the incoming request
+
+  // Check for missing required fields
   if (
     !mcr_number ||
     !first_name ||
@@ -302,14 +304,28 @@ app.post("/entry", verifyToken, (req, res) => {
     !appointment ||
     !email
   ) {
-    return res
-      .status(400)
-      .json({ error: "Please provide all required fields" });
+    return res.status(400).json({
+      error:
+        "Please provide all required fields: mcr_number, first_name, last_name, department, appointment, and email.",
+    });
   }
 
+  // Ensure that the `mcr_number` field follows the correct format
+  const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/;
+  if (!mcrRegex.test(mcr_number)) {
+    return res.status(400).json({
+      error:
+        "MCR Number must start with 'M' or 'm', followed by 5 digits and end with a single alphabet.",
+    });
+  }
+
+  // Set current timestamp for created_at and updated_at fields
+  const currentTimestamp = new Date();
+
+  // Prepare the SQL query for inserting new staff details
   const q = `
     INSERT INTO main_data 
-    (mcr_number, first_name, last_name, department, appointment, teaching_training_hours, start_date, end_date, renewal_start_date, renewal_end_date, email, created_by) 
+    (mcr_number, first_name, last_name, department, appointment, teaching_training_hours, email, created_at, updated_at, created_by, fte, deleted) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
@@ -319,23 +335,51 @@ app.post("/entry", verifyToken, (req, res) => {
     last_name,
     department,
     appointment,
-    teaching_training_hours,
-    start_date,
-    end_date,
-    renewal_start_date,
-    renewal_end_date,
+    teaching_training_hours || 0, // Default teaching hours to 0 if not provided
     email,
-    userMcrNumber, // Log who created the record (the currently logged-in user)
+    currentTimestamp, // Set created_at to current timestamp
+    currentTimestamp, // Set updated_at to current timestamp
+    userMcrNumber, // Log the ID of the user creating the record (from JWT)
+    1.0, // Default value for Full-Time Equivalent (fte)
+    0, // Default value for deleted (0 means not deleted, 1 means deleted)
   ];
 
+  console.log("Executing SQL query with values:", values); // Log the SQL values being used
+
+  // Execute the query to insert new staff details into the main_data table
   db.query(q, values, (err, data) => {
     if (err) {
+      // Log the detailed error for server-side debugging
       console.error("Error inserting new staff details:", err);
-      return res.status(500).json({ error: "Failed to add new staff details" });
+      if (err.sqlMessage) {
+        console.error("SQL Error Message:", err.sqlMessage); // Log SQL-specific error message
+      }
+
+      // Respond with a more informative message
+      return res.status(500).json({
+        error:
+          "Failed to add new staff details. Please check the server logs for more information.",
+      });
     }
-    return res
-      .status(201)
-      .json({ message: "New staff details added successfully", data });
+
+    console.log("New staff details added successfully!", data); // Log successful insertion
+    return res.status(201).json({
+      message: "New staff details added successfully",
+      data: {
+        mcr_number,
+        first_name,
+        last_name,
+        department,
+        appointment,
+        teaching_training_hours,
+        email,
+        created_at: currentTimestamp,
+        updated_at: currentTimestamp,
+        created_by: userMcrNumber,
+        fte: 1.0,
+        deleted: 0,
+      },
+    });
   });
 });
 
@@ -644,7 +688,9 @@ app.put("/promotions/:mcr_number/:new_title", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// ROUTE TO HANDLE SINGLE SHEET EXCEL FILE UPLOAD //
+// EXCEL FILE UPLOAD ROUTES
+// -------------------------------------------------------------------------------------------------------------//
+// POST REQUEST TO HANDLE SINGLE SHEET EXCEL FILE UPLOAD //
 // -------------------------------------------------------------------------------------------------------------//
 app.post(
   "/upload-excel-single-sheet",

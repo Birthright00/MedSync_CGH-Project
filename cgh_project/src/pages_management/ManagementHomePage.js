@@ -7,6 +7,9 @@ import { CSVLink } from "react-csv";
 import * as XLSX from "xlsx"; // Import the xlsx library for file parsing
 
 const ManagementHomePage = () => {
+  // ########################################## //
+  // Generic Constants
+  // ########################################## //
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -19,15 +22,51 @@ const ManagementHomePage = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const nav = useNavigate();
   const [showDeleted, setShowDeleted] = useState(false);
-  const [onlyDeleted, setOnlyDeleted] = useState(false); // New state for Only Show Deleted
+  const [onlyDeleted, setOnlyDeleted] = useState(false);
   const [activeButton, setActiveButton] = useState(null); // Track which button is active
-
+  const [selectedFile, setSelectedFile] = useState(null);
   const [entriesPerPage, setEntriesPerPage] = useState(
     () => Number(localStorage.getItem("entriesPerPage")) || 5
   );
-  const [selectedFile, setSelectedFile] = useState(null); // Track selected file
 
-  // Function to submit the file for validation
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = ("0" + (date.getMonth() + 1)).slice(-2);
+    const day = ("0" + date.getDate()).slice(-2);
+    const hours = ("0" + date.getHours()).slice(-2);
+    const minutes = ("0" + date.getMinutes()).slice(-2);
+    return `${year}-${month}-${day} @ ${hours}${minutes}H`;
+  };
+
+  // ########################################## //
+  // Buttons' Function
+  // ########################################## //
+  // Reset filters button
+  // ########################################## //
+  const resetFilters = () => {
+    setMcrNumberFilter("");
+    setFirstNameFilter("");
+    setLastNameFilter("");
+    setDepartmentFilter("");
+    setAppointmentFilter("");
+    setTrainingHoursFilter("");
+    setShowDeleted(false);
+    setOnlyDeleted(false);
+    setFilteredData(data);
+  };
+
+  // ########################################## //
+  // Refresh button
+  // ########################################## //
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+  // ########################################## //
+  // File Upload
+  // ########################################## //
   const handleFileSubmit = async () => {
     if (!selectedFile) return;
 
@@ -56,86 +95,12 @@ const ManagementHomePage = () => {
     }
   };
 
-  // Function to handle file upload
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        "http://localhost:3001/upload-excel-single-sheet",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      console.log("File uploaded successfully:", response.data);
-    } catch (error) {
-      console.error("File upload failed:", error.response.data);
-    }
-  };
-
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    const year = date.getFullYear();
-    const month = ("0" + (date.getMonth() + 1)).slice(-2);
-    const day = ("0" + date.getDate()).slice(-2);
-    const hours = ("0" + date.getHours()).slice(-2);
-    const minutes = ("0" + date.getMinutes()).slice(-2);
-    return `${year}-${month}-${day} @ ${hours}${minutes}H`;
-  };
-
+  // ########################################## //
+  // Table Functions
+  // ########################################## //
   const handleRowClick = (mcr_number) => {
     nav(`/staff/${mcr_number}`);
   };
-
-  const resetFilters = () => {
-    setMcrNumberFilter("");
-    setFirstNameFilter("");
-    setLastNameFilter("");
-    setDepartmentFilter("");
-    setAppointmentFilter("");
-    setTrainingHoursFilter("");
-    setShowDeleted(false);
-    setOnlyDeleted(false);
-    setFilteredData(data);
-  };
-
-  const handleRefresh = () => {
-    window.location.reload();
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          console.log("No token found");
-          return;
-        }
-        const response = await axios.get(
-          "http://localhost:3001/database?includeDeleted=true",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setData(response.data);
-        setFilteredData(response.data);
-      } catch (error) {
-        console.log(error);
-      }
-    };
-    fetchData();
-  }, []);
 
   const handleSort = (column) => {
     let direction = "asc";
@@ -156,42 +121,9 @@ const ManagementHomePage = () => {
     setFilteredData(sortedData);
   };
 
-  useEffect(() => {
-    const filtered = data.filter((staff) => {
-      const matchesFilters =
-        staff.mcr_number.toString().includes(mcrNumberFilter) &&
-        staff.first_name
-          .toLowerCase()
-          .includes(firstNameFilter.toLowerCase()) &&
-        staff.last_name.toLowerCase().includes(lastNameFilter.toLowerCase()) &&
-        staff.department
-          .toLowerCase()
-          .includes(departmentFilter.toLowerCase()) &&
-        staff.appointment
-          .toLowerCase()
-          .includes(appointmentFilter.toLowerCase()) &&
-        (trainingHoursFilter === "" ||
-          staff.teaching_training_hours
-            .toString()
-            .includes(trainingHoursFilter));
-
-      if (onlyDeleted) return matchesFilters && staff.deleted === 1; // Only show deleted entries
-      return matchesFilters && (!showDeleted ? staff.deleted === 0 : true); // Show or hide deleted based on state
-    });
-
-    setFilteredData(filtered);
-    setCurrentPage(1);
-  }, [
-    mcrNumberFilter,
-    firstNameFilter,
-    lastNameFilter,
-    departmentFilter,
-    appointmentFilter,
-    trainingHoursFilter,
-    showDeleted,
-    onlyDeleted,
-    data,
-  ]);
+  // ########################################## //
+  // Pagination Constants and Functions
+  // ########################################## //
 
   const indexOfLastEntry = currentPage * entriesPerPage;
   const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
@@ -253,6 +185,74 @@ const ManagementHomePage = () => {
     setActiveButton(entries);
     setCurrentPage(1);
   };
+
+  // ########################################## //
+  // useEffect Post Render
+  // ########################################## //
+  // useEffect #1 for fetching all data
+  // ########################################## //
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.log("No token found");
+          return;
+        }
+        const response = await axios.get(
+          "http://localhost:3001/database?includeDeleted=true",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setData(response.data);
+        setFilteredData(response.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // ########################################## //
+  // useEffect #2 for filtering data
+  // ########################################## //
+  useEffect(() => {
+    const filtered = data.filter((staff) => {
+      const matchesFilters =
+        staff.mcr_number.toString().includes(mcrNumberFilter) &&
+        staff.first_name
+          .toLowerCase()
+          .includes(firstNameFilter.toLowerCase()) &&
+        staff.last_name.toLowerCase().includes(lastNameFilter.toLowerCase()) &&
+        staff.department
+          .toLowerCase()
+          .includes(departmentFilter.toLowerCase()) &&
+        staff.appointment
+          .toLowerCase()
+          .includes(appointmentFilter.toLowerCase()) &&
+        (trainingHoursFilter === "" ||
+          staff.teaching_training_hours
+            .toString()
+            .includes(trainingHoursFilter));
+
+      if (onlyDeleted) return matchesFilters && staff.deleted === 1; // Only show deleted entries
+      return matchesFilters && (!showDeleted ? staff.deleted === 0 : true); // Show or hide deleted based on state
+    });
+
+    setFilteredData(filtered);
+    setCurrentPage(1);
+  }, [
+    mcrNumberFilter,
+    firstNameFilter,
+    lastNameFilter,
+    departmentFilter,
+    appointmentFilter,
+    trainingHoursFilter,
+    showDeleted,
+    onlyDeleted,
+    data,
+  ]);
 
   return (
     <>

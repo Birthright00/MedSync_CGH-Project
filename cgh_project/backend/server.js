@@ -3,6 +3,9 @@ import mysql2 from "mysql2";
 import cors from "cors";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import * as XLSX from "xlsx";
+import csv from "csv-parser"; // Library for handling CSV files
 
 // -------------------------------------------------------------------------------------------------------------//
 // IMPORTS
@@ -15,6 +18,7 @@ import jwt from "jsonwebtoken";
 //  which are used for user authentication and authorization.
 
 const app = express(); // Create an instance of the express app
+const upload = multer({ storage: multer.memoryStorage() });
 
 // -------------------------------------------------------------------------------------------------------------//
 // MIDDLEWARE SETUP
@@ -640,6 +644,125 @@ app.put("/promotions/:mcr_number/:new_title", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// ROUTE TO HANDLE SINGLE SHEET EXCEL FILE UPLOAD //
+// -------------------------------------------------------------------------------------------------------------//
+app.post(
+  "/upload-excel-single-sheet",
+  verifyToken,
+  upload.single("file"),
+  (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    // Check the file type to determine how to process it
+    const fileType = req.file.mimetype;
+
+    try {
+      let sheetData = [];
+
+      // Handle Excel files (`.xlsx` and `.xls`)
+      if (fileType.includes("sheet") || fileType.includes("excel")) {
+        console.log("Processing Excel file...");
+        const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+        sheetData = XLSX.utils.sheet_to_json(
+          workbook.Sheets[workbook.SheetNames[0]]
+        ); // Read the first sheet
+        validateAndInsertData(sheetData, res); // Call validation and insertion directly for Excel
+      }
+      // Handle CSV files
+      else if (
+        fileType === "text/csv" ||
+        fileType === "application/vnd.ms-excel"
+      ) {
+        console.log("Processing CSV file...");
+        // Parse the CSV file content
+        const csvData = req.file.buffer.toString(); // Convert buffer to string for CSV parsing
+        const csvRows = [];
+
+        // Use a string reader to parse the CSV content line-by-line
+        require("stream")
+          .Readable.from(csvData)
+          .pipe(csv())
+          .on("data", (row) => csvRows.push(row))
+          .on("end", () => {
+            sheetData = csvRows; // Assign the parsed CSV rows to sheetData
+            validateAndInsertData(sheetData, res); // Call the validation and insertion function
+          });
+        return; // Early return for CSV because it is parsed asynchronously
+      } else {
+        return res.status(400).json({ error: "Unsupported file format" });
+      }
+    } catch (error) {
+      console.error("Error processing uploaded file: ", error);
+      return res
+        .status(500)
+        .json({ error: "Failed to process the uploaded file" });
+    }
+  }
+);
+
+// Function to handle validation and data insertion for both CSV and Excel data
+function validateAndInsertData(sheetData, res) {
+  console.log("Parsed Data: ", sheetData); // Log parsed data for debugging
+
+  // Define expected columns for each table
+  const tableColumns = {
+    main_data: [
+      "mcr_number",
+      "first_name",
+      "last_name",
+      "department",
+      "appointment",
+      "teaching_training_hours",
+      "email",
+      "created_at",
+      "updated_at",
+      "created_by",
+      "updated_by",
+      "deleted_by",
+      "deleted_at",
+      "fte",
+      "deleted",
+    ],
+    contracts: [
+      "mcr_number",
+      "start_date",
+      "end_date",
+      "status",
+      "school_name",
+    ],
+    promotion: ["mcr_number", "new_title", "previous_title", "promotion_date"],
+  };
+
+  const requiredColumns = ["mcr_number"]; // List of required columns (common for all tables)
+  const allExpectedColumns = [
+    ...new Set([
+      ...tableColumns.main_data,
+      ...tableColumns.contracts,
+      ...tableColumns.promotion,
+    ]),
+  ];
+
+  // Validate columns in the uploaded sheet
+  const uploadedColumns = Object.keys(sheetData[0] || {});
+  if (
+    !uploadedColumns.includes("mcr_number") ||
+    uploadedColumns.some((col) => !allExpectedColumns.includes(col))
+  ) {
+    console.error("Missing or unrecognized columns in the uploaded file");
+    return res
+      .status(400)
+      .json({ error: "Missing or unrecognized columns in the uploaded file" });
+  }
+
+  console.log("All columns validated successfully");
+
+  // Further processing and data insertion logic...
+  res.status(200).json({ message: "File uploaded and validated successfully" });
+}
+
+// -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start
 // -------------------------------------------------------------------------------------------------------------//
 db.connect((err) => {
@@ -647,20 +770,6 @@ db.connect((err) => {
     console.log("Error connecting to the database:", err);
   } else {
     console.log("Connection Successful. Backend server is running!");
-
-    // Create indexes on the necessary columns
-    const createIndexes = `
-      CREATE INDEX IF NOT EXISTS idx_mcr_number_main_data ON main_data(mcr_number);
-      CREATE INDEX IF NOT EXISTS idx_mcr_number_contracts ON contracts(mcr_number);
-    `;
-
-    db.query(createIndexes, (err, result) => {
-      if (err) {
-        console.error("Error creating indexes:", err);
-      } else {
-        console.log("Indexes created successfully.");
-      }
-    });
   }
 });
 

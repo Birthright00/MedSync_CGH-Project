@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CSVLink } from "react-csv";
+import * as XLSX from "xlsx"; // Import the xlsx library for file parsing
 
 const ManagementHomePage = () => {
   const [data, setData] = useState([]);
@@ -22,8 +23,65 @@ const ManagementHomePage = () => {
   const [activeButton, setActiveButton] = useState(null); // Track which button is active
 
   const [entriesPerPage, setEntriesPerPage] = useState(
-    () => Number(localStorage.getItem("entriesPerPage")) || 10
+    () => Number(localStorage.getItem("entriesPerPage")) || 5
   );
+  const [selectedFile, setSelectedFile] = useState(null); // Track selected file
+
+  // Function to submit the file for validation
+  const handleFileSubmit = async () => {
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        "http://localhost:3001/upload-excel-single-sheet",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      console.log("File uploaded successfully:", response.data);
+    } catch (error) {
+      console.error(
+        "File upload failed:",
+        error.response?.data || error.message
+      );
+    }
+  };
+
+  // Function to handle file upload
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        "http://localhost:3001/upload-excel-single-sheet",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      console.log("File uploaded successfully:", response.data);
+    } catch (error) {
+      console.error("File upload failed:", error.response.data);
+    }
+  };
 
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "";
@@ -166,10 +224,33 @@ const ManagementHomePage = () => {
     }
   };
 
-  const handleEntriesPerPageChange = (entries) => {
+  const handleEntriesInputChange = (event) => {
+    const value = event.target.value;
+
+    // Allow the input to be empty, which is needed when deleting the first digit
+    if (value === "" || value === "0") {
+      setEntriesPerPage(value); // Set the state to an empty string temporarily
+      setActiveButton(null); // Clear active button state
+      return;
+    }
+
+    // Convert the value to a positive integer
+    const entries = parseInt(value, 10);
+
+    // Update the state only if the value is a valid positive number
+    if (!isNaN(entries) && entries > 0) {
+      setEntriesPerPage(entries);
+      localStorage.setItem("entriesPerPage", entries);
+      setActiveButton(entries); // Update active button based on input value
+      setCurrentPage(1);
+    }
+  };
+
+  const handleEntriesButtonClick = (entries) => {
+    // Update state and active button when button is clicked
     setEntriesPerPage(entries);
     localStorage.setItem("entriesPerPage", entries);
-    setActiveButton(entries); // Set the active button based on value
+    setActiveButton(entries);
     setCurrentPage(1);
   };
 
@@ -271,7 +352,7 @@ const ManagementHomePage = () => {
                   <th>Contract Details</th>
                   <th>FTE</th>
                   <th>Created At</th>
-                  <th>Updated At</th> 
+                  <th>Updated At</th>
                   <th>Created By</th>
                   <th>Updated By</th>
                   <th>Deleted By</th>
@@ -311,16 +392,18 @@ const ManagementHomePage = () => {
             <div className="entries-per-page">
               <label htmlFor="entries-per-page">Entries per page : </label>
               <input
+                type="number"
                 value={entriesPerPage}
-                onChange={handleEntriesPerPageChange}
+                onChange={handleEntriesInputChange}
                 autoComplete="off"
                 className="entries-per-page-input"
               />
+
               <button
                 className={`entries-per-page-button ${
                   activeButton === 10 ? "button-blue" : "button-grey"
                 }`}
-                onClick={() => handleEntriesPerPageChange(10)}
+                onClick={() => handleEntriesButtonClick(10)}
               >
                 10
               </button>
@@ -328,7 +411,7 @@ const ManagementHomePage = () => {
                 className={`entries-per-page-button ${
                   activeButton === 20 ? "button-blue" : "button-grey"
                 }`}
-                onClick={() => handleEntriesPerPageChange(20)}
+                onClick={() => handleEntriesButtonClick(20)}
               >
                 20
               </button>
@@ -336,7 +419,7 @@ const ManagementHomePage = () => {
                 className={`entries-per-page-button ${
                   activeButton === 50 ? "button-blue" : "button-grey"
                 }`}
-                onClick={() => handleEntriesPerPageChange(50)}
+                onClick={() => handleEntriesButtonClick(50)}
               >
                 50
               </button>
@@ -344,7 +427,7 @@ const ManagementHomePage = () => {
                 className={`entries-per-page-button ${
                   activeButton === 100 ? "button-blue" : "button-grey"
                 }`}
-                onClick={() => handleEntriesPerPageChange(100)}
+                onClick={() => handleEntriesButtonClick(100)}
               >
                 100
               </button>
@@ -354,7 +437,7 @@ const ManagementHomePage = () => {
                     ? "button-blue"
                     : "button-grey"
                 }`}
-                onClick={() => handleEntriesPerPageChange(filteredData.length)}
+                onClick={() => handleEntriesButtonClick(filteredData.length)}
               >
                 All
               </button>
@@ -392,6 +475,27 @@ const ManagementHomePage = () => {
                   >
                     Download
                   </CSVLink>
+                </button>
+
+                {/* Label and input for choosing file */}
+                <label htmlFor="file-upload" className="file-upload-label">
+                  Choose File:
+                </label>
+                <input
+                  type="file"
+                  id="file-upload"
+                  className="file-upload-input"
+                  accept=".xlsx, .xls, .csv"
+                  onChange={(e) => setSelectedFile(e.target.files[0])} // Store selected file
+                />
+
+                {/* Separate button for submitting the file */}
+                <button
+                  className="submit-file-button"
+                  onClick={handleFileSubmit}
+                  disabled={!selectedFile} // Disable until a file is selected
+                >
+                  Submit File
                 </button>
               </div>
             </div>

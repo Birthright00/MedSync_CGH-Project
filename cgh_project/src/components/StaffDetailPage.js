@@ -8,6 +8,8 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { CSVLink } from "react-csv";
 import { FaEdit, FaTrash } from "react-icons/fa";
+import { confirmAlert } from "react-confirm-alert"; // Import the confirmation alert library
+import "react-confirm-alert/src/react-confirm-alert.css";
 
 const StaffDetailPage = () => {
   // ########################################## //
@@ -75,52 +77,108 @@ const StaffDetailPage = () => {
   // ########################################## //
   // Delete Staff
   // ########################################## //
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this staff?")) {
-      return; // If user cancels the action, don't proceed with deletion
-    }
+  const handleDelete = () => {
+    confirmAlert({
+      title: "❗Confirm Deletion❗",
+      message: (
+        <div>
+          <p>Are you sure you want to delete this staff?</p>
+          <p
+            style={{ fontWeight: "bold", color: "#ca4700", marginTop: "10px" }}
+          ></p>
+        </div>
+      ),
+      buttons: [
+        {
+          label: "Yes, Delete it!",
+          onClick: async () => {
+            try {
+              const token = localStorage.getItem("token");
+              await axios.delete(`http://localhost:3001/staff/${mcr_number}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
 
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3001/staff/${mcr_number}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      toast.success("Staff details deleted successfully!");
-      setTimeout(() => {
-        navigate("/management-home");
-      }, 1000);
-    } catch (error) {
-      console.error(
-        "Error deleting staff details:",
-        error.response ? error.response.data : error
-      );
-      toast.error("Failed to delete staff details");
-    }
+              toast.success("Staff details deleted successfully!");
+              setTimeout(() => {
+                navigate("/management-home");
+              }, 1000);
+            } catch (error) {
+              console.error(
+                "Error deleting staff details:",
+                error.response ? error.response.data : error
+              );
+              toast.error("Failed to delete staff details");
+            }
+          },
+          style: {
+            backgroundColor: "#ca4700", // Red background
+            color: "white",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            margin: "0 10px",
+            fontSize: "14px",
+            fontWeight: "bold",
+            transition: "background-color 0.3s",
+          },
+        },
+        {
+          label: "Cancel",
+          onClick: () => {},
+          style: {
+            backgroundColor: "#cccccc", // Light grey background
+            color: "black",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            margin: "0 10px",
+            fontSize: "14px",
+            fontWeight: "bold",
+            transition: "background-color 0.3s",
+          }, // Grey button styling
+        },
+      ],
+    });
   };
 
   // ########################################## //
-  // Restore Staff
+  // Restore Staff Details with Confirmation
   // ########################################## //
-  const handleRestore = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:3001/restore/${mcr_number}`,
-        {},
+  const handleRestore = () => {
+    confirmAlert({
+      title: "Confirm Restoration",
+      message: `Are you sure you want to restore this staff?`,
+      buttons: [
         {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.success("Staff details restored successfully!");
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error) {
-      console.error("Error restoring staff details:", error);
-      toast.error("Failed to restore staff details");
-    }
+          label: "Yes, Restore it!",
+          onClick: async () => {
+            try {
+              const token = localStorage.getItem("token");
+              await axios.put(
+                `http://localhost:3001/restore/${mcr_number}`,
+                {},
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+              toast.success("Staff details restored successfully!");
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            } catch (error) {
+              console.error("Error restoring staff details:", error);
+              toast.error("Failed to restore staff details");
+            }
+          },
+        },
+        {
+          label: "Cancel",
+          onClick: () => {},
+        },
+      ],
+    });
   };
 
   // ########################################## //
@@ -200,28 +258,60 @@ const StaffDetailPage = () => {
   };
 
   // ########################################## //
-  // Delete Contract
+  // Delete Contract with Popup Confirmation
   // ########################################## //
-  const handleDeleteContract = async (status, start_date, school_name) => {
-    if (!window.confirm(`Are you sure you want to delete this contract?`)) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(
-        `http://localhost:3001/contracts/${mcr_number}/${status}/${start_date}/${school_name}`,
+  const handleDeleteContract = (status, start_date, school_name) => {
+    confirmAlert({
+      title: "❗Confirm Deletion❗",
+      message: (
+        <div>
+          <p>Are you sure you want to delete this contract?</p>
+          <p
+            style={{ fontWeight: "bold", color: "#ca4700", marginTop: "10px" }}
+          >
+            This action cannot be undone.
+          </p>
+        </div>
+      ),
+      buttons: [
         {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.success("Contract deleted successfully!");
-      fetchContracts(); // Refresh the contracts list after deletion
-    } catch (error) {
-      console.error("Error deleting contract:", error);
-      toast.error("Failed to delete contract");
-    }
+          label: "Yes, Delete it!",
+          onClick: async () => {
+            try {
+              const token = localStorage.getItem("token");
+              await axios.delete(
+                `http://localhost:3001/contracts/${mcr_number}/${status}/${start_date}/${school_name}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+              toast.success("Contract deleted successfully!");
+              fetchContracts();
+            } catch (error) {
+              console.error("Error deleting contract:", error);
+              toast.error("Failed to delete contract");
+            }
+          },
+          style: { backgroundColor: "#ca4700", color: "white" }, // Inline styles for the red button
+        },
+        {
+          label: "Cancel",
+          onClick: () => {},
+          style: {
+            backgroundColor: "#cccccc", // Light grey background
+            color: "black",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            margin: "0 10px",
+            fontSize: "14px",
+            fontWeight: "bold",
+            transition: "background-color 0.3s",
+          }, // Inline styles for the cancel button
+        },
+      ],
+    });
   };
 
   // ########################################## //
@@ -298,34 +388,72 @@ const StaffDetailPage = () => {
   };
 
   // ########################################## //
-  // Delete Promotion
+  // Delete Promotion with Popup Confirmation
   // ########################################## //
-  const handleDeletePromotion = async (newTitle) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete the promotion "${newTitle}"?`
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(
-        `http://localhost:3001/promotions/${mcr_number}/${newTitle}`,
+  const handleDeletePromotion = (newTitle) => {
+    confirmAlert({
+      title: "❗Confirm Deletion❗",
+      message: (
+        <div>
+          <p>Are you sure you want to delete the promotion "{newTitle}"?</p>
+          <p
+            style={{ fontWeight: "bold", color: "#ca4700", marginTop: "10px" }}
+          >
+            This action cannot be undone.
+          </p>
+        </div>
+      ),
+      buttons: [
         {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.success("Promotion deleted successfully!");
-      fetchPromotions(); // Refresh the promotions list after deletion
-    } catch (error) {
-      console.error("Error deleting promotion:", error);
-      toast.error("Failed to delete promotion");
-    }
+          label: "Yes, Delete it!",
+          onClick: async () => {
+            try {
+              const token = localStorage.getItem("token");
+              await axios.delete(
+                `http://localhost:3001/promotions/${mcr_number}/${newTitle}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+              toast.success("Promotion deleted successfully!");
+              fetchPromotions();
+            } catch (error) {
+              console.error("Error deleting promotion:", error);
+              toast.error("Failed to delete promotion");
+            }
+          },
+          style: {
+            backgroundColor: "#ca4700", // Light grey background
+            color: "white",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            margin: "0 10px",
+            fontSize: "14px",
+            fontWeight: "bold",
+            transition: "background-color 0.3s",
+          }, // Inline styles for the red button
+        },
+        {
+          label: "Cancel",
+          onClick: () => {},
+          style: {
+            backgroundColor: "#cccccc", // Light grey background
+            color: "black",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            margin: "0 10px",
+            fontSize: "14px",
+            fontWeight: "bold",
+            transition: "background-color 0.3s",
+          }, // Inline styles for the cancel button
+        },
+      ],
+    });
   };
-
   // ########################################## //
   // Table Display Logic to prevent duplicate of doctors
   // ########################################## //

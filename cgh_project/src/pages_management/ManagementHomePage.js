@@ -68,13 +68,18 @@ const ManagementHomePage = () => {
   // File Upload
   // ########################################## //
   const handleFileSubmit = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      console.error("No file selected for upload!");
+      return;
+    }
 
+    console.log("File selected for upload:", selectedFile.name); // Log the file name
     const formData = new FormData();
     formData.append("file", selectedFile);
 
     try {
       const token = localStorage.getItem("token");
+      console.log("Sending POST request to backend...");
       const response = await axios.post(
         "http://localhost:3001/upload-excel-single-sheet",
         formData,

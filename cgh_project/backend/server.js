@@ -279,7 +279,6 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 // POST REQUEST FOR ADDING NEW STAFF DETAILS TO MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST FOR ADDING NEW STAFF DETAILS TO MAIN_DATA TABLE
 app.post("/entry", verifyToken, (req, res) => {
   const {
     mcr_number,
@@ -288,14 +287,15 @@ app.post("/entry", verifyToken, (req, res) => {
     department,
     appointment,
     teaching_training_hours,
+    start_date,
+    end_date,
+    renewal_start_date,
+    renewal_end_date,
     email,
   } = req.body;
 
-  const userMcrNumber = req.user.id; // Get the user ID from the JWT token
+  const userMcrNumber = req.user.id;
 
-  console.log("Received new staff details request:", req.body); // Log the incoming request
-
-  // Check for missing required fields
   if (
     !mcr_number ||
     !first_name ||
@@ -304,28 +304,14 @@ app.post("/entry", verifyToken, (req, res) => {
     !appointment ||
     !email
   ) {
-    return res.status(400).json({
-      error:
-        "Please provide all required fields: mcr_number, first_name, last_name, department, appointment, and email.",
-    });
+    return res
+      .status(400)
+      .json({ error: "Please provide all required fields" });
   }
 
-  // Ensure that the `mcr_number` field follows the correct format
-  const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/;
-  if (!mcrRegex.test(mcr_number)) {
-    return res.status(400).json({
-      error:
-        "MCR Number must start with 'M' or 'm', followed by 5 digits and end with a single alphabet.",
-    });
-  }
-
-  // Set current timestamp for created_at and updated_at fields
-  const currentTimestamp = new Date();
-
-  // Prepare the SQL query for inserting new staff details
   const q = `
     INSERT INTO main_data 
-    (mcr_number, first_name, last_name, department, appointment, teaching_training_hours, email, created_at, updated_at, created_by, fte, deleted) 
+    (mcr_number, first_name, last_name, department, appointment, teaching_training_hours, start_date, end_date, renewal_start_date, renewal_end_date, email, created_by) 
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
@@ -335,51 +321,23 @@ app.post("/entry", verifyToken, (req, res) => {
     last_name,
     department,
     appointment,
-    teaching_training_hours || 0, // Default teaching hours to 0 if not provided
+    teaching_training_hours,
+    start_date,
+    end_date,
+    renewal_start_date,
+    renewal_end_date,
     email,
-    currentTimestamp, // Set created_at to current timestamp
-    currentTimestamp, // Set updated_at to current timestamp
-    userMcrNumber, // Log the ID of the user creating the record (from JWT)
-    1.0, // Default value for Full-Time Equivalent (fte)
-    0, // Default value for deleted (0 means not deleted, 1 means deleted)
+    userMcrNumber, // Log who created the record (the currently logged-in user)
   ];
 
-  console.log("Executing SQL query with values:", values); // Log the SQL values being used
-
-  // Execute the query to insert new staff details into the main_data table
   db.query(q, values, (err, data) => {
     if (err) {
-      // Log the detailed error for server-side debugging
       console.error("Error inserting new staff details:", err);
-      if (err.sqlMessage) {
-        console.error("SQL Error Message:", err.sqlMessage); // Log SQL-specific error message
-      }
-
-      // Respond with a more informative message
-      return res.status(500).json({
-        error:
-          "Failed to add new staff details. Please check the server logs for more information.",
-      });
+      return res.status(500).json({ error: "Failed to add new staff details" });
     }
-
-    console.log("New staff details added successfully!", data); // Log successful insertion
-    return res.status(201).json({
-      message: "New staff details added successfully",
-      data: {
-        mcr_number,
-        first_name,
-        last_name,
-        department,
-        appointment,
-        teaching_training_hours,
-        email,
-        created_at: currentTimestamp,
-        updated_at: currentTimestamp,
-        created_by: userMcrNumber,
-        fte: 1.0,
-        deleted: 0,
-      },
-    });
+    return res
+      .status(201)
+      .json({ message: "New staff details added successfully", data });
   });
 });
 
@@ -649,164 +607,10 @@ app.delete("/promotions/:mcr_number/:new_title", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// PUT REQUEST FOR UPDATING PROMOTION DETAILS BASED ON MCR NUMBER AND NEW TITLE
-// -------------------------------------------------------------------------------------------------------------//
-
-app.put("/promotions/:mcr_number/:new_title", verifyToken, (req, res) => {
-  const { mcr_number, new_title } = req.params; // Get the MCR number and new title from the URL
-  const { previous_title, promotion_date } = req.body; // Get the updated fields from the request body
-
-  // Validate the input fields
-  if (!previous_title || !promotion_date) {
-    return res
-      .status(400)
-      .json({ error: "Please provide all required fields" });
-  }
-
-  const q = `
-    UPDATE promotions 
-    SET previous_title = ?, promotion_date = ? 
-    WHERE mcr_number = ? AND new_title = ?
-  `;
-
-  const values = [previous_title, promotion_date, mcr_number, new_title];
-
-  db.query(q, values, (err, data) => {
-    if (err) {
-      console.error("Error updating promotion details:", err);
-      return res
-        .status(500)
-        .json({ error: "Failed to update promotion details" });
-    }
-
-    if (data.affectedRows === 0) {
-      return res.status(404).json({ message: "Promotion not found" });
-    }
-
-    return res.status(200).json({ message: "Promotion updated successfully" });
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
 // EXCEL FILE UPLOAD ROUTES
 // -------------------------------------------------------------------------------------------------------------//
 // POST REQUEST TO HANDLE SINGLE SHEET EXCEL FILE UPLOAD //
 // -------------------------------------------------------------------------------------------------------------//
-app.post(
-  "/upload-excel-single-sheet",
-  verifyToken,
-  upload.single("file"),
-  (req, res) => {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-
-    // Check the file type to determine how to process it
-    const fileType = req.file.mimetype;
-
-    try {
-      let sheetData = [];
-
-      // Handle Excel files (`.xlsx` and `.xls`)
-      if (fileType.includes("sheet") || fileType.includes("excel")) {
-        console.log("Processing Excel file...");
-        const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
-        sheetData = XLSX.utils.sheet_to_json(
-          workbook.Sheets[workbook.SheetNames[0]]
-        ); // Read the first sheet
-        validateAndInsertData(sheetData, res); // Call validation and insertion directly for Excel
-      }
-      // Handle CSV files
-      else if (
-        fileType === "text/csv" ||
-        fileType === "application/vnd.ms-excel"
-      ) {
-        console.log("Processing CSV file...");
-        // Parse the CSV file content
-        const csvData = req.file.buffer.toString(); // Convert buffer to string for CSV parsing
-        const csvRows = [];
-
-        // Use a string reader to parse the CSV content line-by-line
-        require("stream")
-          .Readable.from(csvData)
-          .pipe(csv())
-          .on("data", (row) => csvRows.push(row))
-          .on("end", () => {
-            sheetData = csvRows; // Assign the parsed CSV rows to sheetData
-            validateAndInsertData(sheetData, res); // Call the validation and insertion function
-          });
-        return; // Early return for CSV because it is parsed asynchronously
-      } else {
-        return res.status(400).json({ error: "Unsupported file format" });
-      }
-    } catch (error) {
-      console.error("Error processing uploaded file: ", error);
-      return res
-        .status(500)
-        .json({ error: "Failed to process the uploaded file" });
-    }
-  }
-);
-
-// Function to handle validation and data insertion for both CSV and Excel data
-function validateAndInsertData(sheetData, res) {
-  console.log("Parsed Data: ", sheetData); // Log parsed data for debugging
-
-  // Define expected columns for each table
-  const tableColumns = {
-    main_data: [
-      "mcr_number",
-      "first_name",
-      "last_name",
-      "department",
-      "appointment",
-      "teaching_training_hours",
-      "email",
-      "created_at",
-      "updated_at",
-      "created_by",
-      "updated_by",
-      "deleted_by",
-      "deleted_at",
-      "fte",
-      "deleted",
-    ],
-    contracts: [
-      "mcr_number",
-      "start_date",
-      "end_date",
-      "status",
-      "school_name",
-    ],
-    promotion: ["mcr_number", "new_title", "previous_title", "promotion_date"],
-  };
-
-  const requiredColumns = ["mcr_number"]; // List of required columns (common for all tables)
-  const allExpectedColumns = [
-    ...new Set([
-      ...tableColumns.main_data,
-      ...tableColumns.contracts,
-      ...tableColumns.promotion,
-    ]),
-  ];
-
-  // Validate columns in the uploaded sheet
-  const uploadedColumns = Object.keys(sheetData[0] || {});
-  if (
-    !uploadedColumns.includes("mcr_number") ||
-    uploadedColumns.some((col) => !allExpectedColumns.includes(col))
-  ) {
-    console.error("Missing or unrecognized columns in the uploaded file");
-    return res
-      .status(400)
-      .json({ error: "Missing or unrecognized columns in the uploaded file" });
-  }
-
-  console.log("All columns validated successfully");
-
-  // Further processing and data insertion logic...
-  res.status(200).json({ message: "File uploaded and validated successfully" });
-}
 
 // -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start

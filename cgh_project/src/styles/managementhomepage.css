@@ -193,7 +193,7 @@ td:first-child {
   height: 30px;
   cursor: pointer;
   transition: background-color 0.3s ease, color 0.3s ease;
-  font-weight: 550;
+  font-weight: 500;
 }
 
 .sort-icon {

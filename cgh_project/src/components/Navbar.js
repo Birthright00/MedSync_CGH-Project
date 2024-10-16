@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import "../styles/navbar.css";
 import logo from "../images/cgh_logo.png";
+import HomePage from "../pages_login/HomePage";
 
 const Navbar = ({ homeRoute }) => {
   const nav = useNavigate();
@@ -16,7 +17,7 @@ const Navbar = ({ homeRoute }) => {
   };
 
   const handleHome = () => {
-    nav(homeRoute); // Navigate to the provided homeRoute
+    nav("/home"); // Navigate to the provided homeRoute
   };
 
   const handleBackNav = () => {
@@ -26,19 +27,6 @@ const Navbar = ({ homeRoute }) => {
   const handleEntry = () => {
     nav("/entry");
   };
-
-  // useEffect(() => {
-  //   const handleScroll = () => {
-  //     if (window.scrollY > 100) {
-  //       setIsSticky(true);
-  //     } else {
-  //       setIsSticky(false);
-  //     }
-  //   };
-
-  //   window.addEventListener("scroll", handleScroll);
-  //   return () => window.removeEventListener("scroll", handleScroll);
-  // }, []);
 
   return (
     <motion.nav
@@ -55,14 +43,14 @@ const Navbar = ({ homeRoute }) => {
         >
           Home
         </motion.button>
-        <motion.button
+        {/* <motion.button
           className="navbarbutton"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={handleEntry}
         >
           Entry
-        </motion.button>
+        </motion.button> */}
         <motion.button
           className="navbarbutton"
           whileHover={{ scale: 1.1 }}

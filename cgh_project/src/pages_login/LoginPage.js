@@ -17,13 +17,19 @@ import staff from "../images/staff.png";
 import management from "../images/management.png";
 import show_pw from "../images/show_pw.png";
 import hide_pw from "../images/hide_pw.png";
+import white_management from "../images/management_white.png";
+import white_staff from "../images/staff_white.png";
 
 const LoginPage = () => {
   const nav = useNavigate();
   const [username, usernameupdate] = useState("");
   const [password, passwordupdate] = useState("");
   const [selectedRole, setSelectedRole] = useState(null);
+  const isRoleSelected = (role) => selectedRole === role;
+
   const [showPassword, setShowPassword] = useState(false);
+  const [isMgmtHovered, setIsMgmtHovered] = useState(false);
+  const [isStaffHovered, setIsStaffHovered] = useState(false);
 
   // Quick Regex Revision
 
@@ -98,11 +104,12 @@ const LoginPage = () => {
       // Handling Responses
       if (response.ok) {
         // Store the token in localStorage
-        localStorage.setItem("token", data.token); // Save the JWT token in localStorage
+        localStorage.setItem("token", data.token);
+
         // Successful login
         toast.success("Login successful! Welcome Back!");
         setTimeout(() => {
-          nav(data.role === "management" ? "/management-home" : "/staff-home");
+          nav(data.role === "management" ? "/home" : "/staff-home");
         }, 1000); // Small delay for toast visibility
       } else {
         // Handle specific status codes and show custom toast messages
@@ -158,7 +165,14 @@ const LoginPage = () => {
                 type="button"
                 onClick={() => setSelectedRole("management")}
               >
-                <img src={management} alt="management" />
+                <img
+                  src={
+                    isMgmtHovered || isRoleSelected("management")
+                      ? white_management
+                      : management
+                  }
+                  alt="management"
+                />
                 Management
               </motion.button>
               <motion.button
@@ -170,7 +184,14 @@ const LoginPage = () => {
                 type="button"
                 onClick={() => setSelectedRole("staff")}
               >
-                <img src={staff} alt="staff" />
+                <img
+                  src={
+                    isStaffHovered || isRoleSelected("staff")
+                      ? white_staff
+                      : staff
+                  }
+                  alt="staff"
+                />
                 Staff
               </motion.button>
             </div>

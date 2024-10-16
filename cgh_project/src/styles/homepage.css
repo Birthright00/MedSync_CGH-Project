@@ -1,0 +1,162 @@
+/* ################################################# */
+/* Main Page Layout */
+/* ################################################# */
+.home-page {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column; /* Stack elements vertically */
+  align-items: center; /* Center elements horizontally */
+  padding: 20px;
+  gap: 10px; /* Space between stacked elements */
+  color: #0083ca;
+}
+
+.home-page:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("../images/login-background-img.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.4;
+  z-index: -1;
+}
+
+/* ################################################# */
+/* Announcements Section */
+/* ################################################# */
+.announcement-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: #fff;
+  color: #333;
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-weight: bold;
+  width: 250px;
+  margin-right: 50px;
+}
+
+.announcement-panel ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.announcement-panel li {
+  margin: 5px;
+}
+
+/* ################################################# */
+/* Card Designs */
+/* ################################################# */
+.card-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.data-card {
+  width: 300px;
+  height: 400px;
+  border-radius: 15px;
+  background-color: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+  will-change: transform, opacity;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px,
+    rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
+}
+
+.data-card h2 {
+  margin-top: 10px;
+  font-size: 1.8rem;
+  color: #0083ca;
+}
+
+.data-card p {
+  font-size: 1rem;
+  color: #555;
+  margin: 10px 20px;
+}
+
+.card-icon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
+}
+
+/* ################################################# */
+/* Card Hover Designs */
+/* ################################################# */
+.data-card:hover {
+  background-color: #0083ca;
+}
+
+.data-card:hover h2 {
+  color: #fff;
+}
+
+.data-card:hover p {
+  color: #fff;
+}
+
+/* ################################################# */
+/* Responsive Designs */
+/* ################################################# */
+@media (max-width: 768px) {
+  .card-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .data-card {
+    width: 90%; /* Make the cards take full width on smaller screens */
+    height: auto;
+  }
+  .announcement-panel {
+    top: 10px;
+    right: 10px;
+    width: 90%; /* Adjust width for mobile screens */
+  }
+  .quote-carousel {
+    width: 90%;
+    font-size: 1rem;
+  }
+  .quote-container {
+    width: 90%;
+    font-size: 1rem;
+  }
+}
+/* ################################################# */
+/* Quote Carousel Styling */
+/* ################################################# */
+.quote-carousel {
+  display: flex;
+  padding: 20px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  max-width: 600px;
+  height: 100px;
+  position: relative;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px,
+    rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
+  color: #0083ca;
+  font-weight: bold;
+  font-style: italic;
+}

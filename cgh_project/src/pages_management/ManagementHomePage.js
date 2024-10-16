@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CSVLink } from "react-csv";
 import * as XLSX from "xlsx"; // Import the xlsx library for file parsing
-
+import { motion } from "framer-motion";
 const ManagementHomePage = () => {
   // ########################################## //
   // Generic Constants
@@ -160,7 +160,9 @@ const ManagementHomePage = () => {
       setCurrentPage(currentPage - 1);
     }
   };
-
+  const handleAddDoctor = () => {
+    nav("/entry");
+  }
   const handleEntriesInputChange = (event) => {
     const value = event.target.value;
 
@@ -263,8 +265,13 @@ const ManagementHomePage = () => {
     <>
       <Navbar homeRoute={"/management-home"} />
       <div className="management-home-page">
-        <div className="filter-section">
-          <label htmlFor="mcr-number-filter">MCR Number:</label>
+        <motion.div
+          className="filter-section"
+          initial={{ x: -100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
+          <label htmlFor="mcr-number-filter">MCR No.</label>
           <input
             type="text"
             id="mcr-number-filter"
@@ -276,7 +283,7 @@ const ManagementHomePage = () => {
             placeholder="MCR No."
             autoComplete="off"
           />
-          <label htmlFor="first-name-filter">First Name:</label>
+          <label htmlFor="first-name-filter">First Name</label>
           <input
             type="text"
             id="first-name-filter"
@@ -285,7 +292,7 @@ const ManagementHomePage = () => {
             placeholder="First name"
             autoComplete="off"
           />
-          <label htmlFor="last-name-filter">Last Name:</label>
+          <label htmlFor="last-name-filter">Last Name</label>
           <input
             type="text"
             id="last-name-filter"
@@ -294,7 +301,7 @@ const ManagementHomePage = () => {
             placeholder="Last name"
             autoComplete="off"
           />
-          <label htmlFor="department-filter">Department:</label>
+          <label htmlFor="department-filter">Department</label>
           <input
             type="text"
             id="department-filter"
@@ -303,7 +310,7 @@ const ManagementHomePage = () => {
             placeholder="Department"
             autoComplete="off"
           />
-          <label htmlFor="appointment-filter">Appointment:</label>
+          <label htmlFor="appointment-filter">Appointment</label>
           <input
             type="text"
             id="appointment-filter"
@@ -337,9 +344,15 @@ const ManagementHomePage = () => {
           <button className="reset-button" onClick={resetFilters}>
             Reset
           </button>
-        </div>
+          <button className="add-dr-button" onClick={handleAddDoctor}>Add New Doctor</button>
+        </motion.div>
         <div>
-          <div className="table-container">
+          <motion.div
+            className="table-container"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
             <table className="data-table">
               <thead>
                 <tr>
@@ -392,7 +405,7 @@ const ManagementHomePage = () => {
                 ))}
               </tbody>
             </table>
-          </div>
+          </motion.div>
           <div className="pagination-background">
             <div className="entries-per-page">
               <label htmlFor="entries-per-page">Entries per page : </label>
@@ -447,7 +460,12 @@ const ManagementHomePage = () => {
                 All
               </button>
             </div>
-            <div className="pagination-container">
+            <motion.div
+              className="pagination-container"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+            >
               <div className="pagination">
                 <span className="current-page">
                   Page {currentPage} of {totalPages}
@@ -503,7 +521,7 @@ const ManagementHomePage = () => {
                   Submit File
                 </button>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>

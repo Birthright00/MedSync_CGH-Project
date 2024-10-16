@@ -15,13 +15,12 @@ import csv from "csv-parser"; // Library for handling CSV files
 // cors: A middleware module for handling Cross-Origin Resource Sharing (CORS) requests
 // bcrypt: A module for hashing and salting passwords
 // jsonwebtoken: This library is used to create and verify JSON Web Tokens (JWT),
-//  which are used for user authentication and authorization.
+// which are used for user authentication and authorization.
 // multer: A middleware module for handling file uploads
-// xlsx: A library for parsing Excel files
-// csv: A library for parsing CSV files
+// XLSX / csv-parser: For reading Excel or CSV files for uploads.
 
 const app = express(); // Create an instance of the express app
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage() }); // Multer configuration
 
 // -------------------------------------------------------------------------------------------------------------//
 // MIDDLEWARE SETUP
@@ -44,7 +43,17 @@ const db = mysql2.createConnection({
 // -------------------------------------------------------------------------------------------------------------//
 // TOKEN VERIFICATION MIDDLEWARE //
 // -------------------------------------------------------------------------------------------------------------//
-// Secret Key for JWT-->
+// "?." is the optional chaining operator in JS
+// Used to safely access properties of an object without throwing an error if they don't exist
+// If any part of the chain is undefined or null, it returns undefined instead of an error
+// In this case, req.headers.authorization might be undefined if the Authorization header is not included in the request
+// Using ?. ensures there is no error that will break everything
+// So the split will remove the token from the header
+
+// If (!token) checks if the token variable is FALSY
+// falsy values include null, undefined, 0, "", NaN, and false
+// basically this just makes sure the token is not null or undefined
+// Secret Key for JWT
 const JWT_SECRET =
   "eae2a5f39b5de58a924b22b97e62030f29885b776d301a04af5d16f92143db17";
 
@@ -65,7 +74,21 @@ const verifyToken = (req, res, next) => {
 };
 
 // -------------------------------------------------------------------------------------------------------------//
-// ROUTES //
+// ACCESSIBLE ROUTES //
+// localhost:3001 --> Backend Server
+// localhost:3001/main_data --> GET Request for main_data
+// localhost:3001/database --> GET Request for combined_doctor_data views
+// -------------------------------------------------------------------------------------------------------------//
+
+// -------------------------------------------------------------------------------------------------------------//
+// BACKEND SERVER
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/", (req, res) => {
+  res.send(
+    "This site is for Development purposes only.<br>This is the backend development site.<br>You may be trying to access this instead : http://localhost:3000/"
+  );
+});
+
 // -------------------------------------------------------------------------------------------------------------//
 // LOGIN ROUTE
 // -------------------------------------------------------------------------------------------------------------//
@@ -97,7 +120,26 @@ app.post("/login", (req, res) => {
 
     const user = data[0];
 
-    // Compare the provided password with the hashed password in the database
+    // bcrypt.compare() and how it works (NOT SIMPLY STRING COMPARISON)
+    // For e.g. password = "password123"
+    // bcrypt will hash the password with salt and cost factor
+    // salt is a random string e.g. KkT48OvTzVQjTTvYbRLmQG
+    // cost factor is represented as a number that determines how many times the password will be hashed
+    // cost factor basically prevents brute force attacks, each increment of 1 doubles the time taken to hash the password
+    
+    // salt is embedded into the final hash along with the cost factor resulting in : 
+    // $2b$10$KkT48OvTzVQjTTvYbRLmQG1XsYfdGQFtBddtvImR5XM4vFElxuRm
+    //        |--------------------|
+    //               |salt|
+ 
+    // hackers who manage to access the database will see this, even if they are aware of the salt and cost factor, 
+    // they would not be able to guess the password
+
+    // Verifying the password
+    // Backend retrieves the hashed password, bcrypts extracts salt and cost factor fro the storeed hash
+    // rehash the INPUTTED password with the extracted salt and cost factor
+    // Compares this new hash with the stored hash via string comparison
+
     bcrypt.compare(password, user.user_password, (err, isMatch) => {
       if (err) {
         return res.status(500).json({ error: "Error comparing passwords" });
@@ -117,7 +159,7 @@ app.post("/login", (req, res) => {
         { id: user.mcr_number, role: user.role },
         JWT_SECRET,
         {
-          expiresIn: "12h",
+          expiresIn: "12h", // Edit this for token expiration
         }
       );
 
@@ -158,19 +200,11 @@ app.post("/register", (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// BACKEND TESTING ROUTE
-// -------------------------------------------------------------------------------------------------------------//
-app.get("/", (req, res) => {
-  res.send(
-    "This site is for Development purposes only.<br>This is the backend development site.<br>You may be trying to access this instead : http://localhost:3000/"
-  );
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR DATABASE
+// GET REQUEST FOR main_data table
 // -------------------------------------------------------------------------------------------------------------//
 
-// app.get("/database", verifyToken, (req, res) => {
+// Token Verification Needed
+// app.get("/main_data", verifyToken, (req, res) => {
 //   // Added token verification
 //   const q = "SELECT * FROM main_data";
 //   db.query(q, (err, data) => {
@@ -179,9 +213,20 @@ app.get("/", (req, res) => {
 //   });
 // });
 
+// No Need Token Verification
+app.get("/main_data", (req, res) => {
+  // Added token verification
+  const q = "SELECT * FROM main_data";
+  db.query(q, (err, data) => {
+    if (err) return res.json(err);
+    return res.json(data);
+  });
+});
+
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FOR COMBINED DOCTORS DETAILS (FROM ALL 3 TABLES AS A VIEW)
 // -------------------------------------------------------------------------------------------------------------//
+
 app.get("/database", verifyToken, (req, res) => {
   const includeDeleted = req.query.includeDeleted === "true";
   const query = includeDeleted
@@ -243,7 +288,7 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
     email,
   } = req.body;
 
-  // To ensure accountability, we track who updated the record
+  // To ensure accountability, track who updated the record
   const userMcrNumber = req.user.id; // Get the MCR number of the logged-in user from the token
 
   const q = `

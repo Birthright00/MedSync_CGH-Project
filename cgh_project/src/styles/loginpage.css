@@ -73,7 +73,7 @@ body {
   border-style: solid;
   border-width: 1px;
   border-color: #000; /* Consistent black border */
-  background-color: #e6e6e6;
+  background-color: #f8f9fa;
   transition: background-color 500ms, color 500ms;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
   display: flex;

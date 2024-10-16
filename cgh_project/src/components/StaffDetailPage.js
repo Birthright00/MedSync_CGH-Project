@@ -529,8 +529,18 @@ const StaffDetailPage = () => {
     <>
       <ToastContainer />
       <Navbar homeRoute="/management-home" />
-      <div className="staff-detail-page">
-        <div className="staff-info-container">
+      <motion.div
+        className="staff-detail-page"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <motion.div
+          className="staff-info-container"
+          initial={{ x: -100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
           <h2>Staff Details {staffDetails.deleted === 1 ? "(Deleted)" : ""}</h2>
           <table className="staff-detail-table">
             <tbody>
@@ -660,11 +670,18 @@ const StaffDetailPage = () => {
               Delete
             </motion.button>
           )}
-        </div>
+        </motion.div>
 
-        <div className="staff-info-container">
+        <motion.div className="staff-info-container"     initial={{ x: 100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}>
           <h2>Contracts</h2>
-          <div className="contracts-table-container">
+          <motion.div
+            className="contracts-table-container"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
             <table className="contracts-table">
               <thead>
                 <tr>
@@ -719,7 +736,7 @@ const StaffDetailPage = () => {
                 )}
               </tbody>
             </table>
-          </div>{" "}
+          </motion.div>{" "}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
@@ -795,7 +812,12 @@ const StaffDetailPage = () => {
             </div>
           )}
           <h2>Promotions</h2>
-          <div className="contracts-table-container">
+          <motion.div
+            className="contracts-table-container"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
             <table className="contracts-table">
               <thead>
                 <tr>
@@ -840,7 +862,7 @@ const StaffDetailPage = () => {
                 )}
               </tbody>
             </table>
-          </div>{" "}
+          </motion.div>{" "}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
@@ -909,8 +931,8 @@ const StaffDetailPage = () => {
               Download
             </motion.button>
           </CSVLink>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </>
   );
 };

@@ -26,7 +26,7 @@ const ManagementHomePage = () => {
   const [activeButton, setActiveButton] = useState(null); // Track which button is active
   const [selectedFile, setSelectedFile] = useState(null);
   const [entriesPerPage, setEntriesPerPage] = useState(
-    () => Number(localStorage.getItem("entriesPerPage")) || 5
+    () => Number(localStorage.getItem("entriesPerPage")) || 10
   );
 
   const formatDateTime = (dateStr) => {

@@ -11,6 +11,7 @@
   padding: 20px;
   gap: 10px; /* Space between stacked elements */
   color: #0083ca;
+  font-size: 1rem;
 }
 
 .home-page:before {
@@ -25,33 +26,6 @@
   background-size: cover;
   opacity: 0.4;
   z-index: -1;
-}
-
-/* ################################################# */
-/* Announcements Section */
-/* ################################################# */
-.announcement-panel {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background-color: #fff;
-  color: #333;
-  padding: 10px 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-weight: bold;
-  width: 250px;
-  margin-right: 50px;
-}
-
-.announcement-panel ul {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-}
-
-.announcement-panel li {
-  margin: 5px;
 }
 
 /* ################################################# */
@@ -82,13 +56,13 @@
 
 .data-card h2 {
   margin-top: 10px;
-  font-size: 1.8rem;
+  font-size: 1rem;
   color: #0083ca;
 }
 
 .data-card p {
   font-size: 1rem;
-  color: #555;
+  color: #0083ca;
   margin: 10px 20px;
 }
 
@@ -149,6 +123,7 @@
   align-items: center;
   justify-content: center;
   margin-top: 20px;
+  width: 550px;
   max-width: 600px;
   height: 100px;
   position: relative;
@@ -157,6 +132,5 @@
   box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px,
     rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
   color: #0083ca;
-  font-weight: bold;
   font-style: italic;
 }

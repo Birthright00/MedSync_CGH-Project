@@ -44,43 +44,58 @@ const LoginPage = () => {
 
   // $ = end of string
 
-  const validateMCRNumber = (mcrNumber) => {
-    const mcrPattern = /^[Mm]\d{5}[A-Za-z]$/;
-    return mcrPattern.test(mcrNumber); // Returns true if it matches, false otherwise
+  // Function to validate usernames based on the selected role
+  const validateUsername = (username, role) => {
+    // For Management (ADID): Only lowercase alphabets, no spaces, numbers, or uppercase letters
+    const adidPattern = /^[a-z]+$/;
+
+    // For Staff (MCR or SNB):
+    // MCR number: M or m followed by 5 digits and 1 letter
+    // SNB number: N or n followed by 5 digits and 1 letter
+    const mcrOrSnbPattern = /^[Mm]\d{5}[A-Za-z]$|^[Nn]\d{5}[A-Za-z]$/;
+
+    // Check the pattern based on the selected role
+    if (role === "management") {
+      return adidPattern.test(username); // Validate ADID for management
+    } else if (role === "staff") {
+      return mcrOrSnbPattern.test(username); // Validate MCR or SNB for staff
+    }
+    return false; // Invalid if no role is selected or pattern doesn't match
   };
 
   //-----------------------------------------------------------------/
-  // TBC --> Not sure if we want to allow anyone to register //
+  // For Dev only //
   const handleSignUp = () => {
     nav("/signup-page");
   };
   //-----------------------------------------------------------------/
 
   // Sign in & Authentication handler function
+  // This helps to filter out Management (Admin) Vs Doctors and Nurses
+  // This function makes sure when management is clicked, only adid can be typed
+  // when staff is clicked, only mcr or snb number can be typed
+  // For adid, their role MUST BE management
+  // for mcr and snb number, their roles MUST BE STAFF
+  
   const handleSignIn = async (e) => {
-    e.preventDefault(); // e.preventDefault() is called to prevent the default form submission behavior, which would reload the page.
+    e.preventDefault(); // Prevent the default form submission behavior
 
     // Making sure users select a role
     if (!selectedRole) {
       toast.warn("Please select a role (Management or Staff)");
       return;
     }
-    if (!validateMCRNumber(username)) {
-      toast.error(
-        <div>
-          <p>Invalid MCR Number. It must meet the following criteria:</p>
-          <ul>
-            <li>Start with 'M' or 'm'</li>
-            <li>Followed by 5 digits (0-9)</li>
-            <li>End with a letter (A-Z, a-z)</li>
-            <li>Total of 7 characters</li>
-          </ul>
-        </div>
-      );
+
+    // Validate the username based on the selected role
+    if (!validateUsername(username, selectedRole)) {
+      const errorMsg =
+        selectedRole === "management"
+          ? "Invalid ADID. ADID must consist of lowercase alphabets only."
+          : "Invalid MCR or SNB Number. Please enter a valid MCR or SNB number.";
+      toast.error(errorMsg);
       return;
     }
 
-    //-----------------------------------------------------------------/
     // API Call to Backend for Login
     try {
       const response = await fetch("http://localhost:3001/login", {
@@ -94,13 +109,9 @@ const LoginPage = () => {
           selectedRole: selectedRole,
         }),
       });
-      //-----------------------------------------------------------------/
 
-      // The response is the object returned from the backend after the login attempt.
-      // The .json() method is used to convert the response body from JSON format to a JavaScript object.
       const data = await response.json();
 
-      //-----------------------------------------------------------------/
       // Handling Responses
       if (response.ok) {
         // Store the token in localStorage
@@ -118,10 +129,10 @@ const LoginPage = () => {
             toast.error("Access Denied: Please double check your role.");
             break;
           case 401:
-            toast.error("Login failed : Incorrect password.");
+            toast.error("Login failed: Incorrect password.");
             break;
           case 404:
-            toast.error("Login failed : User not found.");
+            toast.error("Login failed: User not found.");
             break;
           case 500:
             toast.error("Internal Server Error. Please try again later.");
@@ -202,7 +213,7 @@ const LoginPage = () => {
                   }
                   alt="staff"
                 />
-                Staff
+                Doctor/Nurse
               </motion.button>
             </motion.div>
 
@@ -267,7 +278,7 @@ const LoginPage = () => {
             <div className="card_footer">
               <h5 className="forget_pw">Forget password</h5>
               <h5 className="forget_pw" onClick={handleSignUp}>
-                Sign Up
+                Sign Up (For Dev Only)
               </h5>
             </div>
           </form>

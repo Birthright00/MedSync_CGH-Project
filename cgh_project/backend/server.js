@@ -183,13 +183,13 @@ app.post("/login", (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/register", (req, res) => {
   const q =
-    "INSERT INTO user_data (mcr_number, email, user_password, role) VALUES (?, ?, ?, ?)";
+    "INSERT INTO user_data (user_id, email, user_password, role) VALUES (?, ?, ?, ?)";
 
   bcrypt.hash(req.body.password.toString(), 10, (err, hash) => {
     if (err)
       return res.status(500).json({ error: "Error hashing your password" });
 
-    const values = [req.body.mcr_number, req.body.email, hash, req.body.role];
+    const values = [req.body.user_id, req.body.email, hash, req.body.role];
 
     db.query(q, values, (err, data) => {
       if (err) return res.status(500).json({ error: err });

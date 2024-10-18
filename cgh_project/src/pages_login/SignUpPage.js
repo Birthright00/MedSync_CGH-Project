@@ -59,42 +59,41 @@ const SignUpPage = () => {
       toast.warn("Please enter all the fields");
       return;
     }
-
-    if (!validateMCRNumber(username)) {
-      toast.error(
-        <div>
-          <p>Invalid MCR Number. It must meet the following criteria:</p>
-          <ul>
-            <li>Start with 'M' or 'm'</li>
-            <li>Followed by 5 digits (0-9)</li>
-            <li>End with a letter (A-Z, a-z)</li>
-            <li>Total of 7 characters</li>
-          </ul>
-        </div>
-      );
-      return;
-    }
-
     // ----------------------------------------------------------------------------------------//
     // Comment out this part for easier account creation
     // ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
     // ----------------------------------------------------------------------------------------//
+    
+    // if (!validateMCRNumber(username)) {
+    //   toast.error(
+    //     <div>
+    //       <p>Invalid MCR Number. It must meet the following criteria:</p>
+    //       <ul>
+    //         <li>Start with 'M' or 'm'</li>
+    //         <li>Followed by 5 digits (0-9)</li>
+    //         <li>End with a letter (A-Z, a-z)</li>
+    //         <li>Total of 7 characters</li>
+    //       </ul>
+    //     </div>
+    //   );
+    //   return;
+    // }
 
-    if (!validatePassword(password)) {
-      toast.error(
-        <div>
-          <p>Password must meet the following requirements:</p>
-          <ul>
-            <li>Minimum 8 characters</li>
-            <li>At least one lowercase letter</li>
-            <li>At least one uppercase letter</li>
-            <li>At least one digit (0-9)</li>
-            <li>At least one special character</li>
-          </ul>
-        </div>
-      );
-      return;
-    }
+    // if (!validatePassword(password)) {
+    //   toast.error(
+    //     <div>
+    //       <p>Password must meet the following requirements:</p>
+    //       <ul>
+    //         <li>Minimum 8 characters</li>
+    //         <li>At least one lowercase letter</li>
+    //         <li>At least one uppercase letter</li>
+    //         <li>At least one digit (0-9)</li>
+    //         <li>At least one special character</li>
+    //       </ul>
+    //     </div>
+    //   );
+    //   return;
+    // }
 
     // ----------------------------------------------------------------------------------------//
     // ⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️
@@ -114,7 +113,7 @@ const SignUpPage = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          mcr_number: username,
+          user_id: username,
           password: password,
           role: selectedRole,
         }),

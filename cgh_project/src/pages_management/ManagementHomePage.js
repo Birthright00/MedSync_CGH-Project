@@ -363,7 +363,7 @@ const ManagementHomePage = () => {
                   <th onClick={() => handleSort("first_name")}>First Name</th>
                   <th onClick={() => handleSort("last_name")}>Last Name</th>
                   <th onClick={() => handleSort("department")}>Department</th>
-                  <th onClick={() => handleSort("appointment")}>Appointment</th>
+                  <th onClick={() => handleSort("appointment")}>CGH Designation</th>
                   <th>FTE</th>
                   <th onClick={() => handleSort("teaching_training_hours")}>
                     Teaching Training Hours

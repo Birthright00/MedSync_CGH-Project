@@ -96,20 +96,20 @@ app.post("/login", (req, res) => {
   // req.body is the data sent by the client, commonly used when a user submits a form
   // This line then extracts the mcr_number, password, and selectedRole from the request body.
   // These are required fields for login.
-  const { mcr_number, password, selectedRole } = req.body;
+  const { user_id, password, selectedRole } = req.body;
 
   // Check if all required fields are present
-  if (!mcr_number || !password || !selectedRole) {
+  if (!user_id || !password || !selectedRole) {
     return res
       .status(400)
-      .json({ error: "MCR Number, password, and role are required" });
+      .json({ error: "User ID, password, and role are required" });
   }
 
   // Check if the user exists in the database
-  const q = "SELECT * FROM user_data WHERE mcr_number = ?";
+  const q = "SELECT * FROM user_data WHERE user_id = ?";
 
   // Execute and handles the query
-  db.query(q, [mcr_number], (err, data) => {
+  db.query(q, [user_id], (err, data) => {
     if (err) {
       return res.status(500).json({ error: "Database error occurred" });
     }
@@ -156,7 +156,7 @@ app.post("/login", (req, res) => {
 
       // IF all checks pass, Create a JWT token
       const token = jwt.sign(
-        { id: user.mcr_number, role: user.role },
+        { id: user.user_id, role: user.role },
         JWT_SECRET,
         {
           expiresIn: "12h", // Edit this for token expiration

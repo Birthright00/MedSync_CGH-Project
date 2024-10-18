@@ -89,7 +89,7 @@ const LoginPage = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          mcr_number: username,
+          user_id: username,
           password: password,
           selectedRole: selectedRole,
         }),
@@ -152,10 +152,20 @@ const LoginPage = () => {
         initial={{ opacity: 0 }}
         transition={{ delay: 0.5 }}
       >
-        <div className="login-div">
+        <motion.div
+          className="login-div"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
           <form className="login-form" onSubmit={handleSignIn}>
             <img src={logo} alt="logo" />
-            <div className="login-card">
+            <motion.div
+              className="login-card"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
@@ -194,12 +204,12 @@ const LoginPage = () => {
                 />
                 Staff
               </motion.button>
-            </div>
+            </motion.div>
 
             <div className="card-body">
               <div className="form-group">
                 <input
-                  placeholder="Enter MCR Number"
+                  placeholder="MCR / SNB / ADID"
                   value={username}
                   onChange={(e) => usernameupdate(e.target.value)}
                   className="username"
@@ -207,26 +217,24 @@ const LoginPage = () => {
                 />
               </div>
               <div className="form-group">
-                <div className="password-container">
-                  <input
-                    placeholder="Enter Password"
-                    value={password}
-                    onChange={(e) => passwordupdate(e.target.value)}
-                    className="password"
-                    type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
+                <input
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => passwordupdate(e.target.value)}
+                  className="password"
+                  type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="toggle-password-btn"
+                >
+                  <img
+                    className="toggle-password-img"
+                    src={showPassword ? show_pw : hide_pw} // Toggle between the show and hide images
+                    alt={showPassword ? "Hide Password" : "Show Password"}
                   />
-                  <button
-                    type="button"
-                    onClick={togglePasswordVisibility}
-                    className="toggle-password-btn"
-                  >
-                    <img
-                      className="toggle-password-img"
-                      src={showPassword ? show_pw : hide_pw} // Toggle between the show and hide images
-                      alt={showPassword ? "Hide Password" : "Show Password"}
-                    />
-                  </button>
-                </div>
+                </button>
               </div>
 
               {/* <div className="toggle-password">
@@ -248,23 +256,22 @@ const LoginPage = () => {
                 </button>
               </div> */}
             </div>
-
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              type="submit"
+              className="signin_button"
+            >
+              Login
+            </motion.button>
             <div className="card_footer">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                type="submit"
-                className="signin_button"
-              >
-                Login
-              </motion.button>
               <h5 className="forget_pw">Forget password</h5>
               <h5 className="forget_pw" onClick={handleSignUp}>
                 Sign Up
               </h5>
             </div>
           </form>
-        </div>
+        </motion.div>
       </motion.div>
 
       <Footer />

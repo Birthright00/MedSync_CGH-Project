@@ -23,7 +23,7 @@ const ManagementHomePage = () => {
   const nav = useNavigate();
   const [showDeleted, setShowDeleted] = useState(false);
   const [onlyDeleted, setOnlyDeleted] = useState(false);
-  const [activeButton, setActiveButton] = useState(null); // Track which button is active
+  const [activeButton, setActiveButton] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [entriesPerPage, setEntriesPerPage] = useState(
     () => Number(localStorage.getItem("entriesPerPage")) || 10
@@ -162,7 +162,7 @@ const ManagementHomePage = () => {
   };
   const handleAddDoctor = () => {
     nav("/entry");
-  }
+  };
   const handleEntriesInputChange = (event) => {
     const value = event.target.value;
 
@@ -344,7 +344,9 @@ const ManagementHomePage = () => {
           <button className="reset-button" onClick={resetFilters}>
             Reset
           </button>
-          <button className="add-dr-button" onClick={handleAddDoctor}>Add New Doctor</button>
+          <button className="add-dr-button" onClick={handleAddDoctor}>
+            Add New Doctor
+          </button>
         </motion.div>
         <div>
           <motion.div
@@ -362,13 +364,13 @@ const ManagementHomePage = () => {
                   <th onClick={() => handleSort("last_name")}>Last Name</th>
                   <th onClick={() => handleSort("department")}>Department</th>
                   <th onClick={() => handleSort("appointment")}>Appointment</th>
+                  <th>FTE</th>
                   <th onClick={() => handleSort("teaching_training_hours")}>
                     Teaching Training Hours
                   </th>
                   <th>Email</th>
                   <th>Promotion History</th>
                   <th>Contract Details</th>
-                  <th>FTE</th>
                   <th>Created At</th>
                   <th>Updated At</th>
                   <th>Created By</th>
@@ -390,11 +392,11 @@ const ManagementHomePage = () => {
                     <td>{staff.last_name}</td>
                     <td>{staff.department}</td>
                     <td>{staff.appointment}</td>
+                    <td>{staff.fte}</td>
                     <td>{staff.teaching_training_hours}</td>
                     <td>{staff.email}</td>
                     <td>{staff.promotion_history || "N/A"}</td>
                     <td>{staff.contract_details || "N/A"}</td>
-                    <td>{staff.fte}</td>
                     <td>{formatDateTime(staff.created_at)}</td>
                     <td>{formatDateTime(staff.updated_at)}</td>
                     <td>{staff.created_by || "N/A"}</td>

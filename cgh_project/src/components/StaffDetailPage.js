@@ -36,12 +36,8 @@ const StaffDetailPage = () => {
     email: "",
   });
   const [loading, setLoading] = useState(true);
-  const [staffContractDetails, setStaffContractDetails] = useState({
-    school_name: "",
-    contract_end_date: "",
-    contract_start_date: "",
-    status: "",
-  });
+  const [staffContractDetails, setStaffContractDetails] = useState([]);
+
 
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "";
@@ -91,6 +87,7 @@ const StaffDetailPage = () => {
         contract_start_date: newContract.start_date,
         contract_end_date: newContract.end_date,
         status: newContract.status,
+        
       };
 
       // Log contract data to ensure values are correct
@@ -475,7 +472,7 @@ const StaffDetailPage = () => {
         </motion.div>
 
         <motion.div
-          className="staff-info-container"
+          className="staff-info-container-right"
           initial={{ x: 100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -485,36 +482,79 @@ const StaffDetailPage = () => {
           <table className="staff-detail-table">
             <thead>
               <tr>
-                <th>Institution Name</th> {/* Custom name for "School Name" */}
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Contract Status</th> {/* Custom name for "Status" */}
+                <th>Contract Detail</th>
+                {staffContractDetails.map((contract, index) => (
+                  <th key={index}>{contract.school_name}</th>
+                ))}
               </tr>
             </thead>
-
             <tbody>
-              {staffContractDetails.length > 0 ? (
-                staffContractDetails.map((contract, index) => (
-                  <tr key={index}>
-                    <th>{contract.school_name}</th>
-                    <td>
-                      {new Date(
-                        contract.contract_start_date
-                      ).toLocaleDateString()}
-                    </td>
-                    <td>
-                      {new Date(
-                        contract.contract_end_date
-                      ).toLocaleDateString()}
-                    </td>
-                    <td>{contract.status}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="4">No contracts found for this doctor.</td>
-                </tr>
-              )}
+              <tr>
+                <th>Start Date</th> {/* Row for Start Date */}
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>
+                    {new Date(
+                      contract.contract_start_date
+                    ).toLocaleDateString()}
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <th>End Date</th> {/* Row for End Date */}
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>
+                    {new Date(contract.contract_end_date).toLocaleDateString()}
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <th>Status</th> {/* Row for Contract Status */}
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.status}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>Training Hours</th> {/* Row for Contract Status */}
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.training_hours}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>Prev title</th> {/* Row for Contract Status */}
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.prev_title}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>New Title</th> {/* Row for Contract Status */}
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.new_title}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>2022 Training Hours</th> 
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.training_hours_2022}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>2023 Training Hours</th> 
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.training_hours_2023}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>2024 Training Hours</th> 
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.training_hours_2024}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>Total Training Hours</th> 
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.total_training_hours}</td>
+                ))}
+              </tr>
             </tbody>
           </table>
           {/* <CSVLink

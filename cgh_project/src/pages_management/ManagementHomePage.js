@@ -199,6 +199,7 @@ const ManagementHomePage = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
+        console.log(response.data); // Add this to verify the API response
         setData(response.data);
         setFilteredData(response.data);
       } catch (error) {
@@ -379,7 +380,7 @@ const ManagementHomePage = () => {
               }
               className={selectedSchools.nus_ylls ? "active" : ""}
             >
-              NUS Yong Loo Lin
+              NUS YLL
             </button>
             <button
               onClick={() =>

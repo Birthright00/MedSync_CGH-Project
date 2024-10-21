@@ -15,13 +15,12 @@ import csv from "csv-parser"; // Library for handling CSV files
 // cors: A middleware module for handling Cross-Origin Resource Sharing (CORS) requests
 // bcrypt: A module for hashing and salting passwords
 // jsonwebtoken: This library is used to create and verify JSON Web Tokens (JWT),
-//  which are used for user authentication and authorization.
+// which are used for user authentication and authorization.
 // multer: A middleware module for handling file uploads
-// xlsx: A library for parsing Excel files
-// csv: A library for parsing CSV files
+// XLSX / csv-parser: For reading Excel or CSV files for uploads.
 
 const app = express(); // Create an instance of the express app
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage() }); // Multer configuration
 
 // -------------------------------------------------------------------------------------------------------------//
 // MIDDLEWARE SETUP
@@ -44,7 +43,17 @@ const db = mysql2.createConnection({
 // -------------------------------------------------------------------------------------------------------------//
 // TOKEN VERIFICATION MIDDLEWARE //
 // -------------------------------------------------------------------------------------------------------------//
-// Secret Key for JWT-->
+// "?." is the optional chaining operator in JS
+// Used to safely access properties of an object without throwing an error if they don't exist
+// If any part of the chain is undefined or null, it returns undefined instead of an error
+// In this case, req.headers.authorization might be undefined if the Authorization header is not included in the request
+// Using ?. ensures there is no error that will break everything
+// So the split will remove the token from the header
+
+// If (!token) checks if the token variable is FALSY
+// falsy values include null, undefined, 0, "", NaN, and false
+// basically this just makes sure the token is not null or undefined
+// Secret Key for JWT
 const JWT_SECRET =
   "eae2a5f39b5de58a924b22b97e62030f29885b776d301a04af5d16f92143db17";
 
@@ -65,7 +74,21 @@ const verifyToken = (req, res, next) => {
 };
 
 // -------------------------------------------------------------------------------------------------------------//
-// ROUTES //
+// ACCESSIBLE ROUTES //
+// localhost:3001 --> Backend Server
+// localhost:3001/main_data --> GET Request for main_data
+// localhost:3001/database --> GET Request for combined_doctor_data views
+// -------------------------------------------------------------------------------------------------------------//
+
+// -------------------------------------------------------------------------------------------------------------//
+// BACKEND SERVER
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/", (req, res) => {
+  res.send(
+    "This site is for Development purposes only.<br>This is the backend development site.<br>You may be trying to access this instead : http://localhost:3000/"
+  );
+});
+
 // -------------------------------------------------------------------------------------------------------------//
 // LOGIN ROUTE
 // -------------------------------------------------------------------------------------------------------------//
@@ -73,20 +96,20 @@ app.post("/login", (req, res) => {
   // req.body is the data sent by the client, commonly used when a user submits a form
   // This line then extracts the mcr_number, password, and selectedRole from the request body.
   // These are required fields for login.
-  const { mcr_number, password, selectedRole } = req.body;
+  const { user_id, password, selectedRole } = req.body;
 
   // Check if all required fields are present
-  if (!mcr_number || !password || !selectedRole) {
+  if (!user_id || !password || !selectedRole) {
     return res
       .status(400)
-      .json({ error: "MCR Number, password, and role are required" });
+      .json({ error: "User ID, password, and role are required" });
   }
 
   // Check if the user exists in the database
-  const q = "SELECT * FROM user_data WHERE mcr_number = ?";
+  const q = "SELECT * FROM user_data WHERE user_id = ?";
 
   // Execute and handles the query
-  db.query(q, [mcr_number], (err, data) => {
+  db.query(q, [user_id], (err, data) => {
     if (err) {
       return res.status(500).json({ error: "Database error occurred" });
     }
@@ -97,7 +120,26 @@ app.post("/login", (req, res) => {
 
     const user = data[0];
 
-    // Compare the provided password with the hashed password in the database
+    // bcrypt.compare() and how it works (NOT SIMPLY STRING COMPARISON)
+    // For e.g. password = "password123"
+    // bcrypt will hash the password with salt and cost factor
+    // salt is a random string e.g. KkT48OvTzVQjTTvYbRLmQG
+    // cost factor is represented as a number that determines how many times the password will be hashed
+    // cost factor basically prevents brute force attacks, each increment of 1 doubles the time taken to hash the password
+
+    // salt is embedded into the final hash along with the cost factor resulting in :
+    // $2b$10$KkT48OvTzVQjTTvYbRLmQG1XsYfdGQFtBddtvImR5XM4vFElxuRm
+    //        |--------------------|
+    //               |salt|
+
+    // hackers who manage to access the database will see this, even if they are aware of the salt and cost factor,
+    // they would not be able to guess the password
+
+    // Verifying the password
+    // Backend retrieves the hashed password, bcrypts extracts salt and cost factor fro the storeed hash
+    // rehash the INPUTTED password with the extracted salt and cost factor
+    // Compares this new hash with the stored hash via string comparison
+
     bcrypt.compare(password, user.user_password, (err, isMatch) => {
       if (err) {
         return res.status(500).json({ error: "Error comparing passwords" });
@@ -114,10 +156,10 @@ app.post("/login", (req, res) => {
 
       // IF all checks pass, Create a JWT token
       const token = jwt.sign(
-        { id: user.mcr_number, role: user.role },
+        { id: user.user_id, role: user.role },
         JWT_SECRET,
         {
-          expiresIn: "12h",
+          expiresIn: "12h", // Edit this for token expiration
         }
       );
 
@@ -141,13 +183,13 @@ app.post("/login", (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/register", (req, res) => {
   const q =
-    "INSERT INTO user_data (mcr_number, email, user_password, role) VALUES (?, ?, ?, ?)";
+    "INSERT INTO user_data (user_id, email, user_password, role) VALUES (?, ?, ?, ?)";
 
   bcrypt.hash(req.body.password.toString(), 10, (err, hash) => {
     if (err)
       return res.status(500).json({ error: "Error hashing your password" });
 
-    const values = [req.body.mcr_number, req.body.email, hash, req.body.role];
+    const values = [req.body.user_id, req.body.email, hash, req.body.role];
 
     db.query(q, values, (err, data) => {
       if (err) return res.status(500).json({ error: err });
@@ -158,19 +200,11 @@ app.post("/register", (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// BACKEND TESTING ROUTE
-// -------------------------------------------------------------------------------------------------------------//
-app.get("/", (req, res) => {
-  res.send(
-    "This site is for Development purposes only.<br>This is the backend development site.<br>You may be trying to access this instead : http://localhost:3000/"
-  );
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR DATABASE
+// GET REQUEST FOR main_data table
 // -------------------------------------------------------------------------------------------------------------//
 
-// app.get("/database", verifyToken, (req, res) => {
+// Token Verification Needed
+// app.get("/main_data", verifyToken, (req, res) => {
 //   // Added token verification
 //   const q = "SELECT * FROM main_data";
 //   db.query(q, (err, data) => {
@@ -179,14 +213,25 @@ app.get("/", (req, res) => {
 //   });
 // });
 
+// No Need Token Verification
+app.get("/main_data", (req, res) => {
+  // Added token verification
+  const q = "SELECT * FROM main_data";
+  db.query(q, (err, data) => {
+    if (err) return res.json(err);
+    return res.json(data);
+  });
+});
+
 // -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR COMBINED DOCTORS DETAILS (FROM ALL 3 TABLES AS A VIEW)
+// GET REQUEST FOR MANAGEMENT HOME PAGE TABLE DISPLAY
 // -------------------------------------------------------------------------------------------------------------//
+
 app.get("/database", verifyToken, (req, res) => {
   const includeDeleted = req.query.includeDeleted === "true";
   const query = includeDeleted
-    ? "SELECT * FROM combined_doctor_data"
-    : "SELECT * FROM combined_doctor_data WHERE deleted = 0";
+    ? "SELECT * FROM doctor_data_contracts"
+    : "SELECT * FROM doctor_data_contracts WHERE deleted = 0";
   db.query(query, (err, data) => {
     if (err) {
       console.error("Error retrieving data:", err);
@@ -220,6 +265,29 @@ app.get("/staff/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST FOR STAFF DETAILS BY 'mcr_number' FROM CONTRACTS
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params;
+
+  // Remove the deleted = 0 condition to include deleted entries
+  const q = "SELECT * FROM contracts WHERE mcr_number = ?";
+
+  db.query(q, [mcr_number], (err, data) => {
+    if (err) {
+      return res
+        .status(500)
+        .json({ message: "Error retrieving staff details" });
+    }
+    if (data.length === 0) {
+      return res.status(404).json({ message: "Staff not found" });
+    }
+
+    res.json(data); // Return all contracts for the given mcr_number
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // PUT REQUEST FOR UPDATING EXISTING STAFF DETAILS TO MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 // Why PUT instead of POST?
@@ -229,50 +297,60 @@ app.get("/staff/:mcr_number", verifyToken, (req, res) => {
 // of how many times you sent, it wont create multiple entries
 
 app.put("/staff/:mcr_number", verifyToken, (req, res) => {
-  const mcr_number = req.params.mcr_number;
-  const {
-    first_name,
-    last_name,
-    department,
-    appointment,
-    teaching_training_hours,
-    start_date,
-    end_date,
-    renewal_start_date,
-    renewal_end_date,
-    email,
-  } = req.body;
-
-  // To ensure accountability, we track who updated the record
-  const userMcrNumber = req.user.id; // Get the MCR number of the logged-in user from the token
+  const { mcr_number } = req.params;
+  const { first_name, last_name, department, designation, email, fte } =
+    req.body;
+  const userMcrNumber = req.user.mcr_number; // Assuming this is logged in user
 
   const q = `
-    UPDATE main_data 
-    SET first_name = ?, last_name = ?, department = ?, appointment = ?, 
-        teaching_training_hours = ?, email = ?, updated_by = ?
-    WHERE mcr_number = ?
-  `;
+  UPDATE main_data 
+  SET first_name = ?, last_name = ?, department = ?, designation = ?, 
+      email = ?, fte = ?, updated_by = ?, updated_at = NOW()
+  WHERE mcr_number = ?`;
 
   const values = [
     first_name,
     last_name,
     department,
-    appointment,
-    teaching_training_hours,
+    designation,
     email,
-    userMcrNumber, // Log who updated the record (the currently logged-in user)
-    mcr_number,
+    fte,
+    userMcrNumber, // Log who updated the record
+    mcr_number, // For the WHERE clause
   ];
-
-  // The updated_by column in main_data table will be the MCR number of the user who updated
-  // it every time a put request is made
 
   db.query(q, values, (err, data) => {
     if (err) {
-      console.error("Error during the query execution:", err);
+      console.error("Error updating staff details:", err);
       return res.status(500).json({ error: "Failed to update staff details" });
     }
-    return res.json({ message: "Staff details updated successfully" });
+    return res
+      .status(200)
+      .json({ message: "Staff details updated successfully" });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// POST REQUEST FOR ADDING NEW CONTRACTS TO CONTRACTS TABLE
+// -------------------------------------------------------------------------------------------------------------//
+
+app.post("/new-contracts/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params;
+  const { school_name, contract_start_date, contract_end_date, status } =
+    req.body;
+
+  const query = `
+  INSERT INTO contracts (mcr_number, school_name, contract_start_date, contract_end_date, status)
+  VALUES (?, ?, ?, ?, ?)`;
+
+  const values = [mcr_number, school_name, contract_start_date, contract_end_date, status];
+
+  db.query(query, values, (err, data) => {
+    if (err) {
+      console.error("Error inserting new contract:", err);
+      return res.status(500).json({ error: "Failed to add contract" });
+    }
+    return res.status(201).json({ message: "Contract added successfully" });
   });
 });
 
@@ -404,213 +482,6 @@ app.put("/restore/:mcr_number", verifyToken, (req, res) => {
     });
   });
 });
-
-// -------------------------------------------------------------------------------------------------------------//
-// CONTRACTS ROUTES
-// -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR CONTRACTS DETAILS BY 'mcr_number' FROM MAIN_DATA TABLE
-// -------------------------------------------------------------------------------------------------------------//
-app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
-  const { mcr_number } = req.params;
-
-  // Query to get all contracts for the given doctor MCR number
-  const q = `
-    SELECT * FROM contracts
-    WHERE mcr_number = ?
-    ORDER BY start_date ASC;
-  `;
-
-  db.query(q, [mcr_number], (err, data) => {
-    if (err) {
-      console.error("Error retrieving contracts data:", err);
-      d;
-      return res
-        .status(500)
-        .json({ message: "Error retrieving contracts data" });
-    }
-
-    if (data.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No contracts found for this doctor" });
-    }
-
-    res.json(data);
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST FOR ADDING NEW CONTRACT DETAILS TO CONTRACTS TABLE
-// -------------------------------------------------------------------------------------------------------------//
-
-app.post("/new-contracts/:mcr_number", verifyToken, (req, res) => {
-  const { mcr_number } = req.params; // Get the MCR number from the URL
-  const { school_name, start_date, end_date, status } = req.body;
-
-  // Validate required fields
-  if (!school_name || !start_date || !end_date || !status) {
-    return res
-      .status(400)
-      .json({ error: "Please provide all required fields" });
-  }
-
-  const q = `
-    INSERT INTO contracts 
-    (mcr_number, school_name, start_date, end_date, status) 
-    VALUES (?, ?, ?, ?, ?)
-  `;
-
-  const values = [mcr_number, school_name, start_date, end_date, status];
-
-  db.query(q, values, (err, data) => {
-    if (err) {
-      console.error("Error inserting new contract details:", err);
-      return res
-        .status(500)
-        .json({ error: "Failed to add new contract details" });
-    }
-    return res
-      .status(201)
-      .json({ message: "New contract details added successfully", data });
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// DELETE REQUEST FOR DELETING A SPECIFIC CONTRACT BASED ON MCR NUMBER, STATUS, START DATE, AND SCHOOL NAME
-// -------------------------------------------------------------------------------------------------------------//
-
-app.delete(
-  "/contracts/:mcr_number/:status/:start_date/:school_name",
-  verifyToken,
-  (req, res) => {
-    const { mcr_number, status, start_date, school_name } = req.params;
-
-    // SQL query now targets specific rows based on multiple fields
-    const q = `
-    DELETE FROM contracts 
-    WHERE mcr_number = ? AND status = ? AND start_date = ? AND school_name = ?
-  `;
-
-    const values = [mcr_number, status, start_date, school_name];
-
-    db.query(q, values, (err, data) => {
-      if (err) {
-        console.error("Error deleting contract:", err);
-        return res.status(500).json({ error: "Failed to delete contract" });
-      }
-
-      if (data.affectedRows === 0) {
-        return res.status(404).json({ message: "Contract not found" });
-      }
-
-      return res.status(200).json({ message: "Contract deleted successfully" });
-    });
-  }
-);
-
-// -------------------------------------------------------------------------------------------------------------//
-// PROMOTIONS ROUTES
-// -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR PROMOTIONS DETAILS BY 'mcr_number' FROM MAIN_DATA TABLE
-// -------------------------------------------------------------------------------------------------------------//
-app.get("/promotions/:mcr_number", verifyToken, (req, res) => {
-  const { mcr_number } = req.params;
-
-  const q = `
-    SELECT mcr_number, previous_title, new_title, promotion_date
-    FROM promotions
-    WHERE mcr_number = ?
-    ORDER BY promotion_date ASC;
-  `;
-
-  db.query(q, [mcr_number], (err, data) => {
-    if (err) {
-      console.error("Error retrieving promotion data:", err);
-      return res
-        .status(500)
-        .json({ message: "Error retrieving promotion data" });
-    }
-
-    // Log the data being returned
-    console.log("Promotion data fetched: ", data);
-
-    if (data.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No promotions found for this doctor" });
-    }
-
-    res.json(data);
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST FOR ADDING NEW PROMOTION DETAILS TO PROMOTIONS TABLE
-// -------------------------------------------------------------------------------------------------------------//
-
-app.post("/new-promotions/:mcr_number", verifyToken, (req, res) => {
-  const { mcr_number } = req.params; // Get the MCR number from the URL
-  const { new_title, previous_title, promotion_date } = req.body;
-
-  // Validate required fields
-  if (!new_title || !previous_title || !promotion_date) {
-    return res
-      .status(400)
-      .json({ error: "Please provide all required fields" });
-  }
-
-  // Corrected table name and columns
-  const q = `
-    INSERT INTO promotions 
-    (mcr_number, new_title, previous_title, promotion_date) 
-    VALUES (?, ?, ?, ?)
-  `;
-
-  const values = [mcr_number, new_title, previous_title, promotion_date];
-
-  db.query(q, values, (err, data) => {
-    if (err) {
-      console.error("Error inserting new promotion details:", err);
-      return res
-        .status(500)
-        .json({ error: "Failed to add new promotion details" });
-    }
-    return res
-      .status(201)
-      .json({ message: "New promotion details added successfully", data });
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// DELETE REQUEST FOR DELETING A PROMOTION BASED ON NEW TITLE FROM PROMOTIONS TABLE
-// -------------------------------------------------------------------------------------------------------------//
-
-app.delete("/promotions/:mcr_number/:new_title", verifyToken, (req, res) => {
-  const { mcr_number, new_title } = req.params;
-
-  const q = `DELETE FROM promotions WHERE mcr_number = ? AND new_title = ?`;
-
-  const values = [mcr_number, new_title];
-
-  db.query(q, values, (err, data) => {
-    if (err) {
-      console.error("Error deleting promotion:", err);
-      return res.status(500).json({ error: "Failed to delete promotion" });
-    }
-
-    if (data.affectedRows === 0) {
-      return res.status(404).json({ message: "Promotion not found" });
-    }
-
-    return res.status(200).json({ message: "Promotion deleted successfully" });
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// EXCEL FILE UPLOAD ROUTES
-// -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST TO HANDLE SINGLE SHEET EXCEL FILE UPLOAD //
-// -------------------------------------------------------------------------------------------------------------//
 
 // -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start

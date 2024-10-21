@@ -7,6 +7,7 @@ import StaffHomePage from "./pages_staff/StaffHomePage";
 import SignUpPage from "./pages_login/SignUpPage";
 import StaffDetailPage from "./components/StaffDetailPage";
 import Entry from "./components/Entry";
+import HomePage from "./pages_login/HomePage";
 function App() {
   return (
     <Router>
@@ -27,6 +28,7 @@ function App() {
             element={<StaffDetailPage />}
           />
           <Route exact path="/entry" element={<Entry />} />
+          <Route exact path="/home" element={<HomePage />} />
         </Routes>
       </div>
     </Router>

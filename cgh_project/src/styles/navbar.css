@@ -20,8 +20,8 @@
 }
 
 .navbar_contents img {
+  height: 100px;
   margin-right: 150px;
-  height: 70px; /* Ensure the logo size is consistent */
   transition: height 300ms; /* Smooth transition for any height change */
 }
 
@@ -32,12 +32,13 @@
   border-radius: 8px;
   font-family: "Montserrat", sans-serif;
   font-size: 16px;
-  margin: 10px;
   background-color: transparent;
   color: #0083ca;
   transition: background-color 300ms, color 300ms;
   border-width: 0px;
   font-weight: 500;
+  margin-top: 25px;
+  margin-right: 30px;
 }
 
 .navbarbutton:hover {

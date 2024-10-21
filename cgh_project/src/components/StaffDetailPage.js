@@ -17,17 +17,27 @@ const StaffDetailPage = () => {
   // ########################################## //
   const { mcr_number } = useParams(); // Get the MCR number from route params
   const navigate = useNavigate(); // Use navigate to redirect after delete
+  const [newContract, setNewContract] = useState({
+    school_name: "",
+    start_date: "",
+    end_date: "",
+    status: "",
+  });
+  const [contracts, setContracts] = useState([]);
+  const [isContractFormOpen, setContractFormOpen] = useState(false);
+
   const [staffDetails, setStaffDetails] = useState({
     mcr_number: "",
     first_name: "",
     last_name: "",
     department: "",
-    appointment: "",
-    teaching_training_hours: "",
+    designation: "",
+    fte: "",
     email: "",
-    deleted: 0, // Include deleted field in the state
   });
   const [loading, setLoading] = useState(true);
+  const [staffContractDetails, setStaffContractDetails] = useState([]);
+
 
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "";
@@ -38,6 +48,74 @@ const StaffDetailPage = () => {
     const hours = ("0" + date.getHours()).slice(-2);
     const minutes = ("0" + date.getMinutes()).slice(-2);
     return `${year}-${month}-${day} @ ${hours}${minutes}H`;
+  };
+  const fetchContracts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3001/contracts/${mcr_number}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setContracts(response.data); // Update the contract data in state
+    } catch (error) {
+      console.error("Error fetching contracts:", error);
+      toast.error("Failed to fetch contracts");
+    }
+  };
+
+  // ########################################## //
+  // Adding New Contract
+  // ########################################## //
+  const handleNewContract = async () => {
+    if (
+      !newContract.school_name ||
+      !newContract.start_date ||
+      !newContract.end_date ||
+      !newContract.status
+    ) {
+      toast.error("Please fill all contract fields before submitting");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const contractData = {
+        school_name: newContract.school_name,
+        contract_start_date: newContract.start_date,
+        contract_end_date: newContract.end_date,
+        status: newContract.status,
+        
+      };
+
+      // Log contract data to ensure values are correct
+      console.log("Contract Data being sent: ", contractData);
+
+      // POST request to add the new contract
+      await axios.post(
+        `http://localhost:3001/new-contracts/${mcr_number}`,
+        contractData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      toast.success("New contract added successfully!");
+      setNewContract({
+        school_name: "",
+        contract_start_date: "",
+        contract_end_date: "",
+        status: "",
+      });
+
+      // Fetch contracts again to update the displayed table
+      fetchContracts();
+    } catch (error) {
+      console.error("Error adding new contract:", error);
+      toast.error("Failed to add new contract");
+    }
   };
 
   // ########################################## //
@@ -181,311 +259,8 @@ const StaffDetailPage = () => {
     });
   };
 
-  // ########################################## //
-  // Contracts
-  // ########################################## //
-  // Contract Constants
-  // ########################################## //
-  const [newContract, setNewContract] = useState({
-    school_name: "",
-    start_date: "Start Date",
-    end_date: "End Date",
-    status: "",
-  });
-  const [contracts, setContracts] = useState([]);
-  const [isContractFormOpen, setContractFormOpen] = useState(false);
-
-  // ########################################## //
-  // Fetching Contracts Data
-  // ########################################## //
-  const fetchContracts = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:3001/contracts/${mcr_number}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setContracts(response.data);
-    } catch (error) {
-      console.error("Error fetching contracts:", error);
-      toast.error("Failed to fetch contracts");
-    }
-  };
-
-  // ########################################## //
-  // Adding New Contract
-  // ########################################## //
-  const handleNewContract = async () => {
-    if (
-      !newContract.school_name ||
-      !newContract.start_date ||
-      !newContract.end_date ||
-      !newContract.status
-    ) {
-      toast.error("Please fill all contract fields before submitting");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `http://localhost:3001/new-contracts/${mcr_number}`,
-        newContract,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.success("New contract added successfully!");
-      setNewContract({
-        school_name: "",
-        start_date: "",
-        end_date: "",
-        status: "",
-      }); // Reset the form fields
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error) {
-      console.error(
-        "Error adding new contract:",
-        error.response ? error.response.data : error
-      );
-      toast.error("Failed to add new contract");
-    }
-  };
-
-  // ########################################## //
-  // Delete Contract with Popup Confirmation
-  // ########################################## //
-  const handleDeleteContract = (status, start_date, school_name) => {
-    confirmAlert({
-      title: "❗Confirm Deletion❗",
-      message: (
-        <div>
-          <p>Are you sure you want to delete this contract?</p>
-          <p
-            style={{ fontWeight: "bold", color: "#ca4700", marginTop: "10px" }}
-          >
-            This action cannot be undone.
-          </p>
-        </div>
-      ),
-      buttons: [
-        {
-          label: "Yes, Delete it!",
-          onClick: async () => {
-            try {
-              const token = localStorage.getItem("token");
-              await axios.delete(
-                `http://localhost:3001/contracts/${mcr_number}/${status}/${start_date}/${school_name}`,
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
-              );
-              toast.success("Contract deleted successfully!");
-              fetchContracts();
-            } catch (error) {
-              console.error("Error deleting contract:", error);
-              toast.error("Failed to delete contract");
-            }
-          },
-          style: { backgroundColor: "#ca4700", color: "white" }, // Inline styles for the red button
-        },
-        {
-          label: "Cancel",
-          onClick: () => {},
-          style: {
-            backgroundColor: "#cccccc", // Light grey background
-            color: "black",
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-            margin: "0 10px",
-            fontSize: "14px",
-            fontWeight: "bold",
-            transition: "background-color 0.3s",
-          }, // Inline styles for the cancel button
-        },
-      ],
-    });
-  };
-
-  // ########################################## //
-  // Promotion
-  // ########################################## //
-  // Promotion Constants
-  // ########################################## //
-  const [newPromotion, setNewPromotion] = useState({
-    new_title: "",
-    previous_title: "",
-    promotion_date: "",
-  });
-  const [promotions, setPromotions] = useState([]);
-  const [isPromotionFormOpen, setPromotionFormOpen] = useState(false);
-
-  // ########################################## //
-  // Fetching Promotions Data
-  // ########################################## //
-  const fetchPromotions = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:3001/promotions/${mcr_number}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setPromotions(response.data);
-    } catch (error) {
-      console.error("Error fetching promotions:", error);
-      toast.error("Failed to fetch promotions");
-    }
-  };
-
-  // ########################################## //
-  // Adding New Promotion
-  // ########################################## //
-  const handleNewPromotion = async () => {
-    if (
-      !newPromotion.new_title ||
-      !newPromotion.previous_title ||
-      !newPromotion.promotion_date
-    ) {
-      toast.error("Please fill all promotion fields before submitting");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `http://localhost:3001/new-promotions/${mcr_number}`,
-        newPromotion,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.success("New promotion added successfully!");
-      setNewPromotion({
-        new_title: "",
-        previous_title: "",
-        promotion_date: "",
-      }); // Reset the form fields
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error) {
-      console.error(
-        "Error adding new contract:",
-        error.response ? error.response.data : error
-      );
-      toast.error("Failed to add new promotion");
-    }
-  };
-
-  // ########################################## //
-  // Delete Promotion with Popup Confirmation
-  // ########################################## //
-  const handleDeletePromotion = (newTitle) => {
-    confirmAlert({
-      title: "❗Confirm Deletion❗",
-      message: (
-        <div>
-          <p>Are you sure you want to delete the promotion "{newTitle}"?</p>
-          <p
-            style={{ fontWeight: "bold", color: "#ca4700", marginTop: "10px" }}
-          >
-            This action cannot be undone.
-          </p>
-        </div>
-      ),
-      buttons: [
-        {
-          label: "Yes, Delete it!",
-          onClick: async () => {
-            try {
-              const token = localStorage.getItem("token");
-              await axios.delete(
-                `http://localhost:3001/promotions/${mcr_number}/${newTitle}`,
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
-              );
-              toast.success("Promotion deleted successfully!");
-              fetchPromotions();
-            } catch (error) {
-              console.error("Error deleting promotion:", error);
-              toast.error("Failed to delete promotion");
-            }
-          },
-          style: {
-            backgroundColor: "#ca4700", // Light grey background
-            color: "white",
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-            margin: "0 10px",
-            fontSize: "14px",
-            fontWeight: "bold",
-            transition: "background-color 0.3s",
-          }, // Inline styles for the red button
-        },
-        {
-          label: "Cancel",
-          onClick: () => {},
-          style: {
-            backgroundColor: "#cccccc", // Light grey background
-            color: "black",
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-            margin: "0 10px",
-            fontSize: "14px",
-            fontWeight: "bold",
-            transition: "background-color 0.3s",
-          }, // Inline styles for the cancel button
-        },
-      ],
-    });
-  };
-  // ########################################## //
-  // Table Display Logic to prevent duplicate of doctors
-  // ########################################## //
-  const combinedData = contracts.map((contract) => ({
-    "MCR Number": staffDetails.mcr_number,
-    "First Name": staffDetails.first_name,
-    "Last Name": staffDetails.last_name,
-    Department: staffDetails.department,
-    Appointment: staffDetails.appointment,
-    Email: staffDetails.email,
-    "Teaching Training Hours": staffDetails.teaching_training_hours,
-    "Contract School Name": contract.school_name,
-    "Contract Start Date": contract.start_date,
-    "Contract End Date": contract.end_date,
-    "Contract Status": contract.status,
-    "Promotion History":
-      promotions.length > 0
-        ? promotions
-            .map(
-              (promotion) =>
-                `${promotion.new_title} (From: ${
-                  promotion.previous_title
-                } on ${new Date(
-                  promotion.promotion_date
-                ).toLocaleDateString()})`
-            )
-            .join(", ")
-        : "No Promotions",
-  }));
-
   // ############################################
-  // Render
+  // useEffect to retrieve data from main_data
   // ############################################
   useEffect(() => {
     const fetchStaffDetails = async () => {
@@ -504,9 +279,32 @@ const StaffDetailPage = () => {
         setLoading(false);
       }
     };
-    fetchPromotions(); // Ensure only one call
-    fetchContracts();
+
     fetchStaffDetails();
+  }, [mcr_number]);
+
+  // ############################################
+  // useEffect to retrieve data from contracts
+  // ############################################
+  useEffect(() => {
+    const fetchStaffContracts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `http://localhost:3001/contracts/${mcr_number}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setStaffContractDetails(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching staff details:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchStaffContracts();
   }, [mcr_number]);
 
   const handleInputChange = (e) => {
@@ -529,8 +327,18 @@ const StaffDetailPage = () => {
     <>
       <ToastContainer />
       <Navbar homeRoute="/management-home" />
-      <div className="staff-detail-page">
-        <div className="staff-info-container">
+      <motion.div
+        className="staff-detail-page"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <motion.div
+          className="staff-info-container"
+          initial={{ x: -100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
           <h2>Staff Details {staffDetails.deleted === 1 ? "(Deleted)" : ""}</h2>
           <table className="staff-detail-table">
             <tbody>
@@ -581,27 +389,17 @@ const StaffDetailPage = () => {
                 </td>
               </tr>
               <tr>
-                <th>Appointment</th>
+                <th>Designation</th>
                 <td>
                   <input
                     type="text"
-                    name="appointment"
-                    value={staffDetails.appointment}
+                    name="designation"
+                    value={staffDetails.designation}
                     onChange={handleInputChange}
                   />
                 </td>
               </tr>
-              <tr>
-                <th>Teaching Training Hours</th>
-                <td>
-                  <input
-                    type="number"
-                    name="teaching_training_hours"
-                    value={staffDetails.teaching_training_hours}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
+
               <tr>
                 <th>Email Address</th>
                 <td>
@@ -609,6 +407,17 @@ const StaffDetailPage = () => {
                     type="email"
                     name="email"
                     value={staffDetails.email}
+                    onChange={handleInputChange}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th>FTE</th>
+                <td>
+                  <input
+                    type="email"
+                    name="email"
+                    value={staffDetails.fte}
                     onChange={handleInputChange}
                   />
                 </td>
@@ -660,66 +469,107 @@ const StaffDetailPage = () => {
               Delete
             </motion.button>
           )}
-        </div>
+        </motion.div>
 
-        <div className="staff-info-container">
+        <motion.div
+          className="staff-info-container-right"
+          initial={{ x: 100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          {" "}
           <h2>Contracts</h2>
-          <div className="contracts-table-container">
-            <table className="contracts-table">
-              <thead>
-                <tr>
-                  <th>School Name</th>
-                  <th>Start Date</th>
-                  <th>End Date</th>
-                  <th>Status</th>
-                  <th>Delete</th>
-                </tr>
-              </thead>
-              <tbody>
-                {contracts.length > 0 ? (
-                  contracts.map((contract, index) => (
-                    <tr key={index}>
-                      <td>{contract.school_name}</td>
-                      <td>
-                        {new Date(contract.start_date).toLocaleDateString()}
-                      </td>
-                      <td>
-                        {new Date(contract.end_date).toLocaleDateString()}
-                      </td>
-                      <td>{contract.status}</td>
-                      <td className="manage-cell">
-                        {" "}
-                        {/* Centralized Manage Cell */}
-                        {/* <button
-                          onClick={() => handleEditPromotion(promotion)}
-                          title="Edit"
-                        >
-                          <FaEdit />
-                        </button> */}
-                        <button
-                          className="table-delete-button"
-                          onClick={() =>
-                            handleDeleteContract(
-                              contract.status,
-                              contract.start_date,
-                              contract.school_name
-                            )
-                          }
-                          title="Delete"
-                        >
-                          <FaTrash />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4">No contracts found for this doctor.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>{" "}
+          <table className="staff-detail-table">
+            <thead>
+              <tr>
+                <th>Contract Detail</th>
+                {staffContractDetails.map((contract, index) => (
+                  <th key={index}>{contract.school_name}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Start Date</th> {/* Row for Start Date */}
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>
+                    {new Date(
+                      contract.contract_start_date
+                    ).toLocaleDateString()}
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <th>End Date</th> {/* Row for End Date */}
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>
+                    {new Date(contract.contract_end_date).toLocaleDateString()}
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <th>Status</th> {/* Row for Contract Status */}
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.status}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>Training Hours</th> {/* Row for Contract Status */}
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.training_hours}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>Prev title</th> {/* Row for Contract Status */}
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.prev_title}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>New Title</th> {/* Row for Contract Status */}
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.new_title}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>2022 Training Hours</th> 
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.training_hours_2022}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>2023 Training Hours</th> 
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.training_hours_2023}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>2024 Training Hours</th> 
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.training_hours_2024}</td>
+                ))}
+              </tr>
+              <tr>
+                <th>Total Training Hours</th> 
+                {staffContractDetails.map((contract, index) => (
+                  <td key={index}>{contract.total_training_hours}</td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+          {/* <CSVLink
+            filename={`staff_details_${mcr_number}.csv`}
+            className="csv-link"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.9 }}
+              className="download-button"
+            >
+              Download
+            </motion.button>
+          </CSVLink> */}
+          {/* Add New Contract Form */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
@@ -755,8 +605,8 @@ const StaffDetailPage = () => {
                 type="text"
                 placeholder="Start Date"
                 value={newContract.start_date}
-                onFocus={(e) => (e.target.type = "date")} // Change type to date on focus
-                onBlur={(e) => (e.target.type = "text")} // Revert back to text on blur if no date selected
+                onFocus={(e) => (e.target.type = "date")}
+                onBlur={(e) => (e.target.type = "text")}
                 onChange={(e) =>
                   setNewContract({ ...newContract, start_date: e.target.value })
                 }
@@ -766,8 +616,8 @@ const StaffDetailPage = () => {
                 type="text"
                 placeholder="End Date"
                 value={newContract.end_date}
-                onFocus={(e) => (e.target.type = "date")} // Change type to date on focus
-                onBlur={(e) => (e.target.type = "text")} // Revert back to text on blur if no date selected
+                onFocus={(e) => (e.target.type = "date")}
+                onBlur={(e) => (e.target.type = "text")}
                 onChange={(e) =>
                   setNewContract({ ...newContract, end_date: e.target.value })
                 }
@@ -780,8 +630,13 @@ const StaffDetailPage = () => {
                 }
               >
                 <option value="">Select Status</option>
-                <option value="active">active</option>
-                <option value="expired">expired</option>
+                <option value="Active">Active</option>
+                <option value="Expired">Expired</option>
+                <option value="Transferred">Transferred</option>
+                <option value="Lapse">Lapse</option>
+                <option value="New">New</option>
+                <option value="Program Closure">Program Closure</option>
+                <option value="Renewal">Renewal</option>
               </select>
 
               <motion.button
@@ -794,123 +649,8 @@ const StaffDetailPage = () => {
               </motion.button>
             </div>
           )}
-          <h2>Promotions</h2>
-          <div className="contracts-table-container">
-            <table className="contracts-table">
-              <thead>
-                <tr>
-                  <th>New Title</th>
-                  <th>Previous Title</th>
-                  <th>Date</th>
-                  <th>Delete</th>
-                </tr>
-              </thead>
-              <tbody>
-                {promotions.length > 0 ? (
-                  promotions.map((promotion, index) => (
-                    <tr key={index}>
-                      <td>{promotion.new_title}</td>
-                      <td>{promotion.previous_title}</td>
-                      <td>{formatDateTime(promotion.promotion_date)}</td>
-                      <td className="manage-cell">
-                        {" "}
-                        {/* Centralized Manage Cell */}
-                        {/* <button
-                          onClick={() => handleEditPromotion(promotion)}
-                          title="Edit"
-                        >
-                          <FaEdit />
-                        </button> */}
-                        <button
-                          className="table-delete-button"
-                          onClick={() =>
-                            handleDeletePromotion(promotion.new_title)
-                          }
-                          title="Delete"
-                        >
-                          <FaTrash />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4">No promotions found for this doctor.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>{" "}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            className="toggle-add-contract-button"
-            onClick={() => setPromotionFormOpen((prev) => !prev)}
-          >
-            {isPromotionFormOpen ? "Close" : "Add New Promotion"}
-          </motion.button>
-          {isPromotionFormOpen && (
-            <div className="contract-input-container">
-              <input
-                type="text"
-                placeholder="New Title"
-                value={newPromotion.new_title}
-                onChange={(e) =>
-                  setNewPromotion({
-                    ...newPromotion,
-                    new_title: e.target.value,
-                  })
-                }
-              />
-              <input
-                type="text"
-                placeholder="Previous Title"
-                value={newPromotion.previous_title}
-                onChange={(e) =>
-                  setNewPromotion({
-                    ...newPromotion,
-                    previous_title: e.target.value,
-                  })
-                }
-              />
-              <input
-                type="text"
-                placeholder="Promotion Date"
-                value={newPromotion.promotion_date}
-                onFocus={(e) => (e.target.type = "date")} // Change type to date on focus
-                onBlur={(e) => (e.target.type = "text")} // Revert back to text on blur if no date selected
-                onChange={(e) =>
-                  setNewPromotion({
-                    ...newPromotion,
-                    promotion_date: e.target.value,
-                  })
-                }
-              />
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.9 }}
-                className="add-contract-button"
-                onClick={handleNewPromotion}
-              >
-                Submit
-              </motion.button>
-            </div>
-          )}
-          <CSVLink
-            data={combinedData}
-            filename={`staff_details_${mcr_number}.csv`}
-            className="csv-link"
-          >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.9 }}
-              className="download-button"
-            >
-              Download
-            </motion.button>
-          </CSVLink>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </>
   );
 };

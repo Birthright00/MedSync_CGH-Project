@@ -27,9 +27,10 @@
 /* Filter Section (General) */
 /* ################################################# */
 .filter-section {
-  width: 10%;
+  width: 15%;
   max-width: 400px;
-  max-height: 800px;
+  max-height: 670px;
+  margin-left: 50px;
   padding: 20px;
   background-color: white;
   opacity: 0.95;
@@ -39,10 +40,8 @@
   flex-direction: column;
   font-weight: 500;
   margin-top: 30px;
-  margin-right: -75px;
-  margin-left: 100px;
-  box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px,
-    rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
+  margin-right: -50px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
 }
 
 Filter Header .filter-section h3 {
@@ -77,7 +76,6 @@ Filter Header .filter-section h3 {
 /* ################################################# */
 .filter-button,
 .reset-button,
-.add-dr-button,
 .school-filter-buttons button {
   width: 100%;
   height: 40px;
@@ -90,8 +88,7 @@ Filter Header .filter-section h3 {
   border: none;
   border-radius: 4px;
   font-weight: 500;
-  box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px,
-    rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
 }
 
 .reset-button {
@@ -131,8 +128,8 @@ Filter Header .filter-section h3 {
 /* ################################################# */
 .table-container {
   width: 87%;
-  max-width: 1000px;
-  max-height: 500px;
+  max-width: 1100px;
+  max-height: 550px;
   overflow-x: auto; /* Enable horizontal scrolling */
   overflow-y: auto; /* Enable vertical scrolling */
   background-color: white;
@@ -142,8 +139,7 @@ Filter Header .filter-section h3 {
   margin-left: 100px;
   white-space: nowrap;
   border-radius: 5px;
-  box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px,
-    rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
 }
 
 .data-table {
@@ -373,11 +369,12 @@ td:first-child {
   border: none;
   border-radius: 4px;
   font-weight: 500;
+  margin-bottom: 10px;
 }
 
 .submit-file-button,
 .add-dr-button {
-  background-color: #72bf78;
+  background-color: #72bf78 !important;
 }
 
 .pagination button:disabled {
@@ -387,11 +384,13 @@ td:first-child {
   color: #666;
 }
 
-.pagination button:hover,
 .homepg-download-button:hover {
   background-color: #006699;
 }
 
+.pagination button:hover {
+  background-color: #999;
+}
 .csv-link {
   color: white;
   text-decoration: none;

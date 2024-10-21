@@ -265,6 +265,29 @@ app.get("/staff/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST FOR STAFF DETAILS BY 'mcr_number' FROM CONTRACTS
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params;
+
+  // Remove the deleted = 0 condition to include deleted entries
+  const q = "SELECT * FROM contracts WHERE mcr_number = ?";
+
+  db.query(q, [mcr_number], (err, data) => {
+    if (err) {
+      return res
+        .status(500)
+        .json({ message: "Error retrieving staff details" });
+    }
+    if (data.length === 0) {
+      return res.status(404).json({ message: "Staff not found" });
+    }
+
+    res.json(data); // Return all contracts for the given mcr_number
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // PUT REQUEST FOR UPDATING EXISTING STAFF DETAILS TO MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 // Why PUT instead of POST?
@@ -274,50 +297,60 @@ app.get("/staff/:mcr_number", verifyToken, (req, res) => {
 // of how many times you sent, it wont create multiple entries
 
 app.put("/staff/:mcr_number", verifyToken, (req, res) => {
-  const mcr_number = req.params.mcr_number;
-  const {
-    first_name,
-    last_name,
-    department,
-    appointment,
-    teaching_training_hours,
-    start_date,
-    end_date,
-    renewal_start_date,
-    renewal_end_date,
-    email,
-  } = req.body;
-
-  // To ensure accountability, track who updated the record
-  const userMcrNumber = req.user.id; // Get the MCR number of the logged-in user from the token
+  const { mcr_number } = req.params;
+  const { first_name, last_name, department, designation, email, fte } =
+    req.body;
+  const userMcrNumber = req.user.mcr_number; // Assuming this is logged in user
 
   const q = `
-    UPDATE main_data 
-    SET first_name = ?, last_name = ?, department = ?, appointment = ?, 
-        teaching_training_hours = ?, email = ?, updated_by = ?
-    WHERE mcr_number = ?
-  `;
+  UPDATE main_data 
+  SET first_name = ?, last_name = ?, department = ?, designation = ?, 
+      email = ?, fte = ?, updated_by = ?, updated_at = NOW()
+  WHERE mcr_number = ?`;
 
   const values = [
     first_name,
     last_name,
     department,
-    appointment,
-    teaching_training_hours,
+    designation,
     email,
-    userMcrNumber, // Log who updated the record (the currently logged-in user)
-    mcr_number,
+    fte,
+    userMcrNumber, // Log who updated the record
+    mcr_number, // For the WHERE clause
   ];
-
-  // The updated_by column in main_data table will be the MCR number of the user who updated
-  // it every time a put request is made
 
   db.query(q, values, (err, data) => {
     if (err) {
-      console.error("Error during the query execution:", err);
+      console.error("Error updating staff details:", err);
       return res.status(500).json({ error: "Failed to update staff details" });
     }
-    return res.json({ message: "Staff details updated successfully" });
+    return res
+      .status(200)
+      .json({ message: "Staff details updated successfully" });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// POST REQUEST FOR ADDING NEW CONTRACTS TO CONTRACTS TABLE
+// -------------------------------------------------------------------------------------------------------------//
+
+app.post("/new-contracts/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params;
+  const { school_name, contract_start_date, contract_end_date, status } =
+    req.body;
+
+  const query = `
+  INSERT INTO contracts (mcr_number, school_name, contract_start_date, contract_end_date, status)
+  VALUES (?, ?, ?, ?, ?)`;
+
+  const values = [mcr_number, school_name, contract_start_date, contract_end_date, status];
+
+  db.query(query, values, (err, data) => {
+    if (err) {
+      console.error("Error inserting new contract:", err);
+      return res.status(500).json({ error: "Failed to add contract" });
+    }
+    return res.status(201).json({ message: "Contract added successfully" });
   });
 });
 
@@ -449,213 +482,6 @@ app.put("/restore/:mcr_number", verifyToken, (req, res) => {
     });
   });
 });
-
-// -------------------------------------------------------------------------------------------------------------//
-// CONTRACTS ROUTES
-// -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR CONTRACTS DETAILS BY 'mcr_number' FROM MAIN_DATA TABLE
-// -------------------------------------------------------------------------------------------------------------//
-app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
-  const { mcr_number } = req.params;
-
-  // Query to get all contracts for the given doctor MCR number
-  const q = `
-    SELECT * FROM contracts
-    WHERE mcr_number = ?
-    ORDER BY start_date ASC;
-  `;
-
-  db.query(q, [mcr_number], (err, data) => {
-    if (err) {
-      console.error("Error retrieving contracts data:", err);
-      d;
-      return res
-        .status(500)
-        .json({ message: "Error retrieving contracts data" });
-    }
-
-    if (data.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No contracts found for this doctor" });
-    }
-
-    res.json(data);
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST FOR ADDING NEW CONTRACT DETAILS TO CONTRACTS TABLE
-// -------------------------------------------------------------------------------------------------------------//
-
-app.post("/new-contracts/:mcr_number", verifyToken, (req, res) => {
-  const { mcr_number } = req.params; // Get the MCR number from the URL
-  const { school_name, start_date, end_date, status } = req.body;
-
-  // Validate required fields
-  if (!school_name || !start_date || !end_date || !status) {
-    return res
-      .status(400)
-      .json({ error: "Please provide all required fields" });
-  }
-
-  const q = `
-    INSERT INTO contracts 
-    (mcr_number, school_name, start_date, end_date, status) 
-    VALUES (?, ?, ?, ?, ?)
-  `;
-
-  const values = [mcr_number, school_name, start_date, end_date, status];
-
-  db.query(q, values, (err, data) => {
-    if (err) {
-      console.error("Error inserting new contract details:", err);
-      return res
-        .status(500)
-        .json({ error: "Failed to add new contract details" });
-    }
-    return res
-      .status(201)
-      .json({ message: "New contract details added successfully", data });
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// DELETE REQUEST FOR DELETING A SPECIFIC CONTRACT BASED ON MCR NUMBER, STATUS, START DATE, AND SCHOOL NAME
-// -------------------------------------------------------------------------------------------------------------//
-
-app.delete(
-  "/contracts/:mcr_number/:status/:start_date/:school_name",
-  verifyToken,
-  (req, res) => {
-    const { mcr_number, status, start_date, school_name } = req.params;
-
-    // SQL query now targets specific rows based on multiple fields
-    const q = `
-    DELETE FROM contracts 
-    WHERE mcr_number = ? AND status = ? AND start_date = ? AND school_name = ?
-  `;
-
-    const values = [mcr_number, status, start_date, school_name];
-
-    db.query(q, values, (err, data) => {
-      if (err) {
-        console.error("Error deleting contract:", err);
-        return res.status(500).json({ error: "Failed to delete contract" });
-      }
-
-      if (data.affectedRows === 0) {
-        return res.status(404).json({ message: "Contract not found" });
-      }
-
-      return res.status(200).json({ message: "Contract deleted successfully" });
-    });
-  }
-);
-
-// -------------------------------------------------------------------------------------------------------------//
-// PROMOTIONS ROUTES
-// -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR PROMOTIONS DETAILS BY 'mcr_number' FROM MAIN_DATA TABLE
-// -------------------------------------------------------------------------------------------------------------//
-app.get("/promotions/:mcr_number", verifyToken, (req, res) => {
-  const { mcr_number } = req.params;
-
-  const q = `
-    SELECT mcr_number, previous_title, new_title, promotion_date
-    FROM promotions
-    WHERE mcr_number = ?
-    ORDER BY promotion_date ASC;
-  `;
-
-  db.query(q, [mcr_number], (err, data) => {
-    if (err) {
-      console.error("Error retrieving promotion data:", err);
-      return res
-        .status(500)
-        .json({ message: "Error retrieving promotion data" });
-    }
-
-    // Log the data being returned
-    console.log("Promotion data fetched: ", data);
-
-    if (data.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No promotions found for this doctor" });
-    }
-
-    res.json(data);
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST FOR ADDING NEW PROMOTION DETAILS TO PROMOTIONS TABLE
-// -------------------------------------------------------------------------------------------------------------//
-
-app.post("/new-promotions/:mcr_number", verifyToken, (req, res) => {
-  const { mcr_number } = req.params; // Get the MCR number from the URL
-  const { new_title, previous_title, promotion_date } = req.body;
-
-  // Validate required fields
-  if (!new_title || !previous_title || !promotion_date) {
-    return res
-      .status(400)
-      .json({ error: "Please provide all required fields" });
-  }
-
-  // Corrected table name and columns
-  const q = `
-    INSERT INTO promotions 
-    (mcr_number, new_title, previous_title, promotion_date) 
-    VALUES (?, ?, ?, ?)
-  `;
-
-  const values = [mcr_number, new_title, previous_title, promotion_date];
-
-  db.query(q, values, (err, data) => {
-    if (err) {
-      console.error("Error inserting new promotion details:", err);
-      return res
-        .status(500)
-        .json({ error: "Failed to add new promotion details" });
-    }
-    return res
-      .status(201)
-      .json({ message: "New promotion details added successfully", data });
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// DELETE REQUEST FOR DELETING A PROMOTION BASED ON NEW TITLE FROM PROMOTIONS TABLE
-// -------------------------------------------------------------------------------------------------------------//
-
-app.delete("/promotions/:mcr_number/:new_title", verifyToken, (req, res) => {
-  const { mcr_number, new_title } = req.params;
-
-  const q = `DELETE FROM promotions WHERE mcr_number = ? AND new_title = ?`;
-
-  const values = [mcr_number, new_title];
-
-  db.query(q, values, (err, data) => {
-    if (err) {
-      console.error("Error deleting promotion:", err);
-      return res.status(500).json({ error: "Failed to delete promotion" });
-    }
-
-    if (data.affectedRows === 0) {
-      return res.status(404).json({ message: "Promotion not found" });
-    }
-
-    return res.status(200).json({ message: "Promotion deleted successfully" });
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// EXCEL FILE UPLOAD ROUTES
-// -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST TO HANDLE SINGLE SHEET EXCEL FILE UPLOAD //
-// -------------------------------------------------------------------------------------------------------------//
 
 // -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start

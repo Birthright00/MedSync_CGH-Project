@@ -34,7 +34,7 @@ const ManagementHomePage = () => {
   });
 
   const [entriesPerPage, setEntriesPerPage] = useState(
-    () => Number(localStorage.getItem("entriesPerPage")) || 10
+    () => Number(localStorage.getItem("entriesPerPage")) || 50
   );
 
   const formatDateTime = (dateStr) => {
@@ -392,19 +392,19 @@ const ManagementHomePage = () => {
             >
               NTU LKC
             </button>
+            <button
+              className={`filter-button ${
+                showDeleted ? "button-blue" : "button-grey"
+              }`}
+              onClick={() => {
+                setShowDeleted((prev) => !prev);
+                setOnlyDeleted(false);
+              }}
+            >
+              Include Deleted Data
+            </button>
           </div>
 
-          <button
-            className={`filter-button ${
-              showDeleted ? "button-blue" : "button-grey"
-            }`}
-            onClick={() => {
-              setShowDeleted((prev) => !prev);
-              setOnlyDeleted(false);
-            }}
-          >
-            Include Deleted Data
-          </button>
           {/* <button
             className={`filter-button ${
               onlyDeleted ? "button-blue" : "button-grey"
@@ -585,19 +585,19 @@ const ManagementHomePage = () => {
                 >
                   Refresh
                 </button>
+                <button className="homepg-download-button">
+                  <CSVLink
+                    data={rowsToDisplay.filter((row) => row.mcr_number)}
+                    filename={`page-${currentPage}-data.csv`}
+                    className="csv-link"
+                  >
+                    Download
+                  </CSVLink>
+                </button>
+                <button className="add-dr-button" onClick={handleAddDoctor}>
+                  New Doctor
+                </button>
               </div>
-              <button className="homepg-download-button">
-                <CSVLink
-                  data={rowsToDisplay.filter((row) => row.mcr_number)}
-                  filename={`page-${currentPage}-data.csv`}
-                  className="csv-link"
-                >
-                  Download
-                </CSVLink>
-              </button>
-              <button className="add-dr-button" onClick={handleAddDoctor}>
-                New Doctor
-              </button>
 
               {/* Label and input for choosing file */}
               {/* <label htmlFor="file-upload" className="file-upload-label">

@@ -126,13 +126,13 @@ app.post("/login", (req, res) => {
     // salt is a random string e.g. KkT48OvTzVQjTTvYbRLmQG
     // cost factor is represented as a number that determines how many times the password will be hashed
     // cost factor basically prevents brute force attacks, each increment of 1 doubles the time taken to hash the password
-    
-    // salt is embedded into the final hash along with the cost factor resulting in : 
+
+    // salt is embedded into the final hash along with the cost factor resulting in :
     // $2b$10$KkT48OvTzVQjTTvYbRLmQG1XsYfdGQFtBddtvImR5XM4vFElxuRm
     //        |--------------------|
     //               |salt|
- 
-    // hackers who manage to access the database will see this, even if they are aware of the salt and cost factor, 
+
+    // hackers who manage to access the database will see this, even if they are aware of the salt and cost factor,
     // they would not be able to guess the password
 
     // Verifying the password
@@ -224,14 +224,14 @@ app.get("/main_data", (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR COMBINED DOCTORS DETAILS (FROM ALL 3 TABLES AS A VIEW)
+// GET REQUEST FOR MANAGEMENT HOME PAGE TABLE DISPLAY
 // -------------------------------------------------------------------------------------------------------------//
 
 app.get("/database", verifyToken, (req, res) => {
   const includeDeleted = req.query.includeDeleted === "true";
   const query = includeDeleted
-    ? "SELECT * FROM combined_doctor_data"
-    : "SELECT * FROM combined_doctor_data WHERE deleted = 0";
+    ? "SELECT * FROM doctor_data_contracts"
+    : "SELECT * FROM doctor_data_contracts WHERE deleted = 0";
   db.query(query, (err, data) => {
     if (err) {
       console.error("Error retrieving data:", err);

@@ -17,14 +17,22 @@ const ManagementHomePage = () => {
   const [firstNameFilter, setFirstNameFilter] = useState("");
   const [lastNameFilter, setLastNameFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
-  const [appointmentFilter, setAppointmentFilter] = useState("");
-  const [trainingHoursFilter, setTrainingHoursFilter] = useState("");
+  const [designationFilter, setDesignationFilter] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const nav = useNavigate();
   const [showDeleted, setShowDeleted] = useState(false);
   const [onlyDeleted, setOnlyDeleted] = useState(false);
   const [activeButton, setActiveButton] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [schoolFilter, setSchoolFilter] = useState("");
+  const [selectedSchools, setSelectedSchools] = useState({
+    duke_nus: false,
+    singhealth_residency: false,
+    sutd: false,
+    nus_ylls: false,
+    ntu_lkc: false,
+  });
+
   const [entriesPerPage, setEntriesPerPage] = useState(
     () => Number(localStorage.getItem("entriesPerPage")) || 10
   );
@@ -50,11 +58,18 @@ const ManagementHomePage = () => {
     setFirstNameFilter("");
     setLastNameFilter("");
     setDepartmentFilter("");
-    setAppointmentFilter("");
-    setTrainingHoursFilter("");
+    setDesignationFilter("");
     setShowDeleted(false);
     setOnlyDeleted(false);
     setFilteredData(data);
+    setSchoolFilter("");
+    setSelectedSchools({
+      duke_nus: false,
+      singhealth_residency: false,
+      sutd: false,
+      nus_ylls: false,
+      ntu_lkc: false,
+    });
   };
 
   // ########################################## //
@@ -67,38 +82,6 @@ const ManagementHomePage = () => {
   // ########################################## //
   // File Upload
   // ########################################## //
-  const handleFileSubmit = async () => {
-    if (!selectedFile) {
-      console.error("No file selected for upload!");
-      return;
-    }
-
-    console.log("File selected for upload:", selectedFile.name); // Log the file name
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-
-    try {
-      const token = localStorage.getItem("token");
-      console.log("Sending POST request to backend...");
-      const response = await axios.post(
-        "http://localhost:3001/upload-excel-single-sheet",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      console.log("File uploaded successfully:", response.data);
-    } catch (error) {
-      console.error(
-        "File upload failed:",
-        error.response?.data || error.message
-      );
-    }
-  };
 
   // ########################################## //
   // Table Functions
@@ -145,8 +128,12 @@ const ManagementHomePage = () => {
       first_name: "",
       last_name: "",
       department: "",
-      appointment: "",
-      teaching_training_hours: "",
+      designation: "",
+      duke_nus_status: "",
+      singhealth_residency_status: "",
+      sutd_status: "",
+      nus_ylls_status: "",
+      ntu_lkc_status: "",
     });
   }
   const handleNextPage = () => {
@@ -226,38 +213,71 @@ const ManagementHomePage = () => {
   // ########################################## //
   useEffect(() => {
     const filtered = data.filter((staff) => {
-      const matchesFilters =
-        staff.mcr_number.toString().includes(mcrNumberFilter) &&
-        staff.first_name
-          .toLowerCase()
-          .includes(firstNameFilter.toLowerCase()) &&
-        staff.last_name.toLowerCase().includes(lastNameFilter.toLowerCase()) &&
-        staff.department
-          .toLowerCase()
-          .includes(departmentFilter.toLowerCase()) &&
-        staff.appointment
-          .toLowerCase()
-          .includes(appointmentFilter.toLowerCase()) &&
-        (trainingHoursFilter === "" ||
-          staff.teaching_training_hours
-            .toString()
-            .includes(trainingHoursFilter));
+      // Check if the MCR number matches the filter or if the filter is empty
+      const matchesMcrNumber =
+        !mcrNumberFilter ||
+        (staff.mcr_number &&
+          staff.mcr_number.toString().includes(mcrNumberFilter));
 
-      if (onlyDeleted) return matchesFilters && staff.deleted === 1; // Only show deleted entries
-      return matchesFilters && (!showDeleted ? staff.deleted === 0 : true); // Show or hide deleted based on state
+      // Check if the first name matches the filter or if the filter is empty
+      const matchesFirstName =
+        !firstNameFilter ||
+        (staff.first_name &&
+          staff.first_name
+            .toLowerCase()
+            .includes(firstNameFilter.toLowerCase()));
+
+      // Check if the last name matches the filter or if the filter is empty
+      const matchesLastName =
+        !lastNameFilter ||
+        (staff.last_name &&
+          staff.last_name.toLowerCase().includes(lastNameFilter.toLowerCase()));
+
+      // Check if the department matches the filter or if the filter is empty
+      const matchesDepartment =
+        !departmentFilter ||
+        (staff.department &&
+          staff.department
+            .toLowerCase()
+            .includes(departmentFilter.toLowerCase()));
+
+      // Check if the designation matches the filter or if the filter is empty
+      const matchesDesignation =
+        !designationFilter ||
+        (staff.designation &&
+          staff.designation
+            .toLowerCase()
+            .includes(designationFilter.toLowerCase()));
+
+      // School filtering logic - "AND" logic for selected schools
+      const matchesSchools =
+        (!selectedSchools.duke_nus || staff.duke_nus_status) &&
+        (!selectedSchools.singhealth_residency ||
+          staff.singhealth_residency_status) &&
+        (!selectedSchools.sutd || staff.sutd_status) &&
+        (!selectedSchools.nus_ylls || staff.nus_ylls_status) &&
+        (!selectedSchools.ntu_lkc || staff.ntu_lkc_status);
+
+      // Combine all filters
+      return (
+        matchesMcrNumber &&
+        matchesFirstName &&
+        matchesLastName &&
+        matchesDepartment &&
+        matchesDesignation &&
+        matchesSchools
+      );
     });
 
-    setFilteredData(filtered);
-    setCurrentPage(1);
+    setFilteredData(filtered); // Update the filtered data
+    setCurrentPage(1); // Reset to the first page
   }, [
     mcrNumberFilter,
     firstNameFilter,
     lastNameFilter,
     departmentFilter,
-    appointmentFilter,
-    trainingHoursFilter,
-    showDeleted,
-    onlyDeleted,
+    designationFilter,
+    selectedSchools, // Add selected schools to dependency array
     data,
   ]);
 
@@ -310,15 +330,70 @@ const ManagementHomePage = () => {
             placeholder="Department"
             autoComplete="off"
           />
-          <label htmlFor="appointment-filter">Appointment</label>
+          <label htmlFor="designation-filter">Designation</label>
           <input
             type="text"
-            id="appointment-filter"
-            value={appointmentFilter}
-            onChange={(e) => setAppointmentFilter(e.target.value)}
-            placeholder="Appointment"
+            id="designation-filter"
+            value={designationFilter}
+            onChange={(e) => setDesignationFilter(e.target.value)}
+            placeholder="Designation"
             autoComplete="off"
           />
+          <div className="school-filter-buttons">
+            <button
+              onClick={() =>
+                setSelectedSchools((prev) => ({
+                  ...prev,
+                  duke_nus: !prev.duke_nus,
+                }))
+              }
+              className={selectedSchools.duke_nus ? "active" : ""}
+            >
+              Duke NUS
+            </button>
+            <button
+              onClick={() =>
+                setSelectedSchools((prev) => ({
+                  ...prev,
+                  singhealth_residency: !prev.singhealth_residency,
+                }))
+              }
+              className={selectedSchools.singhealth_residency ? "active" : ""}
+            >
+              Singhealth Residency
+            </button>
+            <button
+              onClick={() =>
+                setSelectedSchools((prev) => ({ ...prev, sutd: !prev.sutd }))
+              }
+              className={selectedSchools.sutd ? "active" : ""}
+            >
+              SUTD
+            </button>
+            <button
+              onClick={() =>
+                setSelectedSchools((prev) => ({
+                  ...prev,
+                  nus_ylls: !prev.nus_ylls,
+                }))
+              }
+              className={selectedSchools.nus_ylls ? "active" : ""}
+            >
+              NUS Yong Loo Lin
+            </button>
+            <button
+              onClick={() =>
+                setSelectedSchools((prev) => ({
+                  ...prev,
+                  ntu_lkc: !prev.ntu_lkc,
+                }))
+              }
+              className={selectedSchools.ntu_lkc ? "active" : ""}
+            >
+              NTU LKC
+            </button>
+          </div>
+
           <button
             className={`filter-button ${
               showDeleted ? "button-blue" : "button-grey"
@@ -330,7 +405,7 @@ const ManagementHomePage = () => {
           >
             Include Deleted Data
           </button>
-          <button
+          {/* <button
             className={`filter-button ${
               onlyDeleted ? "button-blue" : "button-grey"
             }`}
@@ -340,12 +415,9 @@ const ManagementHomePage = () => {
             }}
           >
             Only Show Deleted Data
-          </button>
+          </button> */}
           <button className="reset-button" onClick={resetFilters}>
             Reset
-          </button>
-          <button className="add-dr-button" onClick={handleAddDoctor}>
-            Add New Doctor
           </button>
         </motion.div>
         <div>
@@ -363,20 +435,30 @@ const ManagementHomePage = () => {
                   <th onClick={() => handleSort("first_name")}>First Name</th>
                   <th onClick={() => handleSort("last_name")}>Last Name</th>
                   <th onClick={() => handleSort("department")}>Department</th>
-                  <th onClick={() => handleSort("appointment")}>CGH Designation</th>
+                  <th onClick={() => handleSort("designation")}>Designation</th>
                   <th>FTE</th>
-                  <th onClick={() => handleSort("teaching_training_hours")}>
-                    Teaching Training Hours
-                  </th>
                   <th>Email</th>
-                  <th>Promotion History</th>
-                  <th>Contract Details</th>
-                  <th>Created At</th>
+                  <th>Duke NUS Start Date</th>
+                  <th>Duke NUS End Date</th>
+                  <th>Duke NUS Status</th>
+                  <th>Singhealth Residency Start Date</th>
+                  <th>Singhealth Residency End Date</th>
+                  <th>Singhealth Residency Status</th>
+                  <th>SUTD Start Date</th>
+                  <th>SUTD End Date</th>
+                  <th>SUTD Status</th>
+                  <th>NUS YLL Start Date</th>
+                  <th>NUS YLL End Date</th>
+                  <th>NUS YLL Status</th>
+                  <th>NTU LKC Start Date</th>
+                  <th>NTU LKC End Date</th>
+                  <th>NTU LKC Status</th>
+                  {/* <th>Created At</th>
                   <th>Updated At</th>
                   <th>Created By</th>
                   <th>Updated By</th>
                   <th>Deleted By</th>
-                  <th>Deleted At</th>
+                  <th>Deleted At</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -391,18 +473,31 @@ const ManagementHomePage = () => {
                     <td>{staff.first_name}</td>
                     <td>{staff.last_name}</td>
                     <td>{staff.department}</td>
-                    <td>{staff.appointment}</td>
+                    <td>{staff.designation}</td>
                     <td>{staff.fte}</td>
-                    <td>{staff.teaching_training_hours}</td>
                     <td>{staff.email}</td>
-                    <td>{staff.promotion_history || "N/A"}</td>
-                    <td>{staff.contract_details || "N/A"}</td>
-                    <td>{formatDateTime(staff.created_at)}</td>
+                    <td>{formatDateTime(staff.duke_nus_start_date)}</td>
+                    <td>{formatDateTime(staff.duke_nus_end_date)}</td>
+                    <td>{staff.duke_nus_status}</td>
+                    <td>{formatDateTime(staff.singhealth_start_date)}</td>
+                    <td>{formatDateTime(staff.singhealth_end_date)}</td>
+                    <td>{staff.singhealth_status}</td>
+                    <td>{formatDateTime(staff.sutd_start_date)}</td>
+                    <td>{formatDateTime(staff.sutd_end_date)}</td>
+                    <td>{staff.sutd_status}</td>
+                    <td>{formatDateTime(staff.nus_ylls_start_date)}</td>
+                    <td>{formatDateTime(staff.nus_ylls_end_date)}</td>
+                    <td>{staff.nus_ylls_status}</td>
+                    <td>{formatDateTime(staff.ntu_lkc_start_date)}</td>
+                    <td>{formatDateTime(staff.ntu_lkc_end_date)}</td>
+                    <td>{staff.ntu_lkc_status}</td>
+
+                    {/* <td>{formatDateTime(staff.created_at)}</td>
                     <td>{formatDateTime(staff.updated_at)}</td>
                     <td>{staff.created_by || "N/A"}</td>
                     <td>{staff.updated_by || "N/A"}</td>
                     <td>{staff.deleted_by || "N/A"}</td>
-                    <td>{formatDateTime(staff.deleted_at)}</td>
+                    <td>{formatDateTime(staff.deleted_at)}</td> */}
                   </tr>
                 ))}
               </tbody>
@@ -491,19 +586,21 @@ const ManagementHomePage = () => {
                   Refresh
                 </button>
               </div>
-              <div className="homepg-download-section">
-                <button className="homepg-download-button">
-                  <CSVLink
-                    data={rowsToDisplay.filter((row) => row.mcr_number)}
-                    filename={`page-${currentPage}-data.csv`}
-                    className="csv-link"
-                  >
-                    Download
-                  </CSVLink>
-                </button>
+              <button className="homepg-download-button">
+                <CSVLink
+                  data={rowsToDisplay.filter((row) => row.mcr_number)}
+                  filename={`page-${currentPage}-data.csv`}
+                  className="csv-link"
+                >
+                  Download
+                </CSVLink>
+              </button>
+              <button className="add-dr-button" onClick={handleAddDoctor}>
+                New Doctor
+              </button>
 
-                {/* Label and input for choosing file */}
-                <label htmlFor="file-upload" className="file-upload-label">
+              {/* Label and input for choosing file */}
+              {/* <label htmlFor="file-upload" className="file-upload-label">
                   Choose File:
                 </label>
                 <input
@@ -512,17 +609,15 @@ const ManagementHomePage = () => {
                   className="file-upload-input"
                   accept=".xlsx, .xls, .csv"
                   onChange={(e) => setSelectedFile(e.target.files[0])} // Store selected file
-                />
+                /> */}
 
-                {/* Separate button for submitting the file */}
-                <button
+              {/* Separate button for submitting the file */}
+              {/* <button
                   className="submit-file-button"
-                  onClick={handleFileSubmit}
                   disabled={!selectedFile} // Disable until a file is selected
                 >
                   Submit File
-                </button>
-              </div>
+                </button> */}
             </motion.div>
           </div>
         </div>

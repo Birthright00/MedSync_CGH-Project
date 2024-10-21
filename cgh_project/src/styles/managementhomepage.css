@@ -6,7 +6,6 @@
   height: 100%;
   display: flex;
   justify-content: center;
-  padding: 20px;
   box-sizing: border-box;
   overflow-x: hidden; /* Content is clipped (cut off) and not visible beyond the container. No scrollbars are added. */
 }
@@ -29,8 +28,8 @@
 /* ################################################# */
 .filter-section {
   width: 10%;
-  max-width: 300px;
-  max-height: 605px;
+  max-width: 400px;
+  max-height: 800px;
   padding: 20px;
   background-color: white;
   opacity: 0.95;
@@ -78,10 +77,10 @@ Filter Header .filter-section h3 {
 /* ################################################# */
 .filter-button,
 .reset-button,
-.add-dr-button {
+.add-dr-button,
+.school-filter-buttons button {
   width: 100%;
-  height: 50px;
-  margin-right: 20px;
+  height: 40px;
   margin-bottom: 10px;
   padding: 10px;
   font-size: 12px;
@@ -104,7 +103,8 @@ Filter Header .filter-section h3 {
   background-color: #006ea1;
 }
 
-.filter-button.button-grey {
+.filter-button.button-grey,
+.school-filter-buttons button {
   background-color: #ccc !important;
 }
 
@@ -116,19 +116,22 @@ Filter Header .filter-section h3 {
   background-color: #006ea1 !important;
 }
 
-.filter-button.button-grey:hover {
+.filter-button.button-grey:hover,
+.school-filter-buttons button:hover {
   background-color: #999 !important;
 }
-.add-dr-button {
-  background-color: #72bf78;
+
+.school-filter-buttons button.active {
   color: white;
+  background-color: #0083ca !important;
 }
+
 /* ################################################# */
 /* Data Table (General)*/
 /* ################################################# */
 .table-container {
   width: 87%;
-  max-width: 1200px;
+  max-width: 1000px;
   max-height: 500px;
   overflow-x: auto; /* Enable horizontal scrolling */
   overflow-y: auto; /* Enable vertical scrolling */
@@ -248,15 +251,15 @@ td:first-child {
 /* Entries Per Page (General) */
 /* ################################################# */
 .entries-per-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
   width: 100%;
   overflow-y: auto;
   background-color: transparent;
   opacity: 0.9;
   z-index: 1;
-  margin-top: 10px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   border-radius: 5px;
 }
 
@@ -342,17 +345,10 @@ td:first-child {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 20px;
+  margin-top: 10px;
   width: 100%;
   z-index: 1;
   border-radius: 5px;
-}
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  white-space: nowrap;
-  font-weight: 500;
 }
 
 .current-page {
@@ -365,10 +361,10 @@ td:first-child {
 
 .pagination button,
 .homepg-download-button,
-.submit-file-button {
+.submit-file-button,
+.add-dr-button {
   width: 100px;
-  margin-right: 20px;
-  margin-bottom: 20px;
+  margin-right: 10px;
   padding: 10px;
   font-size: 14px;
   cursor: pointer;
@@ -379,7 +375,8 @@ td:first-child {
   font-weight: 500;
 }
 
-.submit-file-button {
+.submit-file-button,
+.add-dr-button {
   background-color: #72bf78;
 }
 

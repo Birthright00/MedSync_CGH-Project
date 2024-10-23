@@ -38,7 +38,6 @@ const StaffDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [staffContractDetails, setStaffContractDetails] = useState([]);
 
-
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -87,7 +86,6 @@ const StaffDetailPage = () => {
         contract_start_date: newContract.start_date,
         contract_end_date: newContract.end_date,
         status: newContract.status,
-        
       };
 
       // Log contract data to ensure values are correct
@@ -532,25 +530,25 @@ const StaffDetailPage = () => {
                 ))}
               </tr>
               <tr>
-                <th>2022 Training Hours</th> 
+                <th>2022 Training Hours</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours_2022}</td>
                 ))}
               </tr>
               <tr>
-                <th>2023 Training Hours</th> 
+                <th>2023 Training Hours</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours_2023}</td>
                 ))}
               </tr>
               <tr>
-                <th>2024 Training Hours</th> 
+                <th>2024 Training Hours</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours_2024}</td>
                 ))}
               </tr>
               <tr>
-                <th>Total Training Hours</th> 
+                <th>Total Training Hours</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.total_training_hours}</td>
                 ))}

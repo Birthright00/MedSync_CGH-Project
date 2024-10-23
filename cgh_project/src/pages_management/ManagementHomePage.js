@@ -234,8 +234,19 @@ const ManagementHomePage = () => {
   // ########################################## //
   // useEffect #2 for filtering data
   // ########################################## //
+
   useEffect(() => {
     const filtered = data.filter((staff) => {
+      // If `onlyDeleted` is true, show only deleted rows
+      if (onlyDeleted) {
+        return staff.deleted === true; // Only show rows where deleted is true
+      }
+
+      // If `showDeleted` is false, exclude deleted rows
+      if (!showDeleted && staff.deleted) {
+        return false;
+      }
+
       // Check if the MCR number matches the filter or if the filter is empty
       const matchesMcrNumber =
         !mcrNumberFilter ||
@@ -302,6 +313,8 @@ const ManagementHomePage = () => {
     designationFilter,
     selectedSchools, // Add selected schools to dependency array
     data,
+    showDeleted, // Add showDeleted to the dependency array
+    onlyDeleted, // Add onlyDeleted to the dependency array
   ]);
 
   return (
@@ -421,24 +434,23 @@ const ManagementHomePage = () => {
               }`}
               onClick={() => {
                 setShowDeleted((prev) => !prev);
-                setOnlyDeleted(false);
               }}
             >
               Include Deleted Data
             </button>
           </div>
-
-          {/* <button
+          <button
             className={`filter-button ${
               onlyDeleted ? "button-blue" : "button-grey"
             }`}
             onClick={() => {
               setOnlyDeleted((prev) => !prev);
-              setShowDeleted(false);
+              setShowDeleted(false); // Make sure "Show Deleted Data" is false when "Only Show Deleted" is active
             }}
           >
             Only Show Deleted Data
-          </button> */}
+          </button>
+
           <button className="reset-button" onClick={resetFilters}>
             Reset
           </button>
@@ -505,12 +517,12 @@ const ManagementHomePage = () => {
                     NTU LKC Status
                   </th>
 
-                  {/* <th>Created At</th>
+                  <th>Created At</th>
                   <th>Updated At</th>
                   <th>Created By</th>
                   <th>Updated By</th>
                   <th>Deleted By</th>
-                  <th>Deleted At</th> */}
+                  <th>Deleted At</th>
                 </tr>
               </thead>
               <tbody>
@@ -544,12 +556,12 @@ const ManagementHomePage = () => {
                     <td>{formatDateTime(staff.ntu_lkc_end_date)}</td>
                     <td>{staff.ntu_lkc_status}</td>
 
-                    {/* <td>{formatDateTime(staff.created_at)}</td>
+                    <td>{formatDateTime(staff.created_at)}</td>
                     <td>{formatDateTime(staff.updated_at)}</td>
                     <td>{staff.created_by || "N/A"}</td>
                     <td>{staff.updated_by || "N/A"}</td>
                     <td>{staff.deleted_by || "N/A"}</td>
-                    <td>{formatDateTime(staff.deleted_at)}</td> */}
+                    <td>{formatDateTime(staff.deleted_at)}</td>
                   </tr>
                 ))}
               </tbody>

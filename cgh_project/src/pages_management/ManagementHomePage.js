@@ -239,7 +239,7 @@ const ManagementHomePage = () => {
     const filtered = data.filter((staff) => {
       // If `onlyDeleted` is true, show only deleted rows
       if (onlyDeleted) {
-        return staff.deleted === true; // Only show rows where deleted is true
+        return staff.deleted;
       }
 
       // If `showDeleted` is false, exclude deleted rows
@@ -311,9 +311,9 @@ const ManagementHomePage = () => {
     lastNameFilter,
     departmentFilter,
     designationFilter,
-    selectedSchools, // Add selected schools to dependency array
+    selectedSchools,
     data,
-    showDeleted, // Add showDeleted to the dependency array
+    showDeleted, // Handle showDeleted in the dependency array
     onlyDeleted, // Add onlyDeleted to the dependency array
   ]);
 
@@ -444,8 +444,8 @@ const ManagementHomePage = () => {
               onlyDeleted ? "button-blue" : "button-grey"
             }`}
             onClick={() => {
-              setOnlyDeleted((prev) => !prev);
-              setShowDeleted(false); // Make sure "Show Deleted Data" is false when "Only Show Deleted" is active
+              setOnlyDeleted((prev) => !prev); // Toggle onlyDeleted
+              setShowDeleted(false); // Disable "Include Deleted Data" when "Only Show Deleted Data" is active
             }}
           >
             Only Show Deleted Data

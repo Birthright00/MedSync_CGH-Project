@@ -98,6 +98,27 @@ const ManagementHomePage = () => {
     setSortConfig({ key: column, direction });
 
     const sortedData = [...data].sort((a, b) => {
+      // If it's a date field, convert to timestamp and sort
+      if (
+        [
+          "duke_nus_start_date",
+          "duke_nus_end_date",
+          "singhealth_start_date",
+          "singhealth_end_date",
+          "sutd_start_date",
+          "sutd_end_date",
+          "nus_ylls_start_date",
+          "nus_ylls_end_date",
+          "ntu_lkc_start_date",
+          "ntu_lkc_end_date",
+        ].includes(column)
+      ) {
+        const dateA = new Date(a[column]);
+        const dateB = new Date(b[column]);
+        return direction === "asc" ? dateA - dateB : dateB - dateA;
+      }
+
+      // Sort for non-date fields
       if (a[column] < b[column]) {
         return direction === "asc" ? -1 : 1;
       }
@@ -106,6 +127,7 @@ const ManagementHomePage = () => {
       }
       return 0;
     });
+
     setFilteredData(sortedData);
   };
 
@@ -437,23 +459,52 @@ const ManagementHomePage = () => {
                   <th onClick={() => handleSort("last_name")}>Last Name</th>
                   <th onClick={() => handleSort("department")}>Department</th>
                   <th onClick={() => handleSort("designation")}>Designation</th>
-                  <th>FTE</th>
-                  <th>Email</th>
-                  <th>Duke NUS Start Date</th>
-                  <th>Duke NUS End Date</th>
-                  <th>Duke NUS Status</th>
-                  <th>Singhealth Residency Start Date</th>
-                  <th>Singhealth Residency End Date</th>
-                  <th>Singhealth Residency Status</th>
-                  <th>SUTD Start Date</th>
-                  <th>SUTD End Date</th>
-                  <th>SUTD Status</th>
-                  <th>NUS YLL Start Date</th>
-                  <th>NUS YLL End Date</th>
-                  <th>NUS YLL Status</th>
-                  <th>NTU LKC Start Date</th>
-                  <th>NTU LKC End Date</th>
-                  <th>NTU LKC Status</th>
+                  <th onClick={() => handleSort("fte")}>FTE</th>
+                  <th onClick={() => handleSort("email")}>Email</th>
+                  <th onClick={() => handleSort("duke_nus_start_date")}>
+                    Duke NUS Start Date
+                  </th>
+                  <th onClick={() => handleSort("duke_nus_end_date")}>
+                    Duke NUS End Date
+                  </th>
+                  <th onClick={() => handleSort("duke_nus_status")}>
+                    Duke NUS Status
+                  </th>
+                  <th onClick={() => handleSort("singhealth_start_date")}>
+                    Singhealth Residency Start Date
+                  </th>
+                  <th onClick={() => handleSort("singhealth_end_date")}>
+                    Singhealth Residency End Date
+                  </th>
+                  <th onClick={() => handleSort("singhealth_status")}>
+                    Singhealth Residency Status
+                  </th>
+                  <th onClick={() => handleSort("sutd_start_date")}>
+                    SUTD Start Date
+                  </th>
+                  <th onClick={() => handleSort("sutd_end_date")}>
+                    SUTD End Date
+                  </th>
+                  <th onClick={() => handleSort("sutd_status")}>SUTD Status</th>
+                  <th onClick={() => handleSort("nus_ylls_start_date")}>
+                    NUS YLL Start Date
+                  </th>
+                  <th onClick={() => handleSort("nus_ylls_end_date")}>
+                    NUS YLL End Date
+                  </th>
+                  <th onClick={() => handleSort("nus_ylls_status")}>
+                    NUS YLL Status
+                  </th>
+                  <th onClick={() => handleSort("ntu_lkc_start_date")}>
+                    NTU LKC Start Date
+                  </th>
+                  <th onClick={() => handleSort("ntu_lkc_end_date")}>
+                    NTU LKC End Date
+                  </th>
+                  <th onClick={() => handleSort("ntu_lkc_status")}>
+                    NTU LKC Status
+                  </th>
+
                   {/* <th>Created At</th>
                   <th>Updated At</th>
                   <th>Created By</th>

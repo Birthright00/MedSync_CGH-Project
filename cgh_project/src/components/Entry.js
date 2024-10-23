@@ -26,12 +26,7 @@ const Entry = () => {
     first_name: "",
     last_name: "",
     department: "",
-    appointment: "",
-    teaching_training_hours: "",
-    start_date: "",
-    end_date: "",
-    renewal_start_date: "",
-    renewal_end_date: "",
+    designation: "",
     email: "",
   });
 
@@ -52,16 +47,11 @@ const Entry = () => {
       staffDetails.first_name.length > nameMaxLength ||
       staffDetails.last_name.length > nameMaxLength ||
       staffDetails.department.length > nameMaxLength ||
-      staffDetails.appointment.length > nameMaxLength
+      staffDetails.designation.length > nameMaxLength
     ) {
       toast.error(
-        "First Name, Last Name, Department, and Appointment should not exceed 50 characters"
+        "First Name, Last Name, Department, and Designation should not exceed 50 characters"
       );
-      return false;
-    }
-
-    if (!Number.isInteger(parseInt(staffDetails.teaching_training_hours))) {
-      toast.error("Teaching Training Hours must be an integer");
       return false;
     }
 
@@ -75,8 +65,7 @@ const Entry = () => {
       "first_name",
       "last_name",
       "department",
-      "appointment",
-      "teaching_training_hours",
+      "designation",
       "email",
     ];
 
@@ -98,19 +87,8 @@ const Entry = () => {
     try {
       console.log("Formatting dates...");
 
-      const formatDate = (dateStr) => {
-        if (!dateStr) return null;
-        return new Date(dateStr).toISOString().slice(0, 19).replace("T", " ");
-      };
-
       const dataToSubmit = {
         ...staffDetails,
-        start_date: formatDate(staffDetails.start_date),
-        end_date: formatDate(staffDetails.end_date),
-        renewal_start_date: formatDate(staffDetails.renewal_start_date),
-        renewal_end_date: formatDate(staffDetails.renewal_end_date),
-        teaching_training_hours:
-          parseInt(staffDetails.teaching_training_hours, 10) || 0,
       };
 
       console.log("Data to be submitted:", dataToSubmit);
@@ -140,12 +118,7 @@ const Entry = () => {
           first_name: "",
           last_name: "",
           department: "",
-          appointment: "",
-          teaching_training_hours: "",
-          start_date: "",
-          end_date: "",
-          renewal_start_date: "",
-          renewal_end_date: "",
+          designation: "",
           email: "",
         });
       } else {
@@ -161,8 +134,48 @@ const Entry = () => {
   };
 
   // Function to handle input changes and update the state
-  const handleInputChange = (e) => {
+  const handleInputChange = async (e) => {
     const { name, value } = e.target;
+    const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/; // Ensure the regex is applied
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.log("No token found");
+      return;
+    }
+
+    // If the field is mcr_number, check the format first
+    if (name === "mcr_number") {
+      // Proceed only if the value is 7 characters and matches the regex
+      if (value.length === 7 && mcrRegex.test(value)) {
+        try {
+          // Making API request to check if MCR number exists
+          const response = await axios.get(
+            `http://localhost:3001/staff/${value}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+
+          // If response status is 200, it means the MCR number exists
+          if (response.status === 200) {
+            toast.error("MCR number already exists");
+          }
+        } catch (err) {
+          // If error response status is 404, the MCR number is available
+          if (err.response && err.response.status === 404) {
+            toast.success("MCR number is available");
+          } else {
+            // Handle other possible errors
+            toast.error("Error checking MCR number");
+          }
+        }
+      } else if (value.length === 7 && !mcrRegex.test(value)) {
+        toast.error("MCR Number must follow the pattern: MxxxxxA");
+      }
+    }
+
+    // Update state for staff details
     setStaffDetails((prevDetails) => ({
       ...prevDetails,
       [name]: value,
@@ -223,67 +236,12 @@ const Entry = () => {
                 </td>
               </tr>
               <tr>
-                <th>Appointment</th>
+                <th>Designation</th>
                 <td>
                   <input
                     type="text"
-                    name="appointment"
-                    value={staffDetails.appointment}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Teaching Training Hours</th>
-                <td>
-                  <input
-                    type="number"
-                    name="teaching_training_hours"
-                    value={staffDetails.teaching_training_hours}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Start Date</th>
-                <td>
-                  <input
-                    type="datetime-local"
-                    name="start_date"
-                    value={formatDateTime(staffDetails.start_date)}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>End Date</th>
-                <td>
-                  <input
-                    type="datetime-local"
-                    name="end_date"
-                    value={formatDateTime(staffDetails.end_date)}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Renewal Start Date</th>
-                <td>
-                  <input
-                    type="datetime-local"
-                    name="renewal_start_date"
-                    value={formatDateTime(staffDetails.renewal_start_date)}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Renewal End Date</th>
-                <td>
-                  <input
-                    type="datetime-local"
-                    name="renewal_end_date"
-                    value={formatDateTime(staffDetails.renewal_end_date)}
+                    name="designation"
+                    value={staffDetails.designation}
                     onChange={handleInputChange}
                   />
                 </td>
@@ -311,94 +269,6 @@ const Entry = () => {
           <h2>Staff Details</h2>
           <table className="staff-detail-table">
             <tbody>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>{" "}
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
               <tr>
                 <th>Created At</th>
                 <td>{formatDateTime(staffDetails.created_at)}</td>

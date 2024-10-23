@@ -343,7 +343,13 @@ app.post("/new-contracts/:mcr_number", verifyToken, (req, res) => {
   INSERT INTO contracts (mcr_number, school_name, contract_start_date, contract_end_date, status)
   VALUES (?, ?, ?, ?, ?)`;
 
-  const values = [mcr_number, school_name, contract_start_date, contract_end_date, status];
+  const values = [
+    mcr_number,
+    school_name,
+    contract_start_date,
+    contract_end_date,
+    status,
+  ];
 
   db.query(query, values, (err, data) => {
     if (err) {
@@ -363,13 +369,8 @@ app.post("/entry", verifyToken, (req, res) => {
     first_name,
     last_name,
     department,
-    appointment,
-    teaching_training_hours,
-    start_date,
-    end_date,
-    renewal_start_date,
-    renewal_end_date,
-    email,
+    designation,
+    email
   } = req.body;
 
   const userMcrNumber = req.user.id;
@@ -379,7 +380,7 @@ app.post("/entry", verifyToken, (req, res) => {
     !first_name ||
     !last_name ||
     !department ||
-    !appointment ||
+    !designation ||
     !email
   ) {
     return res
@@ -389,8 +390,8 @@ app.post("/entry", verifyToken, (req, res) => {
 
   const q = `
     INSERT INTO main_data 
-    (mcr_number, first_name, last_name, department, appointment, teaching_training_hours, start_date, end_date, renewal_start_date, renewal_end_date, email, created_by) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (mcr_number, first_name, last_name, designation, email, department, created_by) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
   const values = [
@@ -398,12 +399,7 @@ app.post("/entry", verifyToken, (req, res) => {
     first_name,
     last_name,
     department,
-    appointment,
-    teaching_training_hours,
-    start_date,
-    end_date,
-    renewal_start_date,
-    renewal_end_date,
+    designation,
     email,
     userMcrNumber, // Log who created the record (the currently logged-in user)
   ];

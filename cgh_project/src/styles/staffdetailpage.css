@@ -53,7 +53,8 @@
   z-index: 1; /* Ensure content is on top of the background */
 }
 
-.staff-info-container h2, .staff-info-container-right h2 {
+.staff-info-container h2,
+.staff-info-container-right h2 {
   color: #0083ca;
   margin-bottom: 20px;
   font-size: 16px;
@@ -191,7 +192,8 @@
 .add-contract-button,
 .toggle-add-contract-button,
 .restore-button,
-.delete-button {
+.delete-button,
+.update-contract-button {
   margin-top: 20px;
   font-family: "Montserrat", sans-serif;
   text-align: center;
@@ -225,7 +227,7 @@
   color: white;
 }
 
-.add-contract-button {
+.add-contract-button, .update-contract-button {
   background-color: #72bf78;
   color: white;
 }

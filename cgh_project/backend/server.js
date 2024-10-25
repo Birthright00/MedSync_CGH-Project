@@ -364,14 +364,8 @@ app.post("/new-contracts/:mcr_number", verifyToken, (req, res) => {
 // POST REQUEST FOR ADDING NEW STAFF DETAILS TO MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/entry", verifyToken, (req, res) => {
-  const {
-    mcr_number,
-    first_name,
-    last_name,
-    department,
-    designation,
-    email
-  } = req.body;
+  const { mcr_number, first_name, last_name, department, designation, email } =
+    req.body;
 
   const userMcrNumber = req.user.id;
 

@@ -334,31 +334,92 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
 // POST REQUEST FOR ADDING NEW CONTRACTS TO CONTRACTS TABLE
 // -------------------------------------------------------------------------------------------------------------//
 
-app.post("/new-contracts/:mcr_number", verifyToken, (req, res) => {
+app.post("/contracts/:mcr_number", verifyToken, (req, res) => {
   const { mcr_number } = req.params;
-  const { school_name, contract_start_date, contract_end_date, status } =
-    req.body;
-
-  const query = `
-  INSERT INTO contracts (mcr_number, school_name, contract_start_date, contract_end_date, status)
-  VALUES (?, ?, ?, ?, ?)`;
-
-  const values = [
-    mcr_number,
+  const {
     school_name,
     contract_start_date,
     contract_end_date,
     status,
-  ];
+    training_hours,
+    prev_title,
+    new_title,
+    training_hours_2022,
+    training_hours_2023,
+    training_hours_2024,
+  } = req.body;
 
-  db.query(query, values, (err, data) => {
-    if (err) {
-      console.error("Error inserting new contract:", err);
-      return res.status(500).json({ error: "Failed to add contract" });
+  // First, delete the existing contract for the same school_name
+  const deleteQuery = `
+    DELETE FROM contracts 
+    WHERE mcr_number = ? AND school_name = ?`;
+
+  db.query(deleteQuery, [mcr_number, school_name], (deleteErr, deleteData) => {
+    if (deleteErr) {
+      console.error("Error deleting existing contract:", deleteErr);
+      return res
+        .status(500)
+        .json({ error: "Failed to delete existing contract" });
     }
-    return res.status(201).json({ message: "Contract added successfully" });
+
+    // Then insert the new contract
+    const insertQuery = `
+      INSERT INTO contracts 
+      (mcr_number, school_name, contract_start_date, contract_end_date, status, training_hours, prev_title, new_title, training_hours_2022, training_hours_2023, training_hours_2024)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    const insertValues = [
+      mcr_number,
+      school_name,
+      contract_start_date,
+      contract_end_date,
+      status,
+      training_hours,
+      prev_title,
+      new_title,
+      training_hours_2022,
+      training_hours_2023,
+      training_hours_2024,
+    ];
+
+    db.query(insertQuery, insertValues, (insertErr, insertData) => {
+      if (insertErr) {
+        console.error("Error inserting new contract:", insertErr);
+        return res.status(500).json({ error: "Failed to add new contract" });
+      }
+
+      return res
+        .status(201)
+        .json({ message: "Contract replaced successfully" });
+    });
   });
 });
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST FOR CONTRACT DETAILS BY 'mcr_number' AND 'school_name'
+// -------------------------------------------------------------------------------------------------------------//
+
+app.get("/contracts/:mcr_number/:school_name", verifyToken, (req, res) => {
+  const { mcr_number, school_name } = req.params;
+
+  const query = `
+    SELECT contract_start_date, contract_end_date, prev_title, status, 
+           training_hours_2022, training_hours_2023, training_hours_2024
+    FROM contracts
+    WHERE mcr_number = ? AND school_name = ?`;
+
+  db.query(query, [mcr_number, school_name], (err, results) => {
+    if (err) {
+      console.error("Error fetching contract details:", err);
+      return res.status(500).json({ error: "Failed to fetch contract details" });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Contract not found" });
+    }
+    return res.status(200).json(results[0]); // Return the contract details
+  });
+});
+
 
 // -------------------------------------------------------------------------------------------------------------//
 // POST REQUEST FOR ADDING NEW STAFF DETAILS TO MAIN_DATA TABLE

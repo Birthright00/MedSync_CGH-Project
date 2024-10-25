@@ -1,6 +1,58 @@
+/* Add this to your existing CSS to align labels next to input fields */
+
+/* Contract input container styling for side-by-side label and input */
+.contract-input-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%; /* Ensure the container takes the full width */
+}
+
+/* Container for each label and input pair */
+.contract-input-container div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%; /* Ensures that both label and input take full width */
+  margin-bottom: 10px; /* Spacing between each row */
+  margin-top: 5px;
+}
+
+/* Label styling - ensure they take up consistent width */
+.contract-input-container label {
+  width: 40%; /* Adjust label width */
+  margin-right: 10px;
+  text-align: right; /* Right-align the labels */
+  font-size: 14px;
+}
+
+/* Input and select fields styling */
+.contract-input-container select,
+.contract-input-container input {
+  width: 60%; /* Ensure input field takes up the remaining space */
+  padding: 10px;
+  margin-left: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+  transition: border 300ms;
+  box-sizing: border-box; /* Ensure consistent sizing */
+}
+
+.contract-input-container select:focus,
+.contract-input-container input:focus {
+  border: 1px solid #0083ca; /* Highlight border on focus */
+}
+
+/* Ensure total training hours is read-only but still styled properly */
+.contract-input-container input[readonly] {
+  background-color: #f2f2f2; /* Light grey background for read-only inputs */
+}
+
 /* ################################################# */
-/* Main Page Layout */
+/* Main Page Layout and General Styles (Unchanged) */
 /* ################################################# */
+
 .staff-detail-page {
   width: 100vw;
   min-height: 100vh;
@@ -29,6 +81,7 @@
 /* ################################################# */
 /* STAFF DETAILS (LEFT SIDE) */
 /* ################################################# */
+
 .staff-info-container {
   background-color: white;
   padding: 20px;
@@ -112,30 +165,6 @@
   border-radius: 5px; /* Add slight rounding */
   margin-top: 0; /* Remove any additional margin */
   box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px; /* Subtle shadow */
-}
-
-/* Styling for the New Contract Input Container */
-.contract-input-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.contract-input-container select,
-.contract-input-container input {
-  width: 100%; /* Set to 100% of the parent container */
-  padding: 10px;
-  margin: 5px 0;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 14px;
-  transition: border 300ms;
-  box-sizing: border-box; /* Ensure consistent sizing */
-}
-
-.contract-input-container select:focus,
-.contract-input-container input:focus {
-  border: 1px solid #0083ca; /* Highlight border on focus */
 }
 
 /* Table Styling for Contracts */
@@ -260,5 +289,5 @@
   padding: 10px;
   font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.
 }

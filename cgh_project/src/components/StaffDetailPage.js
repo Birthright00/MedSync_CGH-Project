@@ -22,9 +22,32 @@ const StaffDetailPage = () => {
     start_date: "",
     end_date: "",
     status: "",
+    training_hours: "",
+    training_hours_2022: "",
+    training_hours_2023: "",
+    training_hours_2024: "",
+    total_training_hours: 0, // Add this field to store the sum of training hours
+    prev_title: "",
+    new_title: "",
   });
   const [contracts, setContracts] = useState([]);
   const [isContractFormOpen, setContractFormOpen] = useState(false);
+  const calculateTotalTrainingHours = (contract) => {
+    const {
+      training_hours,
+      training_hours_2022,
+      training_hours_2023,
+      training_hours_2024,
+    } = contract;
+
+    const total =
+      parseFloat(training_hours || 0) +
+      parseFloat(training_hours_2022 || 0) +
+      parseFloat(training_hours_2023 || 0) +
+      parseFloat(training_hours_2024 || 0);
+
+    return total;
+  };
 
   const [staffDetails, setStaffDetails] = useState({
     mcr_number: "",
@@ -63,6 +86,62 @@ const StaffDetailPage = () => {
       toast.error("Failed to fetch contracts");
     }
   };
+  const handleNewContractInputChange = async (e) => {
+    const { name, value } = e.target;
+  
+    // Update the new contract details
+    const updatedContract = {
+      ...newContract,
+      [name]: value,
+    };
+  
+    // If the selected field is school_name, fetch the contract details
+    if (name === "school_name" && value) {
+      try {
+        const token = localStorage.getItem("token");
+  
+        // Make an API call to get the contract details for the selected school
+        const response = await axios.get(
+          `http://localhost:3001/contracts/${mcr_number}/${value}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+  
+        // If contract exists, update all relevant fields
+        if (response.status === 200) {
+          const {
+            contract_start_date,
+            contract_end_date,
+            prev_title,
+            status,
+            training_hours_2022,
+            training_hours_2023,
+            training_hours_2024,
+          } = response.data;
+  
+          // Store the dates in the backend-friendly format (YYYY-MM-DD)
+          updatedContract.start_date = contract_start_date || "";
+          updatedContract.end_date = contract_end_date || "";
+          updatedContract.prev_title = prev_title || "";
+          updatedContract.status = status || "";
+          updatedContract.training_hours_2022 = training_hours_2022 || 0;
+          updatedContract.training_hours_2023 = training_hours_2023 || 0;
+          updatedContract.training_hours_2024 = training_hours_2024 || 0;
+        }
+      } catch (error) {
+        console.error("Error fetching contract details:", error);
+        toast.error("Failed to fetch contract details");
+      }
+    }
+  
+    // Calculate the total training hours
+    updatedContract.total_training_hours =
+      calculateTotalTrainingHours(updatedContract);
+  
+    setNewContract(updatedContract);
+  };
+  
 
   // ########################################## //
   // Adding New Contract
@@ -86,14 +165,17 @@ const StaffDetailPage = () => {
         contract_start_date: newContract.start_date,
         contract_end_date: newContract.end_date,
         status: newContract.status,
+        training_hours: newContract.training_hours, // Include training_hours
+        prev_title: newContract.prev_title, // Include prev_title
+        new_title: newContract.new_title, // Include new_title
+        training_hours_2022: newContract.training_hours_2022, // Include training_hours_2022
+        training_hours_2023: newContract.training_hours_2023, // Include training_hours_2023
+        training_hours_2024: newContract.training_hours_2024, // Include training_hours_2024
       };
-
-      // Log contract data to ensure values are correct
-      console.log("Contract Data being sent: ", contractData);
 
       // POST request to add the new contract
       await axios.post(
-        `http://localhost:3001/new-contracts/${mcr_number}`,
+        `http://localhost:3001/contracts/${mcr_number}`,
         contractData,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -101,11 +183,20 @@ const StaffDetailPage = () => {
       );
 
       toast.success("New contract added successfully!");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
       setNewContract({
         school_name: "",
         contract_start_date: "",
         contract_end_date: "",
         status: "",
+        training_hours: "", // Reset the form fields after submission
+        prev_title: "",
+        new_title: "",
+        training_hours_2022: "",
+        training_hours_2023: "",
+        training_hours_2024: "",
       });
 
       // Fetch contracts again to update the displayed table
@@ -512,7 +603,8 @@ const StaffDetailPage = () => {
                 ))}
               </tr>
               <tr>
-                <th>Training Hours</th> {/* Row for Contract Status */}
+                <th>Training Hours for this current contract</th>{" "}
+                {/* Row for Contract Status */}
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours}</td>
                 ))}
@@ -530,19 +622,19 @@ const StaffDetailPage = () => {
                 ))}
               </tr>
               <tr>
-                <th>2022 Training Hours</th>
+                <th>Total Training Hours in 2022</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours_2022}</td>
                 ))}
               </tr>
               <tr>
-                <th>2023 Training Hours</th>
+                <th>Total Training Hours in 2023</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours_2023}</td>
                 ))}
               </tr>
               <tr>
-                <th>2024 Training Hours</th>
+                <th>Total Training Hours in 2024</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours_2024}</td>
                 ))}
@@ -578,64 +670,163 @@ const StaffDetailPage = () => {
           </motion.button>
           {isContractFormOpen && (
             <div className="contract-input-container">
-              <select
-                value={newContract.school_name}
-                onChange={(e) =>
-                  setNewContract({
-                    ...newContract,
-                    school_name: e.target.value,
-                  })
-                }
-              >
-                <option value="">Select School</option>
-                <option value="Duke NUS">Duke NUS</option>
-                <option value="SingHealth Residency">
-                  SingHealth Residency
-                </option>
-                <option value="SUTD">SUTD</option>
-                <option value="NUS Yong Loo Lin School">
-                  NUS Yong Loo Lin School
-                </option>
-                <option value="NTU LKC">NTU LKC</option>
-              </select>
+              <div className="input-group">
+                <label>School Name:</label>
+                <select
+                  value={newContract.school_name}
+                  onChange={handleNewContractInputChange}
+                  name="school_name"
+                >
+                  <option value="">Select School</option>
+                  <option value="Duke NUS">Duke NUS</option>
+                  <option value="SingHealth Residency">
+                    SingHealth Residency
+                  </option>
+                  <option value="SUTD">SUTD</option>
+                  <option value="NUS Yong Loo Lin School">
+                    NUS Yong Loo Lin School
+                  </option>
+                  <option value="NTU LKC">NTU LKC</option>
+                </select>
+              </div>
 
-              <input
-                type="text"
-                placeholder="Start Date"
-                value={newContract.start_date}
-                onFocus={(e) => (e.target.type = "date")}
-                onBlur={(e) => (e.target.type = "text")}
-                onChange={(e) =>
-                  setNewContract({ ...newContract, start_date: e.target.value })
-                }
-              />
+              <div className="input-group">
+                <label>Start Date:</label>
+                <input
+                  type="text"
+                  placeholder="Start Date"
+                  value={formatDateTime(newContract.start_date)}
+                  onFocus={(e) => (e.target.type = "date")}
+                  onBlur={(e) => (e.target.type = "text")}
+                  onChange={(e) =>
+                    setNewContract({
+                      ...newContract,
+                      start_date: e.target.value,
+                    })
+                  }
+                />
+              </div>
 
-              <input
-                type="text"
-                placeholder="End Date"
-                value={newContract.end_date}
-                onFocus={(e) => (e.target.type = "date")}
-                onBlur={(e) => (e.target.type = "text")}
-                onChange={(e) =>
-                  setNewContract({ ...newContract, end_date: e.target.value })
-                }
-              />
+              <div className="input-group">
+                <label>End Date:</label>
+                <input
+                  type="text"
+                  placeholder="End Date"
+                  value={formatDateTime(newContract.end_date)}
+                  onFocus={(e) => (e.target.type = "date")}
+                  onBlur={(e) => (e.target.type = "text")}
+                  onChange={(e) =>
+                    setNewContract({
+                      ...newContract,
+                      end_date: e.target.value,
+                    })
+                  }
+                />
+              </div>
 
-              <select
-                value={newContract.status}
-                onChange={(e) =>
-                  setNewContract({ ...newContract, status: e.target.value })
-                }
-              >
-                <option value="">Select Status</option>
-                <option value="Active">Active</option>
-                <option value="Expired">Expired</option>
-                <option value="Transferred">Transferred</option>
-                <option value="Lapse">Lapse</option>
-                <option value="New">New</option>
-                <option value="Program Closure">Program Closure</option>
-                <option value="Renewal">Renewal</option>
-              </select>
+              <div className="input-group">
+                <label>Status:</label>
+                <select
+                  value={newContract.status}
+                  onChange={(e) =>
+                    setNewContract({ ...newContract, status: e.target.value })
+                  }
+                >
+                  <option value="">Select Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Expired">Expired</option>
+                  <option value="Transferred">Transferred</option>
+                  <option value="Lapse">Lapse</option>
+                  <option value="New">New</option>
+                  <option value="Program Closure">Program Closure</option>
+                  <option value="Renewal">Renewal</option>
+                </select>
+              </div>
+
+              <div className="input-group">
+                <label>Training Hours for this Contract:</label>
+                <input
+                  type="float"
+                  placeholder="Training Hours for this Contract"
+                  name="training_hours"
+                  value={newContract.training_hours}
+                  onChange={handleNewContractInputChange}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Training Hours in 2022:</label>
+                <input
+                  type="float"
+                  placeholder="Training Hours in 2022"
+                  name="training_hours_2022"
+                  value={newContract.training_hours_2022}
+                  onChange={handleNewContractInputChange}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Training Hours in 2023:</label>
+                <input
+                  type="float"
+                  placeholder="Training Hours in 2023"
+                  name="training_hours_2023"
+                  value={newContract.training_hours_2023}
+                  onChange={handleNewContractInputChange}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Training Hours in 2024:</label>
+                <input
+                  type="float"
+                  placeholder="Training Hours in 2024"
+                  name="training_hours_2024"
+                  value={newContract.training_hours_2024}
+                  onChange={handleNewContractInputChange}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Total Training Hours:</label>
+                <input
+                  type="number"
+                  name="total_training_hours"
+                  placeholder="Total Training Hours"
+                  value={newContract.total_training_hours}
+                  readOnly
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Previous Title:</label>
+                <input
+                  type="text"
+                  placeholder="Previous Title"
+                  value={newContract.prev_title}
+                  onChange={(e) =>
+                    setNewContract({
+                      ...newContract,
+                      prev_title: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="input-group">
+                <label>New Title:</label>
+                <input
+                  type="text"
+                  placeholder="New Title"
+                  value={newContract.new_title}
+                  onChange={(e) =>
+                    setNewContract({
+                      ...newContract,
+                      new_title: e.target.value,
+                    })
+                  }
+                />
+              </div>
 
               <motion.button
                 whileHover={{ scale: 1.05 }}

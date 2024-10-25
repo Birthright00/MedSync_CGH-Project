@@ -133,6 +133,16 @@ const Entry = () => {
     }
   };
 
+  const handleReset = () => {
+    setStaffDetails({
+      mcr_number: "",
+      first_name: "",
+      last_name: "",
+      department: "",
+      designation: "",
+      email: "",
+    });
+  };
   // Function to handle input changes and update the state
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
@@ -227,14 +237,50 @@ const Entry = () => {
               <tr>
                 <th>Department</th>
                 <td>
-                  <input
-                    type="text"
-                    name="department"
-                    value={staffDetails.department}
-                    onChange={handleInputChange}
-                  />
+                  <div className="contract-input-container">
+                    <select
+                      name="department"
+                      value={staffDetails.department}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">Department</option>{" "}
+                      {/* Placeholder option */}
+                      <option value="A&E">A&E</option>
+                      <option value="General Surgery">General Surgery</option>
+                      <option value="Cardiology">Cardiology</option>
+                      <option value="Orthopaedics">Orthopaedics</option>
+                      <option value="Neurology">Neurology</option>
+                      <option value="Urology">Urology</option>
+                      <option value="Gastroenterology">Gastroenterology</option>
+                      <option value="Dermatology">Dermatology</option>
+                      <option value="Endocrinology">Endocrinology</option>
+                      <option value="Ophthalmology">Ophthalmology</option>
+                      <option value="Otolaryngology">
+                        Otolaryngology (ENT)
+                      </option>
+                      <option value="Paediatrics">Paediatrics</option>
+                      <option value="Psychiatry">Psychiatry</option>
+                      <option value="Obstetrics & Gynaecology">
+                        Obstetrics & Gynaecology
+                      </option>
+                      <option value="Radiology">Radiology</option>
+                      <option value="Anaesthesiology">Anaesthesiology</option>
+                      <option value="Nephrology">Nephrology</option>
+                      <option value="Haematology">Haematology</option>
+                      <option value="Oncology">Oncology</option>
+                      <option value="Rheumatology">Rheumatology</option>
+                      <option value="Plastic Surgery">Plastic Surgery</option>
+                      <option value="Infectious Diseases">
+                        Infectious Diseases
+                      </option>
+                      <option value="Geriatric Medicine">
+                        Geriatric Medicine
+                      </option>
+                    </select>
+                  </div>
                 </td>
               </tr>
+
               <tr>
                 <th>Designation</th>
                 <td>
@@ -258,14 +304,30 @@ const Entry = () => {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </table>{" "}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="update-button"
+            onClick={handleReset}
+          >
+            Reset
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="add-contract-button"
+            onClick={handleSubmit}
+          >
+            Add New Staff
+          </motion.button>
         </div>
 
         {/* ------------------------------------------------------- */}
         {/* End of Left Form */}
         {/* ------------------------------------------------------- */}
 
-        <div className="staff-info-container">
+        {/* <div className="staff-info-container">
           <h2>Staff Details</h2>
           <table className="staff-detail-table">
             <tbody>
@@ -295,7 +357,7 @@ const Entry = () => {
           >
             Add New Staff
           </motion.button>
-        </div>
+        </div> */}
       </div>
       {/* <Footer /> */}
     </>

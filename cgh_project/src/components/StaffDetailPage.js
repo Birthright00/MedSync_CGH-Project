@@ -10,6 +10,7 @@ import { CSVLink } from "react-csv";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { confirmAlert } from "react-confirm-alert"; // Import the confirmation alert library
 import "react-confirm-alert/src/react-confirm-alert.css";
+import React from "react";
 
 const StaffDetailPage = () => {
   // ########################################## //
@@ -21,6 +22,7 @@ const StaffDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [staffContractDetails, setStaffContractDetails] = useState([]);
   const [selectedYears, setSelectedYears] = useState([]);
+  const [postings, setPostings] = useState([]); // State to hold postings data
 
   const [staffDetails, setStaffDetails] = useState({
     mcr_number: "",
@@ -58,6 +60,26 @@ const StaffDetailPage = () => {
       toast.error("Failed to fetch contracts");
     }
   };
+  const fetchPostings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3001/postings?mcr_number=${mcr_number}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setPostings(response.data); // Set the postings data
+    } catch (error) {
+      console.error("Error fetching postings:", error);
+      toast.error("Failed to fetch postings");
+    }
+  };
+
+  useEffect(() => {
+    fetchContracts();
+    fetchPostings(); // Fetch postings when component loads
+  }, [mcr_number]);
 
   // ########################################## //
   // Filter by year total training hours
@@ -620,12 +642,12 @@ const StaffDetailPage = () => {
                   <td key={index}>{contract.status}</td>
                 ))}
               </tr>
-              <tr>
+              {/* <tr>
                 <th>Training Hours for this current contract</th>{" "}
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours}</td>
                 ))}
-              </tr>
+              </tr> */}
               <tr>
                 <th>Prev title</th>
                 {staffContractDetails.map((contract, index) => (
@@ -799,7 +821,7 @@ const StaffDetailPage = () => {
                 </select>
               </div>
 
-              <div className="input-group">
+              {/* <div className="input-group">
                 <label>Training Hours for this Contract:</label>
                 <input
                   type="float"
@@ -808,7 +830,7 @@ const StaffDetailPage = () => {
                   value={newContract.training_hours}
                   onChange={handleNewContractInputChange}
                 />
-              </div>
+              </div> */}
 
               <div className="input-group">
                 <label>Training Hours in 2022:</label>
@@ -893,7 +915,38 @@ const StaffDetailPage = () => {
                 Submit
               </motion.button>
             </div>
-          )}
+          )}{" "}
+          <h2>Postings</h2>
+          <table className="staff-detail-table">
+            <thead>
+              <tr>
+                <th>Academic Year</th>
+                <th>Posting Number</th>
+                <th>Training Hours</th>
+                <th>School</th>
+                <th>Rating</th>
+              </tr>
+            </thead>
+            <tbody>
+              {postings.length > 0 ? (
+                postings.map((posting) => (
+                  <tr
+                    key={`${posting.academic_year}-${posting.posting_number}`}
+                  >
+                    <td>{posting.academic_year}</td>
+                    <td>{posting.posting_number}</td>
+                    <td>{posting.total_training_hour}</td>
+                    <td>{posting.school_name}</td>
+                    <td>{posting.rating}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4">No postings found for this school.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </motion.div>
       </motion.div>
     </>

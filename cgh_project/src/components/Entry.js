@@ -29,7 +29,8 @@ const Entry = () => {
     designation: "",
     email: "",
   });
-
+  const [mcrStatus, setMcrStatus] = useState(""); // "available" or "taken"
+  const [mcrMessage, setMcrMessage] = useState("");
   // Function to validate input fields before submission
   const validateFields = () => {
     const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/;
@@ -146,7 +147,7 @@ const Entry = () => {
   // Function to handle input changes and update the state
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
-    const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/; // Ensure the regex is applied
+    const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/;
 
     const token = localStorage.getItem("token");
     if (!token) {
@@ -154,12 +155,14 @@ const Entry = () => {
       return;
     }
 
-    // If the field is mcr_number, check the format first
+    // If the field is mcr_number, check the format and then check availability
     if (name === "mcr_number") {
-      // Proceed only if the value is 7 characters and matches the regex
+      setMcrStatus(""); // Clear status on input change
+      setMcrMessage("MCR Number must follow the pattern: MxxxxxA"); // Show requirements by default
+
+      // Only perform availability check if the input matches the required length and pattern
       if (value.length === 7 && mcrRegex.test(value)) {
         try {
-          // Making API request to check if MCR number exists
           const response = await axios.get(
             `http://localhost:3001/staff/${value}`,
             {
@@ -167,21 +170,25 @@ const Entry = () => {
             }
           );
 
-          // If response status is 200, it means the MCR number exists
+          // If response status is 200, it means the MCR number is taken
           if (response.status === 200) {
-            toast.error("MCR number already exists");
+            setMcrStatus("taken");
+            setMcrMessage("MCR number is already taken");
           }
         } catch (err) {
           // If error response status is 404, the MCR number is available
           if (err.response && err.response.status === 404) {
-            toast.success("MCR number is available");
+            setMcrStatus("available");
+            setMcrMessage("MCR number is available");
           } else {
             // Handle other possible errors
-            toast.error("Error checking MCR number");
+            setMcrStatus("error");
+            setMcrMessage("Error checking MCR number");
           }
         }
       } else if (value.length === 7 && !mcrRegex.test(value)) {
-        toast.error("MCR Number must follow the pattern: MxxxxxA");
+        setMcrStatus("error");
+        setMcrMessage("MCR Number must follow the pattern: MxxxxxA");
       }
     }
 
@@ -210,6 +217,18 @@ const Entry = () => {
                     value={staffDetails.mcr_number}
                     onChange={handleInputChange}
                   />
+                  {/* Always display requirements or availability status */}
+                  <div
+                    className={`mcr-message ${
+                      mcrStatus === "available"
+                        ? "available"
+                        : mcrStatus === "taken"
+                        ? "taken"
+                        : ""
+                    }`}
+                  >
+                    {mcrMessage}
+                  </div>
                 </td>
               </tr>
               <tr>

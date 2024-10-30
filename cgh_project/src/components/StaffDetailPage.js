@@ -16,7 +16,62 @@ const StaffDetailPage = () => {
   // Generic Constants
   // ########################################## //
   const { mcr_number } = useParams(); // Get the MCR number from route params
-  const navigate = useNavigate(); // Use navigate to redirect after delete
+  const navigate = useNavigate();
+  const [contracts, setContracts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [staffContractDetails, setStaffContractDetails] = useState([]);
+  const [selectedYears, setSelectedYears] = useState([]);
+
+  const [staffDetails, setStaffDetails] = useState({
+    mcr_number: "",
+    first_name: "",
+    last_name: "",
+    department: "",
+    designation: "",
+    fte: "",
+    email: "",
+  });
+
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = ("0" + (date.getMonth() + 1)).slice(-2);
+    const day = ("0" + date.getDate()).slice(-2);
+    const hours = ("0" + date.getHours()).slice(-2);
+    const minutes = ("0" + date.getMinutes()).slice(-2);
+    return `${year}-${month}-${day} @ ${hours}${minutes}H`;
+  };
+
+  const fetchContracts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3001/contracts/${mcr_number}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setContracts(response.data); // Update the contract data in state
+    } catch (error) {
+      console.error("Error fetching contracts:", error);
+      toast.error("Failed to fetch contracts");
+    }
+  };
+
+  // ########################################## //
+  // Filter by year total training hours
+  // ########################################## //
+  const handleYearToggle = (year) => {
+    setSelectedYears((prevSelectedYears) =>
+      prevSelectedYears.includes(year)
+        ? prevSelectedYears.filter((y) => y !== year)
+        : [...prevSelectedYears, year]
+    );
+  };
+  // ########################################## //
+  // Add new Contract Section
+  // ########################################## //
   const [newContract, setNewContract] = useState({
     school_name: "",
     start_date: "",
@@ -26,11 +81,11 @@ const StaffDetailPage = () => {
     training_hours_2022: "",
     training_hours_2023: "",
     training_hours_2024: "",
-    total_training_hours: 0, // Add this field to store the sum of training hours
+    total_training_hours: 0,
     prev_title: "",
     new_title: "",
   });
-  const [contracts, setContracts] = useState([]);
+
   const [isContractFormOpen, setContractFormOpen] = useState(false);
   const calculateTotalTrainingHours = (contract) => {
     const {
@@ -49,57 +104,20 @@ const StaffDetailPage = () => {
     return total;
   };
 
-  const [staffDetails, setStaffDetails] = useState({
-    mcr_number: "",
-    first_name: "",
-    last_name: "",
-    department: "",
-    designation: "",
-    fte: "",
-    email: "",
-  });
-  const [loading, setLoading] = useState(true);
-  const [staffContractDetails, setStaffContractDetails] = useState([]);
-
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    const year = date.getFullYear();
-    const month = ("0" + (date.getMonth() + 1)).slice(-2);
-    const day = ("0" + date.getDate()).slice(-2);
-    const hours = ("0" + date.getHours()).slice(-2);
-    const minutes = ("0" + date.getMinutes()).slice(-2);
-    return `${year}-${month}-${day} @ ${hours}${minutes}H`;
-  };
-  const fetchContracts = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:3001/contracts/${mcr_number}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setContracts(response.data); // Update the contract data in state
-    } catch (error) {
-      console.error("Error fetching contracts:", error);
-      toast.error("Failed to fetch contracts");
-    }
-  };
   const handleNewContractInputChange = async (e) => {
     const { name, value } = e.target;
-  
+
     // Update the new contract details
     const updatedContract = {
       ...newContract,
       [name]: value,
     };
-  
+
     // If the selected field is school_name, fetch the contract details
     if (name === "school_name" && value) {
       try {
         const token = localStorage.getItem("token");
-  
+
         // Make an API call to get the contract details for the selected school
         const response = await axios.get(
           `http://localhost:3001/contracts/${mcr_number}/${value}`,
@@ -107,7 +125,7 @@ const StaffDetailPage = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-  
+
         // If contract exists, update all relevant fields
         if (response.status === 200) {
           const {
@@ -119,7 +137,7 @@ const StaffDetailPage = () => {
             training_hours_2023,
             training_hours_2024,
           } = response.data;
-  
+
           // Store the dates in the backend-friendly format (YYYY-MM-DD)
           updatedContract.start_date = contract_start_date || "";
           updatedContract.end_date = contract_end_date || "";
@@ -134,18 +152,14 @@ const StaffDetailPage = () => {
         toast.error("Failed to fetch contract details");
       }
     }
-  
+
     // Calculate the total training hours
     updatedContract.total_training_hours =
       calculateTotalTrainingHours(updatedContract);
-  
+
     setNewContract(updatedContract);
   };
-  
 
-  // ########################################## //
-  // Adding New Contract
-  // ########################################## //
   const handleNewContract = async () => {
     if (
       !newContract.school_name ||
@@ -206,6 +220,9 @@ const StaffDetailPage = () => {
       toast.error("Failed to add new contract");
     }
   };
+  // ########################################## //
+  // End of Add New Contract Section
+  // ########################################## //
 
   // ########################################## //
   // General Staff Details
@@ -387,6 +404,7 @@ const StaffDetailPage = () => {
         );
         setStaffContractDetails(response.data);
         setLoading(false);
+        console.log(response.data);
       } catch (error) {
         console.error("Error fetching staff details:", error);
         setLoading(false);
@@ -579,7 +597,7 @@ const StaffDetailPage = () => {
             </thead>
             <tbody>
               <tr>
-                <th>Start Date</th> {/* Row for Start Date */}
+                <th>Start Date</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>
                     {new Date(
@@ -589,7 +607,7 @@ const StaffDetailPage = () => {
                 ))}
               </tr>
               <tr>
-                <th>End Date</th> {/* Row for End Date */}
+                <th>End Date</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>
                     {new Date(contract.contract_end_date).toLocaleDateString()}
@@ -597,31 +615,69 @@ const StaffDetailPage = () => {
                 ))}
               </tr>
               <tr>
-                <th>Status</th> {/* Row for Contract Status */}
+                <th>Status</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.status}</td>
                 ))}
               </tr>
               <tr>
                 <th>Training Hours for this current contract</th>{" "}
-                {/* Row for Contract Status */}
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours}</td>
                 ))}
               </tr>
               <tr>
-                <th>Prev title</th> {/* Row for Contract Status */}
+                <th>Prev title</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.prev_title}</td>
                 ))}
               </tr>
               <tr>
-                <th>New Title</th> {/* Row for Contract Status */}
+                <th>New Title</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.new_title}</td>
                 ))}
               </tr>
-              <tr>
+              <th>Select Years</th>
+              <th colSpan={3}>
+                <div>
+                  {["2022", "2023", "2024"].map((year) => (
+                    <label key={year} style={{ marginRight: "10px" }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedYears.includes(year)}
+                        onChange={() => handleYearToggle(year)}
+                      />
+                      {year}
+                    </label>
+                  ))}
+                </div>
+              </th>
+              {selectedYears.includes("2022") && (
+                <tr>
+                  <th>Total Training Hours in 2022</th>
+                  {staffContractDetails.map((contract, index) => (
+                    <td key={index}>{contract.training_hours_2022 || 0}</td>
+                  ))}
+                </tr>
+              )}
+              {selectedYears.includes("2023") && (
+                <tr>
+                  <th>Total Training Hours in 2023</th>
+                  {staffContractDetails.map((contract, index) => (
+                    <td key={index}>{contract.training_hours_2023 || 0}</td>
+                  ))}
+                </tr>
+              )}
+              {selectedYears.includes("2024") && (
+                <tr>
+                  <th>Total Training Hours in 2024</th>
+                  {staffContractDetails.map((contract, index) => (
+                    <td key={index}>{contract.training_hours_2024 || 0}</td>
+                  ))}
+                </tr>
+              )}
+              {/* <tr>
                 <th>Total Training Hours in 2022</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours_2022}</td>
@@ -644,7 +700,7 @@ const StaffDetailPage = () => {
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.total_training_hours}</td>
                 ))}
-              </tr>
+              </tr> */}
             </tbody>
           </table>
           {/* <CSVLink

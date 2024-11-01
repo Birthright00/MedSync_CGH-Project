@@ -26,6 +26,12 @@ const StaffDetailPage = () => {
   const [filteredPostings, setFilteredPostings] = useState([]);
   const [filteredContracts, setFilteredContracts] = useState([]);
 
+  const handleReset = () => {
+    setSelectedYears([]);
+    setFilteredPostings([]); // Clear postings when reset
+  };
+  
+
   // Filter contracts based on selected years
   useEffect(() => {
     const updatedFilteredContracts = contracts.filter((contract) => {
@@ -107,23 +113,36 @@ const StaffDetailPage = () => {
   // Filter by year total training hours
   // ########################################## //
   useEffect(() => {
-    const updatedFilteredPostings = postings.filter((posting) =>
-      selectedYears.includes(posting.academic_year.toString())
-    );
-
-    console.log("Selected Years:", selectedYears); // Debug: Check selected years
-    console.log("Filtered Postings:", updatedFilteredPostings); // Debug: Check filtered postings
-
-    setFilteredPostings(updatedFilteredPostings);
+    if (selectedYears.length === 0) {
+      // If no years are selected, clear the filtered postings
+      setFilteredPostings([]);
+    } else {
+      // Filter postings based on selected years
+      const updatedFilteredPostings = postings.filter((posting) =>
+        selectedYears.includes(posting.academic_year.toString())
+      );
+  
+      console.log("Selected Years:", selectedYears); // Debug: Check selected years
+      console.log("Filtered Postings:", updatedFilteredPostings); // Debug: Check filtered postings
+  
+      setFilteredPostings(updatedFilteredPostings);
+    }
   }, [selectedYears, postings]);
+  
 
   const handleYearToggle = (year) => {
-    setSelectedYears((prevSelectedYears) =>
-      prevSelectedYears.includes(year)
-        ? prevSelectedYears.filter((y) => y !== year)
-        : [...prevSelectedYears, year]
-    );
+    setSelectedYears((prevSelectedYears) => {
+      if (prevSelectedYears.includes(year)) {
+        // If the year is already selected, remove it
+        return prevSelectedYears.filter((y) => y !== year);
+      } else {
+        // If not selected, add it
+        return [...prevSelectedYears, year];
+      }
+    });
   };
+  
+
   // ########################################## //
   // Add new Contract Section
   // ########################################## //
@@ -632,7 +651,6 @@ const StaffDetailPage = () => {
             </motion.button>
           )}
         </motion.div>
-
         <motion.div
           className="staff-info-container-right"
           initial={{ x: 100, opacity: 0 }}
@@ -1008,9 +1026,17 @@ const StaffDetailPage = () => {
                 )}
               </tbody>
             </table>
-          </div>
-        </motion.div>
-      </motion.div>
+          </div>{" "}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="toggle-add-contract-button"
+            onClick={handleReset}
+          >
+            Reset
+          </motion.button>
+        </motion.div>{" "}
+      </motion.div>{" "}
     </>
   );
 };

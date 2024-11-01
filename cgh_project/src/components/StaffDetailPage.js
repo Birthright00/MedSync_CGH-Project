@@ -23,6 +23,28 @@ const StaffDetailPage = () => {
   const [staffContractDetails, setStaffContractDetails] = useState([]);
   const [selectedYears, setSelectedYears] = useState([]);
   const [postings, setPostings] = useState([]); // State to hold postings data
+  const [filteredPostings, setFilteredPostings] = useState([]);
+  const [filteredContracts, setFilteredContracts] = useState([]);
+
+  // Filter contracts based on selected years
+  useEffect(() => {
+    const updatedFilteredContracts = contracts.filter((contract) => {
+      const startYear = new Date(contract.contract_start_date)
+        .getFullYear()
+        .toString();
+      const endYear = new Date(contract.contract_end_date)
+        .getFullYear()
+        .toString();
+
+      return (
+        selectedYears.includes(startYear) || selectedYears.includes(endYear)
+      );
+    });
+
+    console.log("Filtered Contracts:", updatedFilteredContracts); // Debug: Check filtered contracts
+
+    setFilteredContracts(updatedFilteredContracts);
+  }, [selectedYears, contracts]);
 
   const [staffDetails, setStaffDetails] = useState({
     mcr_number: "",
@@ -84,6 +106,17 @@ const StaffDetailPage = () => {
   // ########################################## //
   // Filter by year total training hours
   // ########################################## //
+  useEffect(() => {
+    const updatedFilteredPostings = postings.filter((posting) =>
+      selectedYears.includes(posting.academic_year.toString())
+    );
+
+    console.log("Selected Years:", selectedYears); // Debug: Check selected years
+    console.log("Filtered Postings:", updatedFilteredPostings); // Debug: Check filtered postings
+
+    setFilteredPostings(updatedFilteredPostings);
+  }, [selectedYears, postings]);
+
   const handleYearToggle = (year) => {
     setSelectedYears((prevSelectedYears) =>
       prevSelectedYears.includes(year)
@@ -607,99 +640,117 @@ const StaffDetailPage = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           {" "}
+          <h2>Select Year(s)</h2>
+          <table className="staff-detail-table">
+            <th colSpan={3}>
+              <div>
+                {[
+                  "2013",
+                  "2014",
+                  "2015",
+                  "2016",
+                  "2017",
+                  "2018",
+                  "2019",
+                  "2020",
+                  "2021",
+                  "2022",
+                  "2023",
+                  "2024",
+                  "2025",
+                ].map((year) => (
+                  <label key={year} style={{ marginRight: "10px" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedYears.includes(year)}
+                      onChange={() => handleYearToggle(year)}
+                    />
+                    {year}
+                  </label>
+                ))}
+              </div>
+            </th>
+          </table>
           <h2>Contracts</h2>
           <table className="staff-detail-table">
             <thead>
               <tr>
                 <th>Contract Detail</th>
-                {staffContractDetails.map((contract, index) => (
-                  <th key={index}>{contract.school_name}</th>
-                ))}
+                {filteredContracts.length > 0 ? (
+                  filteredContracts.map((contract, index) => (
+                    <th key={index}>{contract.school_name}</th>
+                  ))
+                ) : (
+                  <th>No Contract Found</th>
+                )}
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <th>Start Date</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>
-                    {new Date(
-                      contract.contract_start_date
-                    ).toLocaleDateString()}
-                  </td>
-                ))}
-              </tr>
-              <tr>
-                <th>End Date</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>
-                    {new Date(contract.contract_end_date).toLocaleDateString()}
-                  </td>
-                ))}
-              </tr>
-              <tr>
-                <th>Status</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.status}</td>
-                ))}
-              </tr>
-              {/* <tr>
-                <th>Training Hours for this current contract</th>{" "}
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.training_hours}</td>
-                ))}
-              </tr> */}
-              <tr>
-                <th>Prev title</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.prev_title}</td>
-                ))}
-              </tr>
-              <tr>
-                <th>New Title</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.new_title}</td>
-                ))}
-              </tr>
-              <th>Select Years</th>
-              <th colSpan={3}>
-                <div>
-                  {["2022", "2023", "2024"].map((year) => (
-                    <label key={year} style={{ marginRight: "10px" }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedYears.includes(year)}
-                        onChange={() => handleYearToggle(year)}
-                      />
-                      {year}
-                    </label>
-                  ))}
-                </div>
-              </th>
-              {selectedYears.includes("2022") && (
+            {filteredContracts.length > 0 ? (
+              <tbody>
                 <tr>
-                  <th>Total Training Hours in 2022</th>
-                  {staffContractDetails.map((contract, index) => (
-                    <td key={index}>{contract.training_hours_2022 || 0}</td>
+                  <th>Start Date</th>
+                  {filteredContracts.map((contract, index) => (
+                    <td key={index}>
+                      {new Date(
+                        contract.contract_start_date
+                      ).toLocaleDateString()}
+                    </td>
                   ))}
                 </tr>
-              )}
-              {selectedYears.includes("2023") && (
                 <tr>
-                  <th>Total Training Hours in 2023</th>
-                  {staffContractDetails.map((contract, index) => (
-                    <td key={index}>{contract.training_hours_2023 || 0}</td>
+                  <th>End Date</th>
+                  {filteredContracts.map((contract, index) => (
+                    <td key={index}>
+                      {new Date(
+                        contract.contract_end_date
+                      ).toLocaleDateString()}
+                    </td>
                   ))}
                 </tr>
-              )}
-              {selectedYears.includes("2024") && (
                 <tr>
-                  <th>Total Training Hours in 2024</th>
-                  {staffContractDetails.map((contract, index) => (
-                    <td key={index}>{contract.training_hours_2024 || 0}</td>
+                  <th>Status</th>
+                  {filteredContracts.map((contract, index) => (
+                    <td key={index}>{contract.status}</td>
                   ))}
                 </tr>
-              )}
-              {/* <tr>
+                <tr>
+                  <th>Previous Title</th>
+                  {filteredContracts.map((contract, index) => (
+                    <td key={index}>{contract.prev_title}</td>
+                  ))}
+                </tr>
+                <tr>
+                  <th>New Title</th>
+                  {filteredContracts.map((contract, index) => (
+                    <td key={index}>{contract.new_title}</td>
+                  ))}
+                </tr>
+
+                {selectedYears.includes("2022") && (
+                  <tr>
+                    <th>Total Training Hours in 2022</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.training_hours_2022 || "0"}</td>
+                    ))}
+                  </tr>
+                )}
+                {selectedYears.includes("2023") && (
+                  <tr>
+                    <th>Total Training Hours in 2023</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.training_hours_2023 || "0"}</td>
+                    ))}
+                  </tr>
+                )}
+                {selectedYears.includes("2024") && (
+                  <tr>
+                    <th>Total Training Hours in 2024</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.training_hours_2024 || "0"}</td>
+                    ))}
+                  </tr>
+                )}
+                {/* <tr>
                 <th>Total Training Hours in 2022</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours_2022}</td>
@@ -723,7 +774,16 @@ const StaffDetailPage = () => {
                   <td key={index}>{contract.total_training_hours}</td>
                 ))}
               </tr> */}
-            </tbody>
+              </tbody>
+            ) : (
+              <tbody>
+                <tr>
+                  <td colSpan="5" style={{ textAlign: "center" }}>
+                    No Contract Found
+                  </td>
+                </tr>
+              </tbody>
+            )}
           </table>
           {/* <CSVLink
             filename={`staff_details_${mcr_number}.csv`}
@@ -917,36 +977,38 @@ const StaffDetailPage = () => {
             </div>
           )}{" "}
           <h2>Postings</h2>
-          <table className="staff-detail-table">
-            <thead>
-              <tr>
-                <th>Academic Year</th>
-                <th>Posting Number</th>
-                <th>Training Hours</th>
-                <th>School</th>
-                <th>Rating</th>
-              </tr>
-            </thead>
-            <tbody>
-              {postings.length > 0 ? (
-                postings.map((posting) => (
-                  <tr
-                    key={`${posting.academic_year}-${posting.posting_number}`}
-                  >
-                    <td>{posting.academic_year}</td>
-                    <td>{posting.posting_number}</td>
-                    <td>{posting.total_training_hour}</td>
-                    <td>{posting.school_name}</td>
-                    <td>{posting.rating}</td>
-                  </tr>
-                ))
-              ) : (
+          <div className="postings-table-container">
+            <table className="posting-detail-table">
+              <thead>
                 <tr>
-                  <td colSpan="4">No postings found for this school.</td>
+                  <th>Academic Year</th>
+                  <th>Posting Number</th>
+                  <th>Training Hours</th>
+                  <th>School</th>
+                  <th>Rating</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredPostings.length > 0 ? (
+                  filteredPostings.map((posting) => (
+                    <tr
+                      key={`${posting.academic_year}-${posting.posting_number}`}
+                    >
+                      <td>{posting.academic_year}</td>
+                      <td>{posting.posting_number}</td>
+                      <td>{posting.total_training_hour}</td>
+                      <td>{posting.school_name}</td>
+                      <td>{posting.rating}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5">No postings found for selected years.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </motion.div>
       </motion.div>
     </>

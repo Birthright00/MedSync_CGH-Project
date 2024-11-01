@@ -152,7 +152,7 @@ const ManagementHomePage = () => {
       department: "",
       designation: "",
       duke_nus_status: "",
-      singhealth_residency_status: "",
+      singhealth_status: "",
       sutd_status: "",
       nus_ylls_status: "",
       ntu_lkc_status: "",
@@ -286,8 +286,8 @@ const ManagementHomePage = () => {
       // School filtering logic - "AND" logic for selected schools
       const matchesSchools =
         (!selectedSchools.duke_nus || staff.duke_nus_status) &&
-        (!selectedSchools.singhealth_residency ||
-          staff.singhealth_residency_status) &&
+        (!selectedSchools.singhealth ||
+          staff.singhealth_status) &&
         (!selectedSchools.sutd || staff.sutd_status) &&
         (!selectedSchools.nus_ylls || staff.nus_ylls_status) &&
         (!selectedSchools.ntu_lkc || staff.ntu_lkc_status);
@@ -388,16 +388,21 @@ const ManagementHomePage = () => {
               Duke NUS
             </button>
             <button
-              onClick={() =>
+              onClick={() => {
                 setSelectedSchools((prev) => ({
                   ...prev,
                   singhealth_residency: !prev.singhealth_residency,
-                }))
-              }
+                }));
+                console.log(
+                  "SingHealth Residency filter:",
+                  !selectedSchools.singhealth_residency
+                ); // Debugging line
+              }}
               className={selectedSchools.singhealth_residency ? "active" : ""}
             >
               Singhealth Residency
             </button>
+
             <button
               onClick={() =>
                 setSelectedSchools((prev) => ({ ...prev, sutd: !prev.sutd }))

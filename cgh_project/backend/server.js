@@ -300,7 +300,7 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
   const { mcr_number } = req.params;
   const { first_name, last_name, department, designation, email, fte } =
     req.body;
-  const userMcrNumber = req.user.mcr_number; // Assuming this is logged in user
+  const userMcrNumber = req.user.user.id; // Assuming this is logged in user
 
   const q = `
   UPDATE main_data 

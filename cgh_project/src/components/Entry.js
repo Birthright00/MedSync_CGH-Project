@@ -29,7 +29,8 @@ const Entry = () => {
     designation: "",
     email: "",
   });
-
+  const [mcrStatus, setMcrStatus] = useState(""); // "available" or "taken"
+  const [mcrMessage, setMcrMessage] = useState("");
   // Function to validate input fields before submission
   const validateFields = () => {
     const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/;
@@ -133,10 +134,20 @@ const Entry = () => {
     }
   };
 
+  const handleReset = () => {
+    setStaffDetails({
+      mcr_number: "",
+      first_name: "",
+      last_name: "",
+      department: "",
+      designation: "",
+      email: "",
+    });
+  };
   // Function to handle input changes and update the state
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
-    const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/; // Ensure the regex is applied
+    const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/;
 
     const token = localStorage.getItem("token");
     if (!token) {
@@ -144,12 +155,14 @@ const Entry = () => {
       return;
     }
 
-    // If the field is mcr_number, check the format first
+    // If the field is mcr_number, check the format and then check availability
     if (name === "mcr_number") {
-      // Proceed only if the value is 7 characters and matches the regex
+      setMcrStatus(""); // Clear status on input change
+      setMcrMessage("MCR Number must follow the pattern: MxxxxxA"); // Show requirements by default
+
+      // Only perform availability check if the input matches the required length and pattern
       if (value.length === 7 && mcrRegex.test(value)) {
         try {
-          // Making API request to check if MCR number exists
           const response = await axios.get(
             `http://localhost:3001/staff/${value}`,
             {
@@ -157,21 +170,25 @@ const Entry = () => {
             }
           );
 
-          // If response status is 200, it means the MCR number exists
+          // If response status is 200, it means the MCR number is taken
           if (response.status === 200) {
-            toast.error("MCR number already exists");
+            setMcrStatus("taken");
+            setMcrMessage("MCR number is already taken");
           }
         } catch (err) {
           // If error response status is 404, the MCR number is available
           if (err.response && err.response.status === 404) {
-            toast.success("MCR number is available");
+            setMcrStatus("available");
+            setMcrMessage("MCR number is available");
           } else {
             // Handle other possible errors
-            toast.error("Error checking MCR number");
+            setMcrStatus("error");
+            setMcrMessage("Error checking MCR number");
           }
         }
       } else if (value.length === 7 && !mcrRegex.test(value)) {
-        toast.error("MCR Number must follow the pattern: MxxxxxA");
+        setMcrStatus("error");
+        setMcrMessage("MCR Number must follow the pattern: MxxxxxA");
       }
     }
 
@@ -200,6 +217,18 @@ const Entry = () => {
                     value={staffDetails.mcr_number}
                     onChange={handleInputChange}
                   />
+                  {/* Always display requirements or availability status */}
+                  <div
+                    className={`mcr-message ${
+                      mcrStatus === "available"
+                        ? "available"
+                        : mcrStatus === "taken"
+                        ? "taken"
+                        : ""
+                    }`}
+                  >
+                    {mcrMessage}
+                  </div>
                 </td>
               </tr>
               <tr>
@@ -227,14 +256,50 @@ const Entry = () => {
               <tr>
                 <th>Department</th>
                 <td>
-                  <input
-                    type="text"
-                    name="department"
-                    value={staffDetails.department}
-                    onChange={handleInputChange}
-                  />
+                  <div className="contract-input-container">
+                    <select
+                      name="department"
+                      value={staffDetails.department}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">Department</option>{" "}
+                      {/* Placeholder option */}
+                      <option value="A&E">A&E</option>
+                      <option value="General Surgery">General Surgery</option>
+                      <option value="Cardiology">Cardiology</option>
+                      <option value="Orthopaedics">Orthopaedics</option>
+                      <option value="Neurology">Neurology</option>
+                      <option value="Urology">Urology</option>
+                      <option value="Gastroenterology">Gastroenterology</option>
+                      <option value="Dermatology">Dermatology</option>
+                      <option value="Endocrinology">Endocrinology</option>
+                      <option value="Ophthalmology">Ophthalmology</option>
+                      <option value="Otolaryngology">
+                        Otolaryngology (ENT)
+                      </option>
+                      <option value="Paediatrics">Paediatrics</option>
+                      <option value="Psychiatry">Psychiatry</option>
+                      <option value="Obstetrics & Gynaecology">
+                        Obstetrics & Gynaecology
+                      </option>
+                      <option value="Radiology">Radiology</option>
+                      <option value="Anaesthesiology">Anaesthesiology</option>
+                      <option value="Nephrology">Nephrology</option>
+                      <option value="Haematology">Haematology</option>
+                      <option value="Oncology">Oncology</option>
+                      <option value="Rheumatology">Rheumatology</option>
+                      <option value="Plastic Surgery">Plastic Surgery</option>
+                      <option value="Infectious Diseases">
+                        Infectious Diseases
+                      </option>
+                      <option value="Geriatric Medicine">
+                        Geriatric Medicine
+                      </option>
+                    </select>
+                  </div>
                 </td>
               </tr>
+
               <tr>
                 <th>Designation</th>
                 <td>
@@ -258,14 +323,30 @@ const Entry = () => {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </table>{" "}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="update-button"
+            onClick={handleReset}
+          >
+            Reset
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="add-contract-button"
+            onClick={handleSubmit}
+          >
+            Add New Staff
+          </motion.button>
         </div>
 
         {/* ------------------------------------------------------- */}
         {/* End of Left Form */}
         {/* ------------------------------------------------------- */}
 
-        <div className="staff-info-container">
+        {/* <div className="staff-info-container">
           <h2>Staff Details</h2>
           <table className="staff-detail-table">
             <tbody>
@@ -295,7 +376,7 @@ const Entry = () => {
           >
             Add New Staff
           </motion.button>
-        </div>
+        </div> */}
       </div>
       {/* <Footer /> */}
     </>

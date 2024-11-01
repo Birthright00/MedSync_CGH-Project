@@ -1,6 +1,58 @@
+/* Add this to your existing CSS to align labels next to input fields */
+
+/* Contract input container styling for side-by-side label and input */
+.contract-input-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%; /* Ensure the container takes the full width */
+}
+
+/* Container for each label and input pair */
+.contract-input-container div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%; /* Ensures that both label and input take full width */
+  margin-bottom: 10px; /* Spacing between each row */
+  margin-top: 5px;
+}
+
+/* Label styling - ensure they take up consistent width */
+.contract-input-container label {
+  width: 40%; /* Adjust label width */
+  margin-right: 10px;
+  text-align: right; /* Right-align the labels */
+  font-size: 14px;
+}
+
+/* Input and select fields styling */
+.contract-input-container select,
+.contract-input-container input {
+  width: 60%; /* Ensure input field takes up the remaining space */
+  padding: 10px;
+  margin-left: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+  transition: border 300ms;
+  box-sizing: border-box; /* Ensure consistent sizing */
+}
+
+.contract-input-container select:focus,
+.contract-input-container input:focus {
+  border: 1px solid #0083ca; /* Highlight border on focus */
+}
+
+/* Ensure total training hours is read-only but still styled properly */
+.contract-input-container input[readonly] {
+  background-color: #f2f2f2; /* Light grey background for read-only inputs */
+}
+
 /* ################################################# */
-/* Main Page Layout */
+/* Main Page Layout and General Styles (Unchanged) */
 /* ################################################# */
+
 .staff-detail-page {
   width: 100vw;
   min-height: 100vh;
@@ -29,6 +81,7 @@
 /* ################################################# */
 /* STAFF DETAILS (LEFT SIDE) */
 /* ################################################# */
+
 .staff-info-container {
   background-color: white;
   padding: 20px;
@@ -53,7 +106,8 @@
   z-index: 1; /* Ensure content is on top of the background */
 }
 
-.staff-info-container h2, .staff-info-container-right h2 {
+.staff-info-container h2,
+.staff-info-container-right h2 {
   color: #0083ca;
   margin-bottom: 20px;
   font-size: 16px;
@@ -63,25 +117,61 @@
 }
 
 /* Table Style for Staff Information */
-.staff-detail-table {
+.staff-detail-table,
+.posting-detail-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px; /* Add spacing above tables */
   font-size: 12px; /* Match font size for consistency */
   font-weight: 500;
 }
+/* Scrollable Postings Table Container */
+.postings-table-container {
+  max-height: 235px; /* Set maximum height */
+  overflow-y: auto; /* Enable vertical scrolling */
+  border: 1px solid #ddd; /* Border around the scrollable table */
+  border-radius: 5px; /* Add slight rounding */
+  margin-top: 10px; /* Add a bit of spacing above */
+  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px; /* Subtle shadow */
+}
+
+/* Make the scroll bar narrower for postings */
+.postings-table-container::-webkit-scrollbar {
+  width: 8px; /* Set the width of the scrollbar */
+}
+
+.postings-table-container::-webkit-scrollbar-thumb {
+  background-color: #888; /* Set the scrollbar thumb color */
+  border-radius: 5px; /* Rounded edges */
+}
+
+.postings-table-container::-webkit-scrollbar-thumb:hover {
+  background-color: #555; /* Change color on hover */
+} /* Postings Table with Sticky Header */
+.posting-detail-table th {
+  position: sticky;
+  top: 0; /* Stick to the top of the scrollable container */
+  z-index: 2; /* Ensure it stays above the table rows */
+  background-color: #f2f2f2; /* Background color for header */
+  color: #0083ca;
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: bold;
+  font-size: 12px;
+}
 
 .staff-detail-table th,
+.posting-detail-table th,
 .contracts-table th,
 .staff-detail-table td,
+.posting-detail-table td,
 .contracts-table td {
   padding: 12px 15px;
   border: 1px solid #ddd;
   text-align: left;
 }
 
-/* Header styling for both tables */
 .staff-detail-table th,
+.posting-detail-table th,
 .contracts-table th {
   background-color: #f2f2f2;
   font-weight: bold;
@@ -94,7 +184,8 @@
 }
 
 /* Input fields styling for both tables */
-.staff-detail-table td input {
+.staff-detail-table td input,
+.posting-detail-table td input {
   width: 100%; /* Full width within the table cell */
   padding: 5px;
   font-size: 12px;
@@ -111,31 +202,6 @@
   border-radius: 5px; /* Add slight rounding */
   margin-top: 0; /* Remove any additional margin */
   box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px; /* Subtle shadow */
-}
-
-/* Styling for the New Contract Input Container */
-.contract-input-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 20px;
-}
-
-.contract-input-container select,
-.contract-input-container input {
-  width: 100%; /* Set to 100% of the parent container */
-  padding: 10px;
-  margin: 5px 0;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 14px;
-  transition: border 300ms;
-  box-sizing: border-box; /* Ensure consistent sizing */
-}
-
-.contract-input-container select:focus,
-.contract-input-container input:focus {
-  border: 1px solid #0083ca; /* Highlight border on focus */
 }
 
 /* Table Styling for Contracts */
@@ -191,7 +257,8 @@
 .add-contract-button,
 .toggle-add-contract-button,
 .restore-button,
-.delete-button {
+.delete-button,
+.update-contract-button {
   margin-top: 20px;
   font-family: "Montserrat", sans-serif;
   text-align: center;
@@ -225,7 +292,8 @@
   color: white;
 }
 
-.add-contract-button {
+.add-contract-button,
+.update-contract-button {
   background-color: #72bf78;
   color: white;
 }
@@ -246,7 +314,9 @@
   .staff-detail-table th,
   .staff-detail-table td,
   .contracts-table th,
-  .contracts-table td {
+  .contracts-table td,
+  .posting-detail-table th,
+  .posting-detail-table td {
     font-size: 12px;
   }
 }
@@ -259,5 +329,20 @@
   padding: 10px;
   font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.3s ease, color 0;
+}
+
+/* For Entry Page Specifics */
+.mcr-message {
+  margin-top: 5px;
+  font-size: 12px;
+  color: red;
+}
+
+.mcr-message.available {
+  color: green;
+}
+
+.mcr-message.taken {
+  color: red;
 }

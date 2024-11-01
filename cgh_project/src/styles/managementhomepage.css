@@ -29,7 +29,7 @@
 .filter-section {
   width: 15%;
   max-width: 400px;
-  max-height: 670px;
+  max-height: 680px;
   margin-left: 50px;
   padding: 20px;
   background-color: white;
@@ -44,17 +44,8 @@
   box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
 }
 
-Filter Header .filter-section h3 {
-  font-size: 16px;
-  color: #0083ca;
-  text-align: center;
-  margin-bottom: 20px;
-  font-weight: 500;
-}
-
 .filter-section label {
   display: block;
-  margin-bottom: 3px;
   font-size: 14px;
   color: #0083ca;
   font-weight: 500;
@@ -63,7 +54,7 @@ Filter Header .filter-section h3 {
 .filter-section input {
   width: 100%;
   padding: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
@@ -92,8 +83,8 @@ Filter Header .filter-section h3 {
 }
 
 .reset-button {
-  background-color: #0083ca;
-  color: white;
+  background-color: #0083ca !important;
+  color: white !important;
 }
 
 .reset-button:hover {
@@ -103,6 +94,7 @@ Filter Header .filter-section h3 {
 .filter-button.button-grey,
 .school-filter-buttons button {
   background-color: #ccc !important;
+  color: #666;
 }
 
 .filter-button.button-blue {
@@ -144,9 +136,8 @@ Filter Header .filter-section h3 {
 
 .data-table {
   width: max-content;
-  height: 500px;
   border-collapse: collapse;
-  table-layout: auto; /* Use automatic table layout for dynamic column sizing */
+  table-layout: auto; /* Use auto for flexible column widths */
   font-size: 14px;
   font-weight: 500;
 }
@@ -188,9 +179,24 @@ td:first-child {
 /* ################################################# */
 /* Data Table (Header)*/
 /* ################################################# */
-.data-table th {
+.data-table thead tr:first-of-type th {
   position: sticky;
-  top: 0;
+  top: -1px;
+  background-color: #f2f2f2;
+  z-index: 2;
+  font-size: 14px;
+  color: #0083ca;
+  border: 1px solid #ddd;
+  text-align: center;
+  height: 25px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  font-weight: 500;
+}
+/* Second header row (sub-headers) */
+.data-table thead tr:nth-of-type(2) th {
+  position: sticky;
+  top: 40px;
   background-color: #f2f2f2;
   z-index: 2;
   font-size: 14px;
@@ -234,13 +240,6 @@ td:first-child {
   background-color: #0083ca;
   color: white;
   font-weight: 500;
-}
-
-/* Left-align Promotion History and Contract Details columns */
-.data-table td:nth-child(10), /* Promotion History is the 10th column */
-.data-table td:nth-child(11) {
-  /* Contract Details is the 11th column */
-  text-align: left;
 }
 
 /* ################################################# */
@@ -413,7 +412,7 @@ td:first-child {
   vertical-align: middle;
 }
 
-.greyed-out {
+.greyed-out td {
   opacity: 0.5;
-  text-decoration: line-through;
+  text-decoration: line-through !important;
 }

@@ -10,21 +10,41 @@ import { CSVLink } from "react-csv";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { confirmAlert } from "react-confirm-alert"; // Import the confirmation alert library
 import "react-confirm-alert/src/react-confirm-alert.css";
+import React from "react";
 
 const StaffDetailPage = () => {
   // ########################################## //
   // Generic Constants
   // ########################################## //
   const { mcr_number } = useParams(); // Get the MCR number from route params
-  const navigate = useNavigate(); // Use navigate to redirect after delete
-  const [newContract, setNewContract] = useState({
-    school_name: "",
-    start_date: "",
-    end_date: "",
-    status: "",
-  });
+  const navigate = useNavigate();
   const [contracts, setContracts] = useState([]);
-  const [isContractFormOpen, setContractFormOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [staffContractDetails, setStaffContractDetails] = useState([]);
+  const [selectedYears, setSelectedYears] = useState([]);
+  const [postings, setPostings] = useState([]); // State to hold postings data
+  const [filteredPostings, setFilteredPostings] = useState([]);
+  const [filteredContracts, setFilteredContracts] = useState([]);
+
+  // Filter contracts based on selected years
+  useEffect(() => {
+    const updatedFilteredContracts = contracts.filter((contract) => {
+      const startYear = new Date(contract.contract_start_date)
+        .getFullYear()
+        .toString();
+      const endYear = new Date(contract.contract_end_date)
+        .getFullYear()
+        .toString();
+
+      return (
+        selectedYears.includes(startYear) || selectedYears.includes(endYear)
+      );
+    });
+
+    console.log("Filtered Contracts:", updatedFilteredContracts); // Debug: Check filtered contracts
+
+    setFilteredContracts(updatedFilteredContracts);
+  }, [selectedYears, contracts]);
 
   const [staffDetails, setStaffDetails] = useState({
     mcr_number: "",
@@ -35,8 +55,6 @@ const StaffDetailPage = () => {
     fte: "",
     email: "",
   });
-  const [loading, setLoading] = useState(true);
-  const [staffContractDetails, setStaffContractDetails] = useState([]);
 
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "";
@@ -48,6 +66,7 @@ const StaffDetailPage = () => {
     const minutes = ("0" + date.getMinutes()).slice(-2);
     return `${year}-${month}-${day} @ ${hours}${minutes}H`;
   };
+
   const fetchContracts = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -63,10 +82,139 @@ const StaffDetailPage = () => {
       toast.error("Failed to fetch contracts");
     }
   };
+  const fetchPostings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3001/postings?mcr_number=${mcr_number}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setPostings(response.data); // Set the postings data
+    } catch (error) {
+      console.error("Error fetching postings:", error);
+      toast.error("Failed to fetch postings");
+    }
+  };
+
+  useEffect(() => {
+    fetchContracts();
+    fetchPostings(); // Fetch postings when component loads
+  }, [mcr_number]);
 
   // ########################################## //
-  // Adding New Contract
+  // Filter by year total training hours
   // ########################################## //
+  useEffect(() => {
+    const updatedFilteredPostings = postings.filter((posting) =>
+      selectedYears.includes(posting.academic_year.toString())
+    );
+
+    console.log("Selected Years:", selectedYears); // Debug: Check selected years
+    console.log("Filtered Postings:", updatedFilteredPostings); // Debug: Check filtered postings
+
+    setFilteredPostings(updatedFilteredPostings);
+  }, [selectedYears, postings]);
+
+  const handleYearToggle = (year) => {
+    setSelectedYears((prevSelectedYears) =>
+      prevSelectedYears.includes(year)
+        ? prevSelectedYears.filter((y) => y !== year)
+        : [...prevSelectedYears, year]
+    );
+  };
+  // ########################################## //
+  // Add new Contract Section
+  // ########################################## //
+  const [newContract, setNewContract] = useState({
+    school_name: "",
+    start_date: "",
+    end_date: "",
+    status: "",
+    training_hours: "",
+    training_hours_2022: "",
+    training_hours_2023: "",
+    training_hours_2024: "",
+    total_training_hours: 0,
+    prev_title: "",
+    new_title: "",
+  });
+
+  const [isContractFormOpen, setContractFormOpen] = useState(false);
+  const calculateTotalTrainingHours = (contract) => {
+    const {
+      training_hours,
+      training_hours_2022,
+      training_hours_2023,
+      training_hours_2024,
+    } = contract;
+
+    const total =
+      parseFloat(training_hours || 0) +
+      parseFloat(training_hours_2022 || 0) +
+      parseFloat(training_hours_2023 || 0) +
+      parseFloat(training_hours_2024 || 0);
+
+    return total;
+  };
+
+  const handleNewContractInputChange = async (e) => {
+    const { name, value } = e.target;
+
+    // Update the new contract details
+    const updatedContract = {
+      ...newContract,
+      [name]: value,
+    };
+
+    // If the selected field is school_name, fetch the contract details
+    if (name === "school_name" && value) {
+      try {
+        const token = localStorage.getItem("token");
+
+        // Make an API call to get the contract details for the selected school
+        const response = await axios.get(
+          `http://localhost:3001/contracts/${mcr_number}/${value}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        // If contract exists, update all relevant fields
+        if (response.status === 200) {
+          const {
+            contract_start_date,
+            contract_end_date,
+            prev_title,
+            status,
+            training_hours_2022,
+            training_hours_2023,
+            training_hours_2024,
+          } = response.data;
+
+          // Store the dates in the backend-friendly format (YYYY-MM-DD)
+          updatedContract.start_date = contract_start_date || "";
+          updatedContract.end_date = contract_end_date || "";
+          updatedContract.prev_title = prev_title || "";
+          updatedContract.status = status || "";
+          updatedContract.training_hours_2022 = training_hours_2022 || 0;
+          updatedContract.training_hours_2023 = training_hours_2023 || 0;
+          updatedContract.training_hours_2024 = training_hours_2024 || 0;
+        }
+      } catch (error) {
+        console.error("Error fetching contract details:", error);
+        toast.error("Failed to fetch contract details");
+      }
+    }
+
+    // Calculate the total training hours
+    updatedContract.total_training_hours =
+      calculateTotalTrainingHours(updatedContract);
+
+    setNewContract(updatedContract);
+  };
+
   const handleNewContract = async () => {
     if (
       !newContract.school_name ||
@@ -86,14 +234,17 @@ const StaffDetailPage = () => {
         contract_start_date: newContract.start_date,
         contract_end_date: newContract.end_date,
         status: newContract.status,
+        training_hours: newContract.training_hours, // Include training_hours
+        prev_title: newContract.prev_title, // Include prev_title
+        new_title: newContract.new_title, // Include new_title
+        training_hours_2022: newContract.training_hours_2022, // Include training_hours_2022
+        training_hours_2023: newContract.training_hours_2023, // Include training_hours_2023
+        training_hours_2024: newContract.training_hours_2024, // Include training_hours_2024
       };
-
-      // Log contract data to ensure values are correct
-      console.log("Contract Data being sent: ", contractData);
 
       // POST request to add the new contract
       await axios.post(
-        `http://localhost:3001/new-contracts/${mcr_number}`,
+        `http://localhost:3001/contracts/${mcr_number}`,
         contractData,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -101,11 +252,20 @@ const StaffDetailPage = () => {
       );
 
       toast.success("New contract added successfully!");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
       setNewContract({
         school_name: "",
         contract_start_date: "",
         contract_end_date: "",
         status: "",
+        training_hours: "", // Reset the form fields after submission
+        prev_title: "",
+        new_title: "",
+        training_hours_2022: "",
+        training_hours_2023: "",
+        training_hours_2024: "",
       });
 
       // Fetch contracts again to update the displayed table
@@ -115,6 +275,9 @@ const StaffDetailPage = () => {
       toast.error("Failed to add new contract");
     }
   };
+  // ########################################## //
+  // End of Add New Contract Section
+  // ########################################## //
 
   // ########################################## //
   // General Staff Details
@@ -296,6 +459,7 @@ const StaffDetailPage = () => {
         );
         setStaffContractDetails(response.data);
         setLoading(false);
+        console.log(response.data);
       } catch (error) {
         console.error("Error fetching staff details:", error);
         setLoading(false);
@@ -476,73 +640,130 @@ const StaffDetailPage = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           {" "}
+          <h2>Select Year(s)</h2>
+          <table className="staff-detail-table">
+            <th colSpan={3}>
+              <div>
+                {[
+                  "2013",
+                  "2014",
+                  "2015",
+                  "2016",
+                  "2017",
+                  "2018",
+                  "2019",
+                  "2020",
+                  "2021",
+                  "2022",
+                  "2023",
+                  "2024",
+                  "2025",
+                ].map((year) => (
+                  <label key={year} style={{ marginRight: "10px" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedYears.includes(year)}
+                      onChange={() => handleYearToggle(year)}
+                    />
+                    {year}
+                  </label>
+                ))}
+              </div>
+            </th>
+          </table>
           <h2>Contracts</h2>
           <table className="staff-detail-table">
             <thead>
               <tr>
                 <th>Contract Detail</th>
-                {staffContractDetails.map((contract, index) => (
-                  <th key={index}>{contract.school_name}</th>
-                ))}
+                {filteredContracts.length > 0 ? (
+                  filteredContracts.map((contract, index) => (
+                    <th key={index}>{contract.school_name}</th>
+                  ))
+                ) : (
+                  <th>No Contract Found</th>
+                )}
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <th>Start Date</th> {/* Row for Start Date */}
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>
-                    {new Date(
-                      contract.contract_start_date
-                    ).toLocaleDateString()}
-                  </td>
-                ))}
-              </tr>
-              <tr>
-                <th>End Date</th> {/* Row for End Date */}
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>
-                    {new Date(contract.contract_end_date).toLocaleDateString()}
-                  </td>
-                ))}
-              </tr>
-              <tr>
-                <th>Status</th> {/* Row for Contract Status */}
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.status}</td>
-                ))}
-              </tr>
-              <tr>
-                <th>Training Hours</th> {/* Row for Contract Status */}
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.training_hours}</td>
-                ))}
-              </tr>
-              <tr>
-                <th>Prev title</th> {/* Row for Contract Status */}
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.prev_title}</td>
-                ))}
-              </tr>
-              <tr>
-                <th>New Title</th> {/* Row for Contract Status */}
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.new_title}</td>
-                ))}
-              </tr>
-              <tr>
-                <th>2022 Training Hours</th>
+            {filteredContracts.length > 0 ? (
+              <tbody>
+                <tr>
+                  <th>Start Date</th>
+                  {filteredContracts.map((contract, index) => (
+                    <td key={index}>
+                      {new Date(
+                        contract.contract_start_date
+                      ).toLocaleDateString()}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <th>End Date</th>
+                  {filteredContracts.map((contract, index) => (
+                    <td key={index}>
+                      {new Date(
+                        contract.contract_end_date
+                      ).toLocaleDateString()}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <th>Status</th>
+                  {filteredContracts.map((contract, index) => (
+                    <td key={index}>{contract.status}</td>
+                  ))}
+                </tr>
+                <tr>
+                  <th>Previous Title</th>
+                  {filteredContracts.map((contract, index) => (
+                    <td key={index}>{contract.prev_title}</td>
+                  ))}
+                </tr>
+                <tr>
+                  <th>New Title</th>
+                  {filteredContracts.map((contract, index) => (
+                    <td key={index}>{contract.new_title}</td>
+                  ))}
+                </tr>
+
+                {selectedYears.includes("2022") && (
+                  <tr>
+                    <th>Total Training Hours in 2022</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.training_hours_2022 || "0"}</td>
+                    ))}
+                  </tr>
+                )}
+                {selectedYears.includes("2023") && (
+                  <tr>
+                    <th>Total Training Hours in 2023</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.training_hours_2023 || "0"}</td>
+                    ))}
+                  </tr>
+                )}
+                {selectedYears.includes("2024") && (
+                  <tr>
+                    <th>Total Training Hours in 2024</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.training_hours_2024 || "0"}</td>
+                    ))}
+                  </tr>
+                )}
+                {/* <tr>
+                <th>Total Training Hours in 2022</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours_2022}</td>
                 ))}
               </tr>
               <tr>
-                <th>2023 Training Hours</th>
+                <th>Total Training Hours in 2023</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours_2023}</td>
                 ))}
               </tr>
               <tr>
-                <th>2024 Training Hours</th>
+                <th>Total Training Hours in 2024</th>
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.training_hours_2024}</td>
                 ))}
@@ -552,8 +773,17 @@ const StaffDetailPage = () => {
                 {staffContractDetails.map((contract, index) => (
                   <td key={index}>{contract.total_training_hours}</td>
                 ))}
-              </tr>
-            </tbody>
+              </tr> */}
+              </tbody>
+            ) : (
+              <tbody>
+                <tr>
+                  <td colSpan="5" style={{ textAlign: "center" }}>
+                    No Contract Found
+                  </td>
+                </tr>
+              </tbody>
+            )}
           </table>
           {/* <CSVLink
             filename={`staff_details_${mcr_number}.csv`}
@@ -578,64 +808,163 @@ const StaffDetailPage = () => {
           </motion.button>
           {isContractFormOpen && (
             <div className="contract-input-container">
-              <select
-                value={newContract.school_name}
-                onChange={(e) =>
-                  setNewContract({
-                    ...newContract,
-                    school_name: e.target.value,
-                  })
-                }
-              >
-                <option value="">Select School</option>
-                <option value="Duke NUS">Duke NUS</option>
-                <option value="SingHealth Residency">
-                  SingHealth Residency
-                </option>
-                <option value="SUTD">SUTD</option>
-                <option value="NUS Yong Loo Lin School">
-                  NUS Yong Loo Lin School
-                </option>
-                <option value="NTU LKC">NTU LKC</option>
-              </select>
+              <div className="input-group">
+                <label>School Name:</label>
+                <select
+                  value={newContract.school_name}
+                  onChange={handleNewContractInputChange}
+                  name="school_name"
+                >
+                  <option value="">Select School</option>
+                  <option value="Duke NUS">Duke NUS</option>
+                  <option value="SingHealth Residency">
+                    SingHealth Residency
+                  </option>
+                  <option value="SUTD">SUTD</option>
+                  <option value="NUS Yong Loo Lin School">
+                    NUS Yong Loo Lin School
+                  </option>
+                  <option value="NTU LKC">NTU LKC</option>
+                </select>
+              </div>
 
-              <input
-                type="text"
-                placeholder="Start Date"
-                value={newContract.start_date}
-                onFocus={(e) => (e.target.type = "date")}
-                onBlur={(e) => (e.target.type = "text")}
-                onChange={(e) =>
-                  setNewContract({ ...newContract, start_date: e.target.value })
-                }
-              />
+              <div className="input-group">
+                <label>Start Date:</label>
+                <input
+                  type="text"
+                  placeholder="Start Date"
+                  value={formatDateTime(newContract.start_date)}
+                  onFocus={(e) => (e.target.type = "date")}
+                  onBlur={(e) => (e.target.type = "text")}
+                  onChange={(e) =>
+                    setNewContract({
+                      ...newContract,
+                      start_date: e.target.value,
+                    })
+                  }
+                />
+              </div>
 
-              <input
-                type="text"
-                placeholder="End Date"
-                value={newContract.end_date}
-                onFocus={(e) => (e.target.type = "date")}
-                onBlur={(e) => (e.target.type = "text")}
-                onChange={(e) =>
-                  setNewContract({ ...newContract, end_date: e.target.value })
-                }
-              />
+              <div className="input-group">
+                <label>End Date:</label>
+                <input
+                  type="text"
+                  placeholder="End Date"
+                  value={formatDateTime(newContract.end_date)}
+                  onFocus={(e) => (e.target.type = "date")}
+                  onBlur={(e) => (e.target.type = "text")}
+                  onChange={(e) =>
+                    setNewContract({
+                      ...newContract,
+                      end_date: e.target.value,
+                    })
+                  }
+                />
+              </div>
 
-              <select
-                value={newContract.status}
-                onChange={(e) =>
-                  setNewContract({ ...newContract, status: e.target.value })
-                }
-              >
-                <option value="">Select Status</option>
-                <option value="Active">Active</option>
-                <option value="Expired">Expired</option>
-                <option value="Transferred">Transferred</option>
-                <option value="Lapse">Lapse</option>
-                <option value="New">New</option>
-                <option value="Program Closure">Program Closure</option>
-                <option value="Renewal">Renewal</option>
-              </select>
+              <div className="input-group">
+                <label>Status:</label>
+                <select
+                  value={newContract.status}
+                  onChange={(e) =>
+                    setNewContract({ ...newContract, status: e.target.value })
+                  }
+                >
+                  <option value="">Select Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Expired">Expired</option>
+                  <option value="Transferred">Transferred</option>
+                  <option value="Lapse">Lapse</option>
+                  <option value="New">New</option>
+                  <option value="Program Closure">Program Closure</option>
+                  <option value="Renewal">Renewal</option>
+                </select>
+              </div>
+
+              {/* <div className="input-group">
+                <label>Training Hours for this Contract:</label>
+                <input
+                  type="float"
+                  placeholder="Training Hours for this Contract"
+                  name="training_hours"
+                  value={newContract.training_hours}
+                  onChange={handleNewContractInputChange}
+                />
+              </div> */}
+
+              <div className="input-group">
+                <label>Training Hours in 2022:</label>
+                <input
+                  type="float"
+                  placeholder="Training Hours in 2022"
+                  name="training_hours_2022"
+                  value={newContract.training_hours_2022}
+                  onChange={handleNewContractInputChange}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Training Hours in 2023:</label>
+                <input
+                  type="float"
+                  placeholder="Training Hours in 2023"
+                  name="training_hours_2023"
+                  value={newContract.training_hours_2023}
+                  onChange={handleNewContractInputChange}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Training Hours in 2024:</label>
+                <input
+                  type="float"
+                  placeholder="Training Hours in 2024"
+                  name="training_hours_2024"
+                  value={newContract.training_hours_2024}
+                  onChange={handleNewContractInputChange}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Total Training Hours:</label>
+                <input
+                  type="number"
+                  name="total_training_hours"
+                  placeholder="Total Training Hours"
+                  value={newContract.total_training_hours}
+                  readOnly
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Previous Title:</label>
+                <input
+                  type="text"
+                  placeholder="Previous Title"
+                  value={newContract.prev_title}
+                  onChange={(e) =>
+                    setNewContract({
+                      ...newContract,
+                      prev_title: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="input-group">
+                <label>New Title:</label>
+                <input
+                  type="text"
+                  placeholder="New Title"
+                  value={newContract.new_title}
+                  onChange={(e) =>
+                    setNewContract({
+                      ...newContract,
+                      new_title: e.target.value,
+                    })
+                  }
+                />
+              </div>
 
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -646,7 +975,40 @@ const StaffDetailPage = () => {
                 Submit
               </motion.button>
             </div>
-          )}
+          )}{" "}
+          <h2>Postings</h2>
+          <div className="postings-table-container">
+            <table className="posting-detail-table">
+              <thead>
+                <tr>
+                  <th>Academic Year</th>
+                  <th>Posting Number</th>
+                  <th>Training Hours</th>
+                  <th>School</th>
+                  <th>Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPostings.length > 0 ? (
+                  filteredPostings.map((posting) => (
+                    <tr
+                      key={`${posting.academic_year}-${posting.posting_number}`}
+                    >
+                      <td>{posting.academic_year}</td>
+                      <td>{posting.posting_number}</td>
+                      <td>{posting.total_training_hour}</td>
+                      <td>{posting.school_name}</td>
+                      <td>{posting.rating}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5">No postings found for selected years.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </motion.div>
       </motion.div>
     </>

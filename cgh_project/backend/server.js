@@ -334,29 +334,91 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
 // POST REQUEST FOR ADDING NEW CONTRACTS TO CONTRACTS TABLE
 // -------------------------------------------------------------------------------------------------------------//
 
-app.post("/new-contracts/:mcr_number", verifyToken, (req, res) => {
+app.post("/contracts/:mcr_number", verifyToken, (req, res) => {
   const { mcr_number } = req.params;
-  const { school_name, contract_start_date, contract_end_date, status } =
-    req.body;
-
-  const query = `
-  INSERT INTO contracts (mcr_number, school_name, contract_start_date, contract_end_date, status)
-  VALUES (?, ?, ?, ?, ?)`;
-
-  const values = [
-    mcr_number,
+  const {
     school_name,
     contract_start_date,
     contract_end_date,
     status,
-  ];
+    training_hours,
+    prev_title,
+    new_title,
+    training_hours_2022,
+    training_hours_2023,
+    training_hours_2024,
+  } = req.body;
 
-  db.query(query, values, (err, data) => {
-    if (err) {
-      console.error("Error inserting new contract:", err);
-      return res.status(500).json({ error: "Failed to add contract" });
+  // First, delete the existing contract for the same school_name
+  const deleteQuery = `
+    DELETE FROM contracts 
+    WHERE mcr_number = ? AND school_name = ?`;
+
+  db.query(deleteQuery, [mcr_number, school_name], (deleteErr, deleteData) => {
+    if (deleteErr) {
+      console.error("Error deleting existing contract:", deleteErr);
+      return res
+        .status(500)
+        .json({ error: "Failed to delete existing contract" });
     }
-    return res.status(201).json({ message: "Contract added successfully" });
+
+    // Then insert the new contract
+    const insertQuery = `
+      INSERT INTO contracts 
+      (mcr_number, school_name, contract_start_date, contract_end_date, status, training_hours, prev_title, new_title, training_hours_2022, training_hours_2023, training_hours_2024)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    const insertValues = [
+      mcr_number,
+      school_name,
+      contract_start_date,
+      contract_end_date,
+      status,
+      training_hours,
+      prev_title,
+      new_title,
+      training_hours_2022,
+      training_hours_2023,
+      training_hours_2024,
+    ];
+
+    db.query(insertQuery, insertValues, (insertErr, insertData) => {
+      if (insertErr) {
+        console.error("Error inserting new contract:", insertErr);
+        return res.status(500).json({ error: "Failed to add new contract" });
+      }
+
+      return res
+        .status(201)
+        .json({ message: "Contract replaced successfully" });
+    });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST FOR CONTRACT DETAILS BY 'mcr_number' AND 'school_name'
+// -------------------------------------------------------------------------------------------------------------//
+
+app.get("/contracts/:mcr_number/:school_name", verifyToken, (req, res) => {
+  const { mcr_number, school_name } = req.params;
+
+  const query = `
+    SELECT contract_start_date, contract_end_date, prev_title, status, 
+           training_hours_2022, training_hours_2023, training_hours_2024
+    FROM contracts
+    WHERE mcr_number = ? AND school_name = ?`;
+
+  db.query(query, [mcr_number, school_name], (err, results) => {
+    if (err) {
+      console.error("Error fetching contract details:", err);
+      return res
+        .status(500)
+        .json({ error: "Failed to fetch contract details" });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Contract not found" });
+    }
+    return res.status(200).json(results[0]); // Return the contract details
   });
 });
 
@@ -364,14 +426,8 @@ app.post("/new-contracts/:mcr_number", verifyToken, (req, res) => {
 // POST REQUEST FOR ADDING NEW STAFF DETAILS TO MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/entry", verifyToken, (req, res) => {
-  const {
-    mcr_number,
-    first_name,
-    last_name,
-    department,
-    designation,
-    email
-  } = req.body;
+  const { mcr_number, first_name, last_name, department, designation, email } =
+    req.body;
 
   const userMcrNumber = req.user.id;
 
@@ -477,6 +533,125 @@ app.put("/restore/:mcr_number", verifyToken, (req, res) => {
       message: `Staff with MCR Number ${mcr_number} has been successfully restored`,
     });
   });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// PUT REQUEST FOR POSTINGS --> will automatically update the total training hours
+// -------------------------------------------------------------------------------------------------------------//
+// PUT REQUEST FOR UPDATING EXISTING POSTING
+app.put("/postings/:id", async (req, res) => {
+  const postingId = req.params.id;
+  const {
+    mcr_number,
+    academic_year,
+    school_name,
+    posting_number,
+    total_training_hour,
+    rating, // Add the rating field here
+  } = req.body;
+
+  // Input validation (add more as needed)
+  if (
+    !mcr_number ||
+    !academic_year ||
+    !school_name ||
+    !posting_number ||
+    !total_training_hour ||
+    rating === undefined // Ensure rating is provided
+  ) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    // Update the specific posting in the database
+    const [result] = await db.query(
+      `UPDATE postings 
+       SET mcr_number = ?, 
+           academic_year = ?, 
+           school_name = ?, 
+           posting_number = ?, 
+           total_training_hour = ?, 
+           rating = ? 
+       WHERE id = ?`,
+      [
+        mcr_number,
+        academic_year,
+        school_name,
+        posting_number,
+        total_training_hour,
+        rating, // Include rating in the update query
+        postingId,
+      ]
+    );
+
+    // Check if the posting was successfully updated
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Posting not found" });
+    }
+
+    res.status(200).json({ message: "Posting updated successfully" });
+  } catch (error) {
+    console.error("Error updating posting:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while updating the posting" });
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST FOR POSTINGS
+// -------------------------------------------------------------------------------------------------------------//
+// Get all postings for a specific doctor, academic year, or school
+// GET REQUEST FOR POSTINGS
+// Get all postings for a specific doctor, academic year, or school
+// GET REQUEST FOR POSTINGS
+// Get all postings for a specific doctor, academic year, or school
+app.get("/postings", async (req, res) => {
+  const { mcr_number, academic_year, school_name } = req.query;
+
+  try {
+    // Build the base query
+    let query = `SELECT mcr_number, academic_year, school_name, posting_number, total_training_hour, rating FROM postings WHERE 1=1`;
+    const params = [];
+
+    // Add filtering conditions based on query parameters
+    if (mcr_number) {
+      query += ` AND mcr_number = ?`;
+      params.push(mcr_number);
+    }
+    if (academic_year) {
+      query += ` AND academic_year = ?`;
+      params.push(academic_year);
+    }
+    if (school_name) {
+      query += ` AND school_name = ?`;
+      params.push(school_name);
+    }
+
+    // Wrap db.query in a Promise to handle async/await
+    const getPostings = () =>
+      new Promise((resolve, reject) => {
+        db.query(query, params, (err, results) => {
+          if (err) reject(err);
+          else resolve(results);
+        });
+      });
+
+    const results = await getPostings();
+
+    // Check if any postings were found
+    if (results.length === 0) {
+      return res.status(404).json({ error: "No postings found" });
+    }
+
+    // Return the found postings, including the rating field
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Error retrieving postings:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while retrieving postings" });
+  }
 });
 
 // -------------------------------------------------------------------------------------------------------------//

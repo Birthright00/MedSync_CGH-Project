@@ -234,8 +234,19 @@ const ManagementHomePage = () => {
   // ########################################## //
   // useEffect #2 for filtering data
   // ########################################## //
+
   useEffect(() => {
     const filtered = data.filter((staff) => {
+      // If `onlyDeleted` is true, show only deleted rows
+      if (onlyDeleted) {
+        return staff.deleted;
+      }
+
+      // If `showDeleted` is false, exclude deleted rows
+      if (!showDeleted && staff.deleted) {
+        return false;
+      }
+
       // Check if the MCR number matches the filter or if the filter is empty
       const matchesMcrNumber =
         !mcrNumberFilter ||
@@ -300,8 +311,10 @@ const ManagementHomePage = () => {
     lastNameFilter,
     departmentFilter,
     designationFilter,
-    selectedSchools, // Add selected schools to dependency array
+    selectedSchools,
     data,
+    showDeleted, // Handle showDeleted in the dependency array
+    onlyDeleted, // Add onlyDeleted to the dependency array
   ]);
 
   return (
@@ -421,24 +434,23 @@ const ManagementHomePage = () => {
               }`}
               onClick={() => {
                 setShowDeleted((prev) => !prev);
-                setOnlyDeleted(false);
               }}
             >
               Include Deleted Data
             </button>
           </div>
-
-          {/* <button
+          <button
             className={`filter-button ${
               onlyDeleted ? "button-blue" : "button-grey"
             }`}
             onClick={() => {
-              setOnlyDeleted((prev) => !prev);
-              setShowDeleted(false);
+              setOnlyDeleted((prev) => !prev); // Toggle onlyDeleted
+              setShowDeleted(false); // Disable "Include Deleted Data" when "Only Show Deleted Data" is active
             }}
           >
             Only Show Deleted Data
-          </button> */}
+          </button>
+
           <button className="reset-button" onClick={resetFilters}>
             Reset
           </button>
@@ -453,66 +465,89 @@ const ManagementHomePage = () => {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>No</th>
-                  <th onClick={() => handleSort("mcr_number")}>MCR No.</th>
-                  <th onClick={() => handleSort("first_name")}>First Name</th>
-                  <th onClick={() => handleSort("last_name")}>Last Name</th>
-                  <th onClick={() => handleSort("department")}>Department</th>
-                  <th onClick={() => handleSort("designation")}>Designation</th>
-                  <th onClick={() => handleSort("fte")}>FTE</th>
-                  <th onClick={() => handleSort("email")}>Email</th>
+                  <th rowSpan="2">No</th>
+                  <th rowSpan="2" onClick={() => handleSort("mcr_number")}>
+                    MCR No.
+                  </th>
+                  <th rowSpan="2" onClick={() => handleSort("first_name")}>
+                    First Name
+                  </th>
+                  <th rowSpan="2" onClick={() => handleSort("last_name")}>
+                    Last Name
+                  </th>
+                  <th rowSpan="2" onClick={() => handleSort("department")}>
+                    Department
+                  </th>
+                  <th rowSpan="2" onClick={() => handleSort("designation")}>
+                    Designation
+                  </th>
+                  <th rowSpan="2" onClick={() => handleSort("fte")}>
+                    FTE
+                  </th>
+                  <th rowSpan="2" onClick={() => handleSort("email")}>
+                    Email
+                  </th>
+                  {/* Group headers */}
+                  <th colSpan="3">Duke NUS</th>
+                  <th colSpan="3">Singhealth Residency</th>
+                  <th colSpan="3">SUTD</th>
+                  <th colSpan="3">NUS YLL</th>
+                  <th colSpan="3">NTU LKC</th>
+                  <th rowSpan="2">Created At</th>
+                  <th rowSpan="2">Updated At</th>
+                  <th rowSpan="2">Created By</th>
+                  <th rowSpan="2">Updated By</th>
+                  <th rowSpan="2">Deleted By</th>
+                  <th rowSpan="2">Deleted At</th>
+                </tr>
+                <tr>
+                  {/* Sub-headers for Duke NUS */}
                   <th onClick={() => handleSort("duke_nus_start_date")}>
-                    Duke NUS Start Date
+                    Start Date
                   </th>
                   <th onClick={() => handleSort("duke_nus_end_date")}>
-                    Duke NUS End Date
+                    End Date
                   </th>
-                  <th onClick={() => handleSort("duke_nus_status")}>
-                    Duke NUS Status
-                  </th>
+                  <th onClick={() => handleSort("duke_nus_status")}>Status</th>
+
+                  {/* Sub-headers for Singhealth Residency */}
                   <th onClick={() => handleSort("singhealth_start_date")}>
-                    Singhealth Residency Start Date
+                    Start Date
                   </th>
                   <th onClick={() => handleSort("singhealth_end_date")}>
-                    Singhealth Residency End Date
+                    End Date
                   </th>
                   <th onClick={() => handleSort("singhealth_status")}>
-                    Singhealth Residency Status
-                  </th>
-                  <th onClick={() => handleSort("sutd_start_date")}>
-                    SUTD Start Date
-                  </th>
-                  <th onClick={() => handleSort("sutd_end_date")}>
-                    SUTD End Date
-                  </th>
-                  <th onClick={() => handleSort("sutd_status")}>SUTD Status</th>
-                  <th onClick={() => handleSort("nus_ylls_start_date")}>
-                    NUS YLL Start Date
-                  </th>
-                  <th onClick={() => handleSort("nus_ylls_end_date")}>
-                    NUS YLL End Date
-                  </th>
-                  <th onClick={() => handleSort("nus_ylls_status")}>
-                    NUS YLL Status
-                  </th>
-                  <th onClick={() => handleSort("ntu_lkc_start_date")}>
-                    NTU LKC Start Date
-                  </th>
-                  <th onClick={() => handleSort("ntu_lkc_end_date")}>
-                    NTU LKC End Date
-                  </th>
-                  <th onClick={() => handleSort("ntu_lkc_status")}>
-                    NTU LKC Status
+                    Status
                   </th>
 
-                  {/* <th>Created At</th>
-                  <th>Updated At</th>
-                  <th>Created By</th>
-                  <th>Updated By</th>
-                  <th>Deleted By</th>
-                  <th>Deleted At</th> */}
+                  {/* Sub-headers for SUTD */}
+                  <th onClick={() => handleSort("sutd_start_date")}>
+                    Start Date
+                  </th>
+                  <th onClick={() => handleSort("sutd_end_date")}>End Date</th>
+                  <th onClick={() => handleSort("sutd_status")}>Status</th>
+
+                  {/* Sub-headers for NUS YLL */}
+                  <th onClick={() => handleSort("nus_ylls_start_date")}>
+                    Start Date
+                  </th>
+                  <th onClick={() => handleSort("nus_ylls_end_date")}>
+                    End Date
+                  </th>
+                  <th onClick={() => handleSort("nus_ylls_status")}>Status</th>
+
+                  {/* Sub-headers for NTU LKC */}
+                  <th onClick={() => handleSort("ntu_lkc_start_date")}>
+                    Start Date
+                  </th>
+                  <th onClick={() => handleSort("ntu_lkc_end_date")}>
+                    End Date
+                  </th>
+                  <th onClick={() => handleSort("ntu_lkc_status")}>Status</th>
                 </tr>
               </thead>
+
               <tbody>
                 {rowsToDisplay.map((staff, index) => (
                   <tr
@@ -544,12 +579,12 @@ const ManagementHomePage = () => {
                     <td>{formatDateTime(staff.ntu_lkc_end_date)}</td>
                     <td>{staff.ntu_lkc_status}</td>
 
-                    {/* <td>{formatDateTime(staff.created_at)}</td>
+                    <td>{formatDateTime(staff.created_at)}</td>
                     <td>{formatDateTime(staff.updated_at)}</td>
                     <td>{staff.created_by || "N/A"}</td>
                     <td>{staff.updated_by || "N/A"}</td>
                     <td>{staff.deleted_by || "N/A"}</td>
-                    <td>{formatDateTime(staff.deleted_at)}</td> */}
+                    <td>{formatDateTime(staff.deleted_at)}</td>
                   </tr>
                 ))}
               </tbody>

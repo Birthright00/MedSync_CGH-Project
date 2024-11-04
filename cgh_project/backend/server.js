@@ -300,13 +300,17 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
   const { mcr_number } = req.params;
   const { first_name, last_name, department, designation, email, fte } =
     req.body;
-  const userMcrNumber = req.user.user.id; // Assuming this is logged in user
+  const userMcrNumber = req.user.id; // Assuming this is the logged-in user
+
+  console.log("Updating staff details for MCR:", mcr_number); // Debug
+  console.log("Request body:", req.body); // Debug
 
   const q = `
-  UPDATE main_data 
-  SET first_name = ?, last_name = ?, department = ?, designation = ?, 
-      email = ?, fte = ?, updated_by = ?, updated_at = NOW()
-  WHERE mcr_number = ?`;
+    UPDATE main_data 
+    SET first_name = ?, last_name = ?, department = ?, designation = ?, 
+        email = ?, fte = ?, updated_by = ?, updated_at = NOW()
+    WHERE mcr_number = ?
+  `;
 
   const values = [
     first_name,
@@ -324,6 +328,14 @@ app.put("/staff/:mcr_number", verifyToken, (req, res) => {
       console.error("Error updating staff details:", err);
       return res.status(500).json({ error: "Failed to update staff details" });
     }
+
+    if (data.affectedRows === 0) {
+      // No rows affected means the mcr_number might not exist
+      console.log("No rows updated, check if MCR number exists");
+      return res.status(404).json({ error: "Staff not found" });
+    }
+
+    console.log("Staff details updated successfully"); // Success message
     return res
       .status(200)
       .json({ message: "Staff details updated successfully" });

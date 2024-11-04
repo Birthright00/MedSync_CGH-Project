@@ -102,7 +102,7 @@ const StaffDetailPage = () => {
 
   useEffect(() => {
     fetchContracts();
-    fetchPostings(); // Fetch postings when component loads
+    fetchPostings();
   }, [mcr_number]);
 
   // ########################################## //
@@ -298,7 +298,7 @@ const StaffDetailPage = () => {
                     </tr>
                   )}
                   <tr>
-                    <th>Total Training Hours ({selectedYears.join(", ")})</th>
+                    <th>Total Training Hours</th>
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {selectedYears
@@ -311,9 +311,7 @@ const StaffDetailPage = () => {
                     ))}
                   </tr>
                   <tr>
-                    <th>
-                      Overall Total Training Hours ({selectedYears.join(", ")})
-                    </th>
+                    <th>Overall Total Training Hours</th>
                     <td colSpan={filteredContracts.length}>
                       {totalTrainingHours.toFixed(2)}
                     </td>

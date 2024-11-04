@@ -1,7 +1,7 @@
 import "../styles/staffdetailpage.css";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -9,42 +9,10 @@ import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 
 const AddNewContract = () => {
-  // ########################################## //
-  // Generic Constants
-  // ########################################## //
-  const { mcr_number } = useParams(); // Get the MCR number from route params
-  const [contracts, setContracts] = useState([]);
+  const { mcr_number } = useParams();
   const [isContractFormOpen, setContractFormOpen] = useState(false);
-
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    const year = date.getFullYear();
-    const month = ("0" + (date.getMonth() + 1)).slice(-2);
-    const day = ("0" + date.getDate()).slice(-2);
-    const hours = ("0" + date.getHours()).slice(-2);
-    const minutes = ("0" + date.getMinutes()).slice(-2);
-    return `${year}-${month}-${day} @ ${hours}${minutes}H`;
-  };
-  const fetchContracts = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:3001/contracts/${mcr_number}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setContracts(response.data); // Update the contract data in state
-    } catch (error) {
-      console.error("Error fetching contracts:", error);
-      toast.error("Failed to fetch contracts");
-    }
-  };
-
-  // ########################################## //
-  // Add new Contract Section
-  // ########################################## //
+  const [contracts, setContracts] = useState([]);
+  
   const [newContract, setNewContract] = useState({
     school_name: "",
     start_date: "",
@@ -59,6 +27,24 @@ const AddNewContract = () => {
     new_title: "",
   });
 
+  // Fetch contracts to display the existing contracts
+  const fetchContracts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3001/contracts/${mcr_number}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setContracts(response.data);
+    } catch (error) {
+      console.error("Error fetching contracts:", error);
+      toast.error("Failed to fetch contracts");
+    }
+  };
+
+  // Calculate total training hours
   const calculateTotalTrainingHours = (contract) => {
     const {
       training_hours,
@@ -66,31 +52,23 @@ const AddNewContract = () => {
       training_hours_2023,
       training_hours_2024,
     } = contract;
-
-    const total =
+    return (
       parseFloat(training_hours || 0) +
       parseFloat(training_hours_2022 || 0) +
       parseFloat(training_hours_2023 || 0) +
-      parseFloat(training_hours_2024 || 0);
-
-    return total;
+      parseFloat(training_hours_2024 || 0)
+    );
   };
 
+  // Handle change in new contract fields
   const handleNewContractInputChange = async (e) => {
     const { name, value } = e.target;
+    const updatedContract = { ...newContract, [name]: value };
 
-    // Update the new contract details
-    const updatedContract = {
-      ...newContract,
-      [name]: value,
-    };
-
-    // If the selected field is school_name, fetch the contract details
+    // Auto-populate if a school is selected
     if (name === "school_name" && value) {
       try {
         const token = localStorage.getItem("token");
-
-        // Make an API call to get the contract details for the selected school
         const response = await axios.get(
           `http://localhost:3001/contracts/${mcr_number}/${value}`,
           {
@@ -98,7 +76,6 @@ const AddNewContract = () => {
           }
         );
 
-        // If contract exists, update all relevant fields
         if (response.status === 200) {
           const {
             contract_start_date,
@@ -110,9 +87,9 @@ const AddNewContract = () => {
             training_hours_2024,
           } = response.data;
 
-          // Store the dates in the backend-friendly format (YYYY-MM-DD)
-          updatedContract.start_date = contract_start_date || "";
-          updatedContract.end_date = contract_end_date || "";
+          // Set pre-existing data with correct SQL `DATE` format
+          updatedContract.start_date = contract_start_date ? contract_start_date.split('T')[0] : "";
+          updatedContract.end_date = contract_end_date ? contract_end_date.split('T')[0] : "";
           updatedContract.prev_title = prev_title || "";
           updatedContract.status = status || "";
           updatedContract.training_hours_2022 = training_hours_2022 || 0;
@@ -126,12 +103,11 @@ const AddNewContract = () => {
     }
 
     // Calculate the total training hours
-    updatedContract.total_training_hours =
-      calculateTotalTrainingHours(updatedContract);
-
+    updatedContract.total_training_hours = calculateTotalTrainingHours(updatedContract);
     setNewContract(updatedContract);
   };
 
+  // Submit new contract
   const handleNewContract = async () => {
     if (
       !newContract.school_name ||
@@ -145,21 +121,19 @@ const AddNewContract = () => {
 
     try {
       const token = localStorage.getItem("token");
-
       const contractData = {
         school_name: newContract.school_name,
         contract_start_date: newContract.start_date,
         contract_end_date: newContract.end_date,
         status: newContract.status,
-        training_hours: newContract.training_hours, // Include training_hours
-        prev_title: newContract.prev_title, // Include prev_title
-        new_title: newContract.new_title, // Include new_title
-        training_hours_2022: newContract.training_hours_2022, // Include training_hours_2022
-        training_hours_2023: newContract.training_hours_2023, // Include training_hours_2023
-        training_hours_2024: newContract.training_hours_2024, // Include training_hours_2024
+        training_hours: newContract.training_hours,
+        prev_title: newContract.prev_title,
+        new_title: newContract.new_title,
+        training_hours_2022: newContract.training_hours_2022,
+        training_hours_2023: newContract.training_hours_2023,
+        training_hours_2024: newContract.training_hours_2024,
       };
 
-      // POST request to add the new contract
       await axios.post(
         `http://localhost:3001/contracts/${mcr_number}`,
         contractData,
@@ -174,29 +148,26 @@ const AddNewContract = () => {
       }, 1000);
       setNewContract({
         school_name: "",
-        contract_start_date: "",
-        contract_end_date: "",
+        start_date: "",
+        end_date: "",
         status: "",
-        training_hours: "", // Reset the form fields after submission
+        training_hours: "",
         prev_title: "",
         new_title: "",
         training_hours_2022: "",
         training_hours_2023: "",
         training_hours_2024: "",
       });
-
-      // Fetch contracts again to update the displayed table
       fetchContracts();
     } catch (error) {
       console.error("Error adding new contract:", error);
       toast.error("Failed to add new contract");
     }
   };
-  // ########################################## //
-  // End of Add New Contract Section
-  // ########################################## //
+
   return (
     <div>
+      <ToastContainer />
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.9 }}
@@ -218,9 +189,7 @@ const AddNewContract = () => {
               <option value="Duke NUS">Duke NUS</option>
               <option value="SingHealth Residency">SingHealth Residency</option>
               <option value="SUTD">SUTD</option>
-              <option value="NUS Yong Loo Lin School">
-                NUS Yong Loo Lin School
-              </option>
+              <option value="NUS Yong Loo Lin School">NUS Yong Loo Lin School</option>
               <option value="NTU LKC">NTU LKC</option>
             </select>
           </div>
@@ -228,34 +197,20 @@ const AddNewContract = () => {
           <div className="input-group">
             <label>Start Date:</label>
             <input
-              type="text"
-              placeholder="Start Date"
-              value={formatDateTime(newContract.start_date)}
-              onFocus={(e) => (e.target.type = "date")}
-              onBlur={(e) => (e.target.type = "text")}
-              onChange={(e) =>
-                setNewContract({
-                  ...newContract,
-                  start_date: e.target.value,
-                })
-              }
+              type="date"
+              name="start_date"
+              value={newContract.start_date}
+              onChange={handleNewContractInputChange}
             />
           </div>
 
           <div className="input-group">
             <label>End Date:</label>
             <input
-              type="text"
-              placeholder="End Date"
-              value={formatDateTime(newContract.end_date)}
-              onFocus={(e) => (e.target.type = "date")}
-              onBlur={(e) => (e.target.type = "text")}
-              onChange={(e) =>
-                setNewContract({
-                  ...newContract,
-                  end_date: e.target.value,
-                })
-              }
+              type="date"
+              name="end_date"
+              value={newContract.end_date}
+              onChange={handleNewContractInputChange}
             />
           </div>
 
@@ -277,50 +232,6 @@ const AddNewContract = () => {
               <option value="Renewal">Renewal</option>
             </select>
           </div>
-
-          <div className="input-group">
-            <label>Training Hours in 2022:</label>
-            <input
-              type="float"
-              placeholder="Training Hours in 2022"
-              name="training_hours_2022"
-              value={newContract.training_hours_2022}
-              onChange={handleNewContractInputChange}
-            />
-          </div>
-
-          {/* <div className="input-group">
-                <label>Training Hours in 2023:</label>
-                <input
-                  type="float"
-                  placeholder="Training Hours in 2023"
-                  name="training_hours_2023"
-                  value={newContract.training_hours_2023}
-                  onChange={handleNewContractInputChange}
-                />
-              </div>
-
-              <div className="input-group">
-                <label>Training Hours in 2024:</label>
-                <input
-                  type="float"
-                  placeholder="Training Hours in 2024"
-                  name="training_hours_2024"
-                  value={newContract.training_hours_2024}
-                  onChange={handleNewContractInputChange}
-                />
-              </div>
-
-              <div className="input-group">
-                <label>Total Training Hours:</label>
-                <input
-                  type="number"
-                  name="total_training_hours"
-                  placeholder="Total Training Hours"
-                  value={newContract.total_training_hours}
-                  readOnly
-                />
-              </div> */}
 
           <div className="input-group">
             <label>Previous Title:</label>

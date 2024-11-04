@@ -5,10 +5,10 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import multer from "multer";
 import * as XLSX from "xlsx";
-import csv from "csv-parser"; // Library for handling CSV files
+import csv from "csv-parser";
 
 // -------------------------------------------------------------------------------------------------------------//
-// IMPORTS
+// IMPORTS EXPLANATION
 // -------------------------------------------------------------------------------------------------------------//
 // express: A framework for building web servers in Node.js --> simplifies routing and middleware setup
 // mysql2: A module for interacting with MySQL databases in Node.js
@@ -203,16 +203,6 @@ app.post("/register", (req, res) => {
 // GET REQUEST FOR main_data table
 // -------------------------------------------------------------------------------------------------------------//
 
-// Token Verification Needed
-// app.get("/main_data", verifyToken, (req, res) => {
-//   // Added token verification
-//   const q = "SELECT * FROM main_data";
-//   db.query(q, (err, data) => {
-//     if (err) return res.json(err);
-//     return res.json(data);
-//   });
-// });
-
 // No Need Token Verification
 app.get("/main_data", (req, res) => {
   // Added token verification
@@ -223,6 +213,8 @@ app.get("/main_data", (req, res) => {
   });
 });
 
+// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+// ⚠️MANAGEMENT HOME PAGE⚠️
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FOR MANAGEMENT HOME PAGE TABLE DISPLAY
 // -------------------------------------------------------------------------------------------------------------//
@@ -264,6 +256,8 @@ app.get("/staff/:mcr_number", verifyToken, (req, res) => {
   });
 });
 
+// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+// ⚠️STAFF DETAILS PAGE⚠️
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FOR STAFF DETAILS BY 'mcr_number' FROM CONTRACTS
 // -------------------------------------------------------------------------------------------------------------//
@@ -353,12 +347,8 @@ app.post("/contracts/:mcr_number", verifyToken, (req, res) => {
     contract_start_date,
     contract_end_date,
     status,
-    training_hours,
     prev_title,
     new_title,
-    training_hours_2022,
-    training_hours_2023,
-    training_hours_2024,
   } = req.body;
 
   // First, delete the existing contract for the same school_name
@@ -368,17 +358,20 @@ app.post("/contracts/:mcr_number", verifyToken, (req, res) => {
 
   db.query(deleteQuery, [mcr_number, school_name], (deleteErr, deleteData) => {
     if (deleteErr) {
-      console.error("Error deleting existing contract:", deleteErr);
+      console.error("Error deleting existing contract:", deleteErr.message);
       return res
         .status(500)
-        .json({ error: "Failed to delete existing contract" });
+        .json({
+          error: "Failed to delete existing contract",
+          details: deleteErr.message,
+        });
     }
 
     // Then insert the new contract
     const insertQuery = `
-      INSERT INTO contracts 
-      (mcr_number, school_name, contract_start_date, contract_end_date, status, training_hours, prev_title, new_title, training_hours_2022, training_hours_2023, training_hours_2024)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        INSERT INTO contracts 
+        (mcr_number, school_name, contract_start_date, contract_end_date, status, prev_title, new_title)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`;
 
     const insertValues = [
       mcr_number,
@@ -386,18 +379,19 @@ app.post("/contracts/:mcr_number", verifyToken, (req, res) => {
       contract_start_date,
       contract_end_date,
       status,
-      training_hours,
       prev_title,
       new_title,
-      training_hours_2022,
-      training_hours_2023,
-      training_hours_2024,
     ];
 
     db.query(insertQuery, insertValues, (insertErr, insertData) => {
       if (insertErr) {
-        console.error("Error inserting new contract:", insertErr);
-        return res.status(500).json({ error: "Failed to add new contract" });
+        console.error("Error inserting new contract:", insertErr.message);
+        return res
+          .status(500)
+          .json({
+            error: "Failed to add new contract",
+            details: insertErr.message,
+          });
       }
 
       return res
@@ -410,7 +404,6 @@ app.post("/contracts/:mcr_number", verifyToken, (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FOR CONTRACT DETAILS BY 'mcr_number' AND 'school_name'
 // -------------------------------------------------------------------------------------------------------------//
-
 app.get("/contracts/:mcr_number/:school_name", verifyToken, (req, res) => {
   const { mcr_number, school_name } = req.params;
 
@@ -548,67 +541,59 @@ app.put("/restore/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// PUT REQUEST FOR POSTINGS --> will automatically update the total training hours
+// POST REQUEST FOR POSTINGS --> will automatically update the total training hours
 // -------------------------------------------------------------------------------------------------------------//
-// PUT REQUEST FOR UPDATING EXISTING POSTING
-app.put("/postings/:id", async (req, res) => {
-  const postingId = req.params.id;
+app.post("/postings", verifyToken, async (req, res) => {
   const {
     mcr_number,
     academic_year,
     school_name,
     posting_number,
     total_training_hour,
-    rating, // Add the rating field here
+    rating,
   } = req.body;
 
-  // Input validation (add more as needed)
+  // Input validation
   if (
     !mcr_number ||
     !academic_year ||
     !school_name ||
     !posting_number ||
     !total_training_hour ||
-    rating === undefined // Ensure rating is provided
+    rating === undefined
   ) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
   try {
-    // Update the specific posting in the database
-    const [result] = await db.query(
-      `UPDATE postings 
-       SET mcr_number = ?, 
-           academic_year = ?, 
-           school_name = ?, 
-           posting_number = ?, 
-           total_training_hour = ?, 
-           rating = ? 
-       WHERE id = ?`,
-      [
-        mcr_number,
-        academic_year,
-        school_name,
-        posting_number,
-        total_training_hour,
-        rating, // Include rating in the update query
-        postingId,
-      ]
-    );
+    const query = `
+      INSERT INTO postings 
+      (mcr_number, academic_year, school_name, posting_number, total_training_hour, rating) 
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      mcr_number,
+      academic_year,
+      school_name,
+      posting_number,
+      total_training_hour,
+      rating,
+    ];
 
-    // Check if the posting was successfully updated
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Posting not found" });
-    }
+    db.query(query, values, (err, result) => {
+      if (err) {
+        console.error("Database insertion error:", err);
+        return res.status(500).json({ error: "Failed to add new posting" });
+      }
 
-    res.status(200).json({ message: "Posting updated successfully" });
+      res.status(201).json({ message: "New posting added successfully" });
+    });
   } catch (error) {
-    console.error("Error updating posting:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while updating the posting" });
+    console.error("Server error:", error);
+    res.status(500).json({ error: "An error occurred while adding posting" });
   }
 });
+
 
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FOR POSTINGS
@@ -640,29 +625,21 @@ app.get("/postings", async (req, res) => {
       params.push(school_name);
     }
 
-    // Wrap db.query in a Promise to handle async/await
-    const getPostings = () =>
-      new Promise((resolve, reject) => {
-        db.query(query, params, (err, results) => {
-          if (err) reject(err);
-          else resolve(results);
-        });
-      });
+    // Execute the query
+    db.query(query, params, (err, results) => {
+      if (err) {
+        console.error("Database query error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database query error", details: err.message });
+      }
 
-    const results = await getPostings();
-
-    // Check if any postings were found
-    if (results.length === 0) {
-      return res.status(404).json({ error: "No postings found" });
-    }
-
-    // Return the found postings, including the rating field
-    res.status(200).json(results);
+      // Return the postings, even if empty
+      res.status(200).json(results);
+    });
   } catch (error) {
-    console.error("Error retrieving postings:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while retrieving postings" });
+    console.error("Unexpected error in /postings route:", error);
+    res.status(500).json({ error: "Unexpected error", details: error.message });
   }
 });
 

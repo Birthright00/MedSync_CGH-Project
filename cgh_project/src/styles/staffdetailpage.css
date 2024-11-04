@@ -196,8 +196,9 @@
 
 /* Scrollable Contract Table Container */
 .contracts-table-container {
-  max-height: 235px; /* Set maximum height */
+  max-height: 500px; /* Set maximum height */
   overflow-y: auto; /* Enable vertical scrolling */
+  overflow-x: auto;
   border: 1px solid #ddd; /* Border around the scrollable table */
   border-radius: 5px; /* Add slight rounding */
   margin-top: 0; /* Remove any additional margin */
@@ -274,6 +275,25 @@
   box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
 }
 
+.year-button {
+  font-family: "Montserrat", sans-serif;
+  text-align: center;
+  width: 8%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  border-style: solid;
+  border-width: 1px;
+  font-size: 12px;
+  padding: 8px;
+  margin: 3px;
+  transition: background-color 500ms, color 500ms;
+  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+}
+.year-button {
+  background-color: #f0f0f0; /* Regular button color */
+  color: #333;
+}
 .restore-button {
   border-color: #72bf78;
   background-color: #72bf78;
@@ -287,6 +307,7 @@
 }
 
 .update-button,
+.year-button.selected,
 .toggle-add-contract-button {
   background-color: #0083ca;
   color: white;

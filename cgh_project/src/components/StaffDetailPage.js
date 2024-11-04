@@ -8,9 +8,11 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { CSVLink } from "react-csv";
 import { FaEdit, FaTrash } from "react-icons/fa";
-import { confirmAlert } from "react-confirm-alert"; // Import the confirmation alert library
 import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
+import AddNewContract from "./AddNewContract";
+import AddNewPostings from "./AddNewPostings";
+import StaffDetails from "./StaffDetails";
 
 const StaffDetailPage = () => {
   // ########################################## //
@@ -23,38 +25,13 @@ const StaffDetailPage = () => {
   const [staffContractDetails, setStaffContractDetails] = useState([]);
   const [selectedYears, setSelectedYears] = useState([]);
   const [postings, setPostings] = useState([]); // State to hold postings data
-  const [filteredPostings, setFilteredPostings] = useState([]);
   const [filteredContracts, setFilteredContracts] = useState([]);
-
-  // Filter contracts based on selected years
-  useEffect(() => {
-    const updatedFilteredContracts = contracts.filter((contract) => {
-      const startYear = new Date(contract.contract_start_date)
-        .getFullYear()
-        .toString();
-      const endYear = new Date(contract.contract_end_date)
-        .getFullYear()
-        .toString();
-
-      return (
-        selectedYears.includes(startYear) || selectedYears.includes(endYear)
-      );
-    });
-
-    console.log("Filtered Contracts:", updatedFilteredContracts); // Debug: Check filtered contracts
-
-    setFilteredContracts(updatedFilteredContracts);
-  }, [selectedYears, contracts]);
-
-  const [staffDetails, setStaffDetails] = useState({
-    mcr_number: "",
-    first_name: "",
-    last_name: "",
-    department: "",
-    designation: "",
-    fte: "",
-    email: "",
-  });
+  const filteredPostings =
+    selectedYears.length > 0
+      ? postings.filter((posting) =>
+          selectedYears.includes(posting.academic_year.toString())
+        )
+      : [];
 
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "";
@@ -67,6 +44,31 @@ const StaffDetailPage = () => {
     return `${year}-${month}-${day} @ ${hours}${minutes}H`;
   };
 
+  // ########################################## //
+  // Generic Button Functions
+  // ########################################## //
+
+  const handleReset = () => {
+    setSelectedYears([]);
+    // setFilteredPostings([]); // Clear postings when reset
+  };
+
+  // ########################################## //
+  // Filter Functions
+  // ########################################## //
+  useEffect(() => {
+    const updatedFilteredContracts = contracts.filter((contract) => {
+      // Convert contract start and end dates to year numbers
+      const startYear = new Date(contract.contract_start_date).getFullYear();
+      const endYear = new Date(contract.contract_end_date).getFullYear();
+
+      // Check if any selected year falls within the contract period
+      return selectedYears.some((year) => year >= startYear && year <= endYear);
+    });
+
+    setFilteredContracts(updatedFilteredContracts);
+  }, [selectedYears, contracts]);
+
   const fetchContracts = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -76,12 +78,37 @@ const StaffDetailPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setContracts(response.data); // Update the contract data in state
+
+      if (response.data.length === 0) {
+        toast.info("No contracts found");
+        setContracts([]); // Set contracts to an empty array
+      } else {
+        setContracts(response.data); // Update the contract data in state
+      }
     } catch (error) {
       console.error("Error fetching contracts:", error);
-      toast.error("Failed to fetch contracts");
+      console.error("Error details:", error.response); // Log error response details
+
+      if (error.response) {
+        // Backend responded with a status outside of 2xx range
+        const statusCode = error.response.status;
+        if (statusCode === 404) {
+          toast.error("No contracts found for this user (404)");
+        } else if (statusCode >= 400 && statusCode < 500) {
+          toast.error("Client error: Failed to fetch contracts");
+        } else if (statusCode >= 500) {
+          toast.error("Server error: Failed to fetch contracts");
+        }
+      } else if (error.request) {
+        // No response received from the backend
+        toast.error("No response from the server. Check network or server.");
+      } else {
+        // Other errors (like configuration issues)
+        toast.error("Error setting up request for contracts");
+      }
     }
   };
+
   const fetchPostings = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -91,7 +118,12 @@ const StaffDetailPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setPostings(response.data); // Set the postings data
+      if (response.data.length === 0) {
+        toast.info("No postings found");
+        setPostings([]); // Set postings to an empty array
+      } else {
+        setPostings(response.data); // Set the postings data
+      }
     } catch (error) {
       console.error("Error fetching postings:", error);
       toast.error("Failed to fetch postings");
@@ -100,349 +132,42 @@ const StaffDetailPage = () => {
 
   useEffect(() => {
     fetchContracts();
-    fetchPostings(); // Fetch postings when component loads
+    fetchPostings();
   }, [mcr_number]);
 
   // ########################################## //
   // Filter by year total training hours
   // ########################################## //
-  useEffect(() => {
-    const updatedFilteredPostings = postings.filter((posting) =>
-      selectedYears.includes(posting.academic_year.toString())
-    );
 
-    console.log("Selected Years:", selectedYears); // Debug: Check selected years
-    console.log("Filtered Postings:", updatedFilteredPostings); // Debug: Check filtered postings
-
-    setFilteredPostings(updatedFilteredPostings);
-  }, [selectedYears, postings]);
-
+  // Function to handle year selection and deselection
   const handleYearToggle = (year) => {
-    setSelectedYears((prevSelectedYears) =>
-      prevSelectedYears.includes(year)
-        ? prevSelectedYears.filter((y) => y !== year)
-        : [...prevSelectedYears, year]
-    );
-  };
-  // ########################################## //
-  // Add new Contract Section
-  // ########################################## //
-  const [newContract, setNewContract] = useState({
-    school_name: "",
-    start_date: "",
-    end_date: "",
-    status: "",
-    training_hours: "",
-    training_hours_2022: "",
-    training_hours_2023: "",
-    training_hours_2024: "",
-    total_training_hours: 0,
-    prev_title: "",
-    new_title: "",
-  });
-
-  const [isContractFormOpen, setContractFormOpen] = useState(false);
-  const calculateTotalTrainingHours = (contract) => {
-    const {
-      training_hours,
-      training_hours_2022,
-      training_hours_2023,
-      training_hours_2024,
-    } = contract;
-
-    const total =
-      parseFloat(training_hours || 0) +
-      parseFloat(training_hours_2022 || 0) +
-      parseFloat(training_hours_2023 || 0) +
-      parseFloat(training_hours_2024 || 0);
-
-    return total;
-  };
-
-  const handleNewContractInputChange = async (e) => {
-    const { name, value } = e.target;
-
-    // Update the new contract details
-    const updatedContract = {
-      ...newContract,
-      [name]: value,
-    };
-
-    // If the selected field is school_name, fetch the contract details
-    if (name === "school_name" && value) {
-      try {
-        const token = localStorage.getItem("token");
-
-        // Make an API call to get the contract details for the selected school
-        const response = await axios.get(
-          `http://localhost:3001/contracts/${mcr_number}/${value}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        // If contract exists, update all relevant fields
-        if (response.status === 200) {
-          const {
-            contract_start_date,
-            contract_end_date,
-            prev_title,
-            status,
-            training_hours_2022,
-            training_hours_2023,
-            training_hours_2024,
-          } = response.data;
-
-          // Store the dates in the backend-friendly format (YYYY-MM-DD)
-          updatedContract.start_date = contract_start_date || "";
-          updatedContract.end_date = contract_end_date || "";
-          updatedContract.prev_title = prev_title || "";
-          updatedContract.status = status || "";
-          updatedContract.training_hours_2022 = training_hours_2022 || 0;
-          updatedContract.training_hours_2023 = training_hours_2023 || 0;
-          updatedContract.training_hours_2024 = training_hours_2024 || 0;
-        }
-      } catch (error) {
-        console.error("Error fetching contract details:", error);
-        toast.error("Failed to fetch contract details");
+    setSelectedYears((prevSelectedYears) => {
+      if (prevSelectedYears.includes(year)) {
+        // Remove the year if it's being unchecked
+        return prevSelectedYears.filter((y) => y !== year);
+      } else {
+        // Add the year if it's being checked
+        return [...prevSelectedYears, year];
       }
-    }
-
-    // Calculate the total training hours
-    updatedContract.total_training_hours =
-      calculateTotalTrainingHours(updatedContract);
-
-    setNewContract(updatedContract);
-  };
-
-  const handleNewContract = async () => {
-    if (
-      !newContract.school_name ||
-      !newContract.start_date ||
-      !newContract.end_date ||
-      !newContract.status
-    ) {
-      toast.error("Please fill all contract fields before submitting");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-
-      const contractData = {
-        school_name: newContract.school_name,
-        contract_start_date: newContract.start_date,
-        contract_end_date: newContract.end_date,
-        status: newContract.status,
-        training_hours: newContract.training_hours, // Include training_hours
-        prev_title: newContract.prev_title, // Include prev_title
-        new_title: newContract.new_title, // Include new_title
-        training_hours_2022: newContract.training_hours_2022, // Include training_hours_2022
-        training_hours_2023: newContract.training_hours_2023, // Include training_hours_2023
-        training_hours_2024: newContract.training_hours_2024, // Include training_hours_2024
-      };
-
-      // POST request to add the new contract
-      await axios.post(
-        `http://localhost:3001/contracts/${mcr_number}`,
-        contractData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.success("New contract added successfully!");
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-      setNewContract({
-        school_name: "",
-        contract_start_date: "",
-        contract_end_date: "",
-        status: "",
-        training_hours: "", // Reset the form fields after submission
-        prev_title: "",
-        new_title: "",
-        training_hours_2022: "",
-        training_hours_2023: "",
-        training_hours_2024: "",
-      });
-
-      // Fetch contracts again to update the displayed table
-      fetchContracts();
-    } catch (error) {
-      console.error("Error adding new contract:", error);
-      toast.error("Failed to add new contract");
-    }
-  };
-  // ########################################## //
-  // End of Add New Contract Section
-  // ########################################## //
-
-  // ########################################## //
-  // General Staff Details
-  // ########################################## //
-  // Update Staff Details
-  // ########################################## //
-  const handleSubmit = async () => {
-    try {
-      const token = localStorage.getItem("token");
-
-      const dataToSubmit = {
-        ...staffDetails,
-      };
-
-      await axios.put(
-        `http://localhost:3001/staff/${mcr_number}`,
-        dataToSubmit,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.success("Staff details updated successfully!");
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error) {
-      console.error(
-        "Error updating staff details:",
-        error.response ? error.response.data : error
-      );
-      toast.error("Failed to update staff details");
-    }
-  };
-
-  // ########################################## //
-  // Delete Staff
-  // ########################################## //
-  const handleDelete = () => {
-    confirmAlert({
-      title: "❗Confirm Deletion❗",
-      message: (
-        <div>
-          <p>Are you sure you want to delete this staff?</p>
-          <p
-            style={{ fontWeight: "bold", color: "#ca4700", marginTop: "10px" }}
-          ></p>
-        </div>
-      ),
-      buttons: [
-        {
-          label: "Yes, Delete it!",
-          onClick: async () => {
-            try {
-              const token = localStorage.getItem("token");
-              await axios.delete(`http://localhost:3001/staff/${mcr_number}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-
-              toast.success("Staff details deleted successfully!");
-              setTimeout(() => {
-                navigate("/management-home");
-              }, 1000);
-            } catch (error) {
-              console.error(
-                "Error deleting staff details:",
-                error.response ? error.response.data : error
-              );
-              toast.error("Failed to delete staff details");
-            }
-          },
-          style: {
-            backgroundColor: "#ca4700", // Red background
-            color: "white",
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-            margin: "0 10px",
-            fontSize: "14px",
-            fontWeight: "bold",
-            transition: "background-color 0.3s",
-          },
-        },
-        {
-          label: "Cancel",
-          onClick: () => {},
-          style: {
-            backgroundColor: "#cccccc", // Light grey background
-            color: "black",
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-            margin: "0 10px",
-            fontSize: "14px",
-            fontWeight: "bold",
-            transition: "background-color 0.3s",
-          }, // Grey button styling
-        },
-      ],
     });
   };
 
-  // ########################################## //
-  // Restore Staff Details with Confirmation
-  // ########################################## //
-  const handleRestore = () => {
-    confirmAlert({
-      title: "Confirm Restoration",
-      message: `Are you sure you want to restore this staff?`,
-      buttons: [
-        {
-          label: "Yes, Restore it!",
-          onClick: async () => {
-            try {
-              const token = localStorage.getItem("token");
-              await axios.put(
-                `http://localhost:3001/restore/${mcr_number}`,
-                {},
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
-              );
-              toast.success("Staff details restored successfully!");
-              setTimeout(() => {
-                window.location.reload();
-              }, 1000);
-            } catch (error) {
-              console.error("Error restoring staff details:", error);
-              toast.error("Failed to restore staff details");
-            }
-          },
-        },
-        {
-          label: "Cancel",
-          onClick: () => {},
-        },
-      ],
-    });
-  };
+  const [totalTrainingHours, setTotalTrainingHours] = useState(0);
 
-  // ############################################
-  // useEffect to retrieve data from main_data
-  // ############################################
   useEffect(() => {
-    const fetchStaffDetails = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          `http://localhost:3001/staff/${mcr_number}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setStaffDetails(response.data);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching staff details:", error);
-        setLoading(false);
-      }
-    };
+    // Calculate the total training hours based on selected years
+    const total = filteredContracts.reduce((acc, contract) => {
+      return (
+        acc +
+        selectedYears.reduce((yearSum, year) => {
+          const yearKey = `training_hours_${year}`;
+          return yearSum + (parseFloat(contract[yearKey]) || 0);
+        }, 0)
+      );
+    }, 0);
 
-    fetchStaffDetails();
-  }, [mcr_number]);
+    setTotalTrainingHours(total); // Update the total training hours in state
+  }, [selectedYears, filteredContracts]);
 
   // ############################################
   // useEffect to retrieve data from contracts
@@ -469,22 +194,6 @@ const StaffDetailPage = () => {
     fetchStaffContracts();
   }, [mcr_number]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setStaffDetails((prevDetails) => ({
-      ...prevDetails,
-      [name]: value,
-    }));
-  };
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!staffDetails) {
-    return <div>No staff data found</div>;
-  }
-
   return (
     <>
       <ToastContainer />
@@ -495,144 +204,7 @@ const StaffDetailPage = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <motion.div
-          className="staff-info-container"
-          initial={{ x: -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <h2>Staff Details {staffDetails.deleted === 1 ? "(Deleted)" : ""}</h2>
-          <table className="staff-detail-table">
-            <tbody>
-              <tr>
-                <th>MCR Number</th>
-                <td>
-                  <input
-                    type="text"
-                    name="mcr_number"
-                    value={staffDetails.mcr_number}
-                    onChange={handleInputChange}
-                    disabled
-                    className="staff-detail-input"
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>First Name</th>
-                <td>
-                  <input
-                    type="text"
-                    name="first_name"
-                    value={staffDetails.first_name}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Last Name</th>
-                <td>
-                  <input
-                    type="text"
-                    name="last_name"
-                    value={staffDetails.last_name}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Department</th>
-                <td>
-                  <input
-                    type="text"
-                    name="department"
-                    value={staffDetails.department}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Designation</th>
-                <td>
-                  <input
-                    type="text"
-                    name="designation"
-                    value={staffDetails.designation}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-
-              <tr>
-                <th>Email Address</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.email}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>FTE</th>
-                <td>
-                  <input
-                    type="email"
-                    name="email"
-                    value={staffDetails.fte}
-                    onChange={handleInputChange}
-                  />
-                </td>
-              </tr>
-              <tr>
-                <th>Created At</th>
-                <td>{formatDateTime(staffDetails.created_at)}</td>
-              </tr>
-              <tr>
-                <th>Last Updated At</th>
-                <td>{formatDateTime(staffDetails.updated_at)}</td>
-              </tr>
-              <tr>
-                <th>Created By</th>
-                <td>{staffDetails.created_by}</td>
-              </tr>
-              <tr>
-                <th>Last Updated By</th>
-                <td>{staffDetails.updated_by}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            className="update-button"
-            onClick={handleSubmit}
-          >
-            Update Details
-          </motion.button>
-
-          {staffDetails.deleted === 1 ? (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.9 }}
-              className="restore-button"
-              onClick={handleRestore}
-            >
-              Restore
-            </motion.button>
-          ) : (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.9 }}
-              className="delete-button"
-              onClick={handleDelete}
-            >
-              Delete
-            </motion.button>
-          )}
-        </motion.div>
-
+        <StaffDetails />
         <motion.div
           className="staff-info-container-right"
           initial={{ x: 100, opacity: 0 }}
@@ -641,150 +213,154 @@ const StaffDetailPage = () => {
         >
           {" "}
           <h2>Select Year(s)</h2>
-          <table className="staff-detail-table">
-            <th colSpan={3}>
-              <div>
-                {[
-                  "2013",
-                  "2014",
-                  "2015",
-                  "2016",
-                  "2017",
-                  "2018",
-                  "2019",
-                  "2020",
-                  "2021",
-                  "2022",
-                  "2023",
-                  "2024",
-                  "2025",
-                ].map((year) => (
-                  <label key={year} style={{ marginRight: "10px" }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedYears.includes(year)}
-                      onChange={() => handleYearToggle(year)}
-                    />
-                    {year}
-                  </label>
-                ))}
-              </div>
-            </th>
-          </table>
+          <div className="year-buttons-container">
+            {[
+              "2015",
+              "2016",
+              "2017",
+              "2018",
+              "2019",
+              "2020",
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025",
+            ].map((year) => (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                key={year}
+                onClick={() => handleYearToggle(year)}
+                className={`year-button ${
+                  selectedYears.includes(year) ? "selected" : ""
+                }`}
+              >
+                {year}
+              </motion.button>
+            ))}
+          </div>
           <h2>Contracts</h2>
-          <table className="staff-detail-table">
-            <thead>
-              <tr>
-                <th>Contract Detail</th>
-                {filteredContracts.length > 0 ? (
-                  filteredContracts.map((contract, index) => (
-                    <th key={index}>{contract.school_name}</th>
-                  ))
-                ) : (
-                  <th>No Contract Found</th>
-                )}
-              </tr>
-            </thead>
-            {filteredContracts.length > 0 ? (
-              <tbody>
+          <div className="contracts-table-container">
+            <table className="staff-detail-table">
+              <thead>
                 <tr>
-                  <th>Start Date</th>
-                  {filteredContracts.map((contract, index) => (
-                    <td key={index}>
-                      {new Date(
-                        contract.contract_start_date
-                      ).toLocaleDateString()}
-                    </td>
-                  ))}
+                  <th>Contract Detail</th>
+                  {filteredContracts && filteredContracts.length > 0 ? (
+                    filteredContracts.map((contract, index) => (
+                      <th key={index}>{contract?.school_name || "N/A"}</th>
+                    ))
+                  ) : (
+                    <th>No Contract Found</th>
+                  )}
                 </tr>
-                <tr>
-                  <th>End Date</th>
-                  {filteredContracts.map((contract, index) => (
-                    <td key={index}>
-                      {new Date(
-                        contract.contract_end_date
-                      ).toLocaleDateString()}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <th>Status</th>
-                  {filteredContracts.map((contract, index) => (
-                    <td key={index}>{contract.status}</td>
-                  ))}
-                </tr>
-                <tr>
-                  <th>Previous Title</th>
-                  {filteredContracts.map((contract, index) => (
-                    <td key={index}>{contract.prev_title}</td>
-                  ))}
-                </tr>
-                <tr>
-                  <th>New Title</th>
-                  {filteredContracts.map((contract, index) => (
-                    <td key={index}>{contract.new_title}</td>
-                  ))}
-                </tr>
+              </thead>
+              {filteredContracts && filteredContracts.length > 0 ? (
+                <tbody>
+                  <tr>
+                    <th>Start Date</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>
+                        {contract?.contract_start_date
+                          ? new Date(
+                              contract.contract_start_date
+                            ).toLocaleDateString()
+                          : "N/A"}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>End Date</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>
+                        {new Date(
+                          contract.contract_end_date
+                        ).toLocaleDateString()}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>Status</th>
+                    {filteredContracts?.map((contract, index) => (
+                      <th key={index}>
+                        {contract?.school_name || "No Contract Found"}
+                      </th>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>Previous Title</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.prev_title}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>New Title</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.new_title}</td>
+                    ))}
+                  </tr>
 
-                {selectedYears.includes("2022") && (
+                  {selectedYears.includes("2022") && (
+                    <tr>
+                      <th>Total Training Hours in 2022</th>
+                      {filteredContracts.map((contract, index) => (
+                        <td key={index}>
+                          {contract.training_hours_2022 || "0"}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
+                  {selectedYears.includes("2023") && (
+                    <tr>
+                      <th>Total Training Hours in 2023</th>
+                      {filteredContracts.map((contract, index) => (
+                        <td key={index}>
+                          {contract.training_hours_2023 || "0"}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
+                  {selectedYears.includes("2024") && (
+                    <tr>
+                      <th>Total Training Hours in 2024</th>
+                      {filteredContracts.map((contract, index) => (
+                        <td key={index}>
+                          {contract.training_hours_2024 || "0"}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
                   <tr>
-                    <th>Total Training Hours in 2022</th>
+                    <th>Total Training Hours</th>
                     {filteredContracts.map((contract, index) => (
-                      <td key={index}>{contract.training_hours_2022 || "0"}</td>
+                      <td key={index}>
+                        {selectedYears
+                          .reduce((sum, year) => {
+                            const yearKey = `training_hours_${year}`;
+                            return sum + (parseFloat(contract[yearKey]) || 0);
+                          }, 0)
+                          .toFixed(2)}
+                      </td>
                     ))}
                   </tr>
-                )}
-                {selectedYears.includes("2023") && (
                   <tr>
-                    <th>Total Training Hours in 2023</th>
-                    {filteredContracts.map((contract, index) => (
-                      <td key={index}>{contract.training_hours_2023 || "0"}</td>
-                    ))}
+                    <th>Overall Total Training Hours</th>
+                    <td colSpan={filteredContracts.length}>
+                      {totalTrainingHours.toFixed(2)}
+                    </td>
                   </tr>
-                )}
-                {selectedYears.includes("2024") && (
+                </tbody>
+              ) : (
+                <tbody>
                   <tr>
-                    <th>Total Training Hours in 2024</th>
-                    {filteredContracts.map((contract, index) => (
-                      <td key={index}>{contract.training_hours_2024 || "0"}</td>
-                    ))}
+                    <td colSpan="5" style={{ textAlign: "center" }}>
+                      No Contract Found
+                    </td>
                   </tr>
-                )}
-                {/* <tr>
-                <th>Total Training Hours in 2022</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.training_hours_2022}</td>
-                ))}
-              </tr>
-              <tr>
-                <th>Total Training Hours in 2023</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.training_hours_2023}</td>
-                ))}
-              </tr>
-              <tr>
-                <th>Total Training Hours in 2024</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.training_hours_2024}</td>
-                ))}
-              </tr>
-              <tr>
-                <th>Total Training Hours</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.total_training_hours}</td>
-                ))}
-              </tr> */}
-              </tbody>
-            ) : (
-              <tbody>
-                <tr>
-                  <td colSpan="5" style={{ textAlign: "center" }}>
-                    No Contract Found
-                  </td>
-                </tr>
-              </tbody>
-            )}
-          </table>
+                </tbody>
+              )}
+            </table>
+          </div>
           {/* <CSVLink
             filename={`staff_details_${mcr_number}.csv`}
             className="csv-link"
@@ -798,219 +374,58 @@ const StaffDetailPage = () => {
             </motion.button>
           </CSVLink> */}
           {/* Add New Contract Form */}
+          <AddNewContract />
+          {/* Add New Contract Form */}
+          <h2>Postings</h2>
+          <div className="postings-table-container">
+            {filteredPostings && filteredPostings.length > 0 ? (
+              <table className="posting-detail-table">
+                <thead>
+                  <tr>
+                    <th>Academic Year</th>
+                    <th>Posting Number</th>
+                    <th>Training Hours</th>
+                    <th>School</th>
+                    <th>Rating</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPostings.map((posting) => (
+                    <tr
+                      key={`${posting.academic_year}-${posting.posting_number}`}
+                    >
+                      <td>{posting.academic_year || "N/A"}</td>
+                      <td>{posting.posting_number || "N/A"}</td>
+                      <td>{posting.total_training_hour || "N/A"}</td>
+                      <td>{posting.school_name || "N/A"}</td>
+                      <td>{posting.rating || "N/A"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <table className="posting-detail-table">
+                <tbody>
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: "center" }}>
+                      No postings found.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
+          </div>
+          <AddNewPostings />{" "}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="toggle-add-contract-button"
-            onClick={() => setContractFormOpen((prev) => !prev)}
+            onClick={handleReset}
           >
-            {isContractFormOpen ? "Close" : "Add New Contract"}
+            Reset
           </motion.button>
-          {isContractFormOpen && (
-            <div className="contract-input-container">
-              <div className="input-group">
-                <label>School Name:</label>
-                <select
-                  value={newContract.school_name}
-                  onChange={handleNewContractInputChange}
-                  name="school_name"
-                >
-                  <option value="">Select School</option>
-                  <option value="Duke NUS">Duke NUS</option>
-                  <option value="SingHealth Residency">
-                    SingHealth Residency
-                  </option>
-                  <option value="SUTD">SUTD</option>
-                  <option value="NUS Yong Loo Lin School">
-                    NUS Yong Loo Lin School
-                  </option>
-                  <option value="NTU LKC">NTU LKC</option>
-                </select>
-              </div>
-
-              <div className="input-group">
-                <label>Start Date:</label>
-                <input
-                  type="text"
-                  placeholder="Start Date"
-                  value={formatDateTime(newContract.start_date)}
-                  onFocus={(e) => (e.target.type = "date")}
-                  onBlur={(e) => (e.target.type = "text")}
-                  onChange={(e) =>
-                    setNewContract({
-                      ...newContract,
-                      start_date: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="input-group">
-                <label>End Date:</label>
-                <input
-                  type="text"
-                  placeholder="End Date"
-                  value={formatDateTime(newContract.end_date)}
-                  onFocus={(e) => (e.target.type = "date")}
-                  onBlur={(e) => (e.target.type = "text")}
-                  onChange={(e) =>
-                    setNewContract({
-                      ...newContract,
-                      end_date: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="input-group">
-                <label>Status:</label>
-                <select
-                  value={newContract.status}
-                  onChange={(e) =>
-                    setNewContract({ ...newContract, status: e.target.value })
-                  }
-                >
-                  <option value="">Select Status</option>
-                  <option value="Active">Active</option>
-                  <option value="Expired">Expired</option>
-                  <option value="Transferred">Transferred</option>
-                  <option value="Lapse">Lapse</option>
-                  <option value="New">New</option>
-                  <option value="Program Closure">Program Closure</option>
-                  <option value="Renewal">Renewal</option>
-                </select>
-              </div>
-
-              {/* <div className="input-group">
-                <label>Training Hours for this Contract:</label>
-                <input
-                  type="float"
-                  placeholder="Training Hours for this Contract"
-                  name="training_hours"
-                  value={newContract.training_hours}
-                  onChange={handleNewContractInputChange}
-                />
-              </div> */}
-
-              <div className="input-group">
-                <label>Training Hours in 2022:</label>
-                <input
-                  type="float"
-                  placeholder="Training Hours in 2022"
-                  name="training_hours_2022"
-                  value={newContract.training_hours_2022}
-                  onChange={handleNewContractInputChange}
-                />
-              </div>
-
-              <div className="input-group">
-                <label>Training Hours in 2023:</label>
-                <input
-                  type="float"
-                  placeholder="Training Hours in 2023"
-                  name="training_hours_2023"
-                  value={newContract.training_hours_2023}
-                  onChange={handleNewContractInputChange}
-                />
-              </div>
-
-              <div className="input-group">
-                <label>Training Hours in 2024:</label>
-                <input
-                  type="float"
-                  placeholder="Training Hours in 2024"
-                  name="training_hours_2024"
-                  value={newContract.training_hours_2024}
-                  onChange={handleNewContractInputChange}
-                />
-              </div>
-
-              <div className="input-group">
-                <label>Total Training Hours:</label>
-                <input
-                  type="number"
-                  name="total_training_hours"
-                  placeholder="Total Training Hours"
-                  value={newContract.total_training_hours}
-                  readOnly
-                />
-              </div>
-
-              <div className="input-group">
-                <label>Previous Title:</label>
-                <input
-                  type="text"
-                  placeholder="Previous Title"
-                  value={newContract.prev_title}
-                  onChange={(e) =>
-                    setNewContract({
-                      ...newContract,
-                      prev_title: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="input-group">
-                <label>New Title:</label>
-                <input
-                  type="text"
-                  placeholder="New Title"
-                  value={newContract.new_title}
-                  onChange={(e) =>
-                    setNewContract({
-                      ...newContract,
-                      new_title: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.9 }}
-                className="add-contract-button"
-                onClick={handleNewContract}
-              >
-                Submit
-              </motion.button>
-            </div>
-          )}{" "}
-          <h2>Postings</h2>
-          <div className="postings-table-container">
-            <table className="posting-detail-table">
-              <thead>
-                <tr>
-                  <th>Academic Year</th>
-                  <th>Posting Number</th>
-                  <th>Training Hours</th>
-                  <th>School</th>
-                  <th>Rating</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPostings.length > 0 ? (
-                  filteredPostings.map((posting) => (
-                    <tr
-                      key={`${posting.academic_year}-${posting.posting_number}`}
-                    >
-                      <td>{posting.academic_year}</td>
-                      <td>{posting.posting_number}</td>
-                      <td>{posting.total_training_hour}</td>
-                      <td>{posting.school_name}</td>
-                      <td>{posting.rating}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5">No postings found for selected years.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-      </motion.div>
+        </motion.div>{" "}
+      </motion.div>{" "}
     </>
   );
 };

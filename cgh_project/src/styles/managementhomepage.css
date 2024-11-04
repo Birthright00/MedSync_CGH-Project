@@ -94,7 +94,6 @@
 .filter-button.button-grey,
 .school-filter-buttons button {
   background-color: #ccc !important;
-  color: #666;
 }
 
 .filter-button.button-blue {
@@ -110,7 +109,8 @@
   background-color: #999 !important;
 }
 
-.school-filter-buttons button.active {
+.school-filter-buttons button.active,
+.filter-button.button-blue:hover {
   color: white;
   background-color: #0083ca !important;
 }

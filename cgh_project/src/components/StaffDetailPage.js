@@ -78,12 +78,37 @@ const StaffDetailPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setContracts(response.data); // Update the contract data in state
+
+      if (response.data.length === 0) {
+        toast.info("No contracts found");
+        setContracts([]); // Set contracts to an empty array
+      } else {
+        setContracts(response.data); // Update the contract data in state
+      }
     } catch (error) {
       console.error("Error fetching contracts:", error);
-      toast.error("Failed to fetch contracts");
+      console.error("Error details:", error.response); // Log error response details
+
+      if (error.response) {
+        // Backend responded with a status outside of 2xx range
+        const statusCode = error.response.status;
+        if (statusCode === 404) {
+          toast.error("No contracts found for this user (404)");
+        } else if (statusCode >= 400 && statusCode < 500) {
+          toast.error("Client error: Failed to fetch contracts");
+        } else if (statusCode >= 500) {
+          toast.error("Server error: Failed to fetch contracts");
+        }
+      } else if (error.request) {
+        // No response received from the backend
+        toast.error("No response from the server. Check network or server.");
+      } else {
+        // Other errors (like configuration issues)
+        toast.error("Error setting up request for contracts");
+      }
     }
   };
+
   const fetchPostings = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -93,7 +118,12 @@ const StaffDetailPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setPostings(response.data); // Set the postings data
+      if (response.data.length === 0) {
+        toast.info("No postings found");
+        setPostings([]); // Set postings to an empty array
+      } else {
+        setPostings(response.data); // Set the postings data
+      }
     } catch (error) {
       console.error("Error fetching postings:", error);
       toast.error("Failed to fetch postings");
@@ -216,24 +246,26 @@ const StaffDetailPage = () => {
               <thead>
                 <tr>
                   <th>Contract Detail</th>
-                  {filteredContracts.length > 0 ? (
+                  {filteredContracts && filteredContracts.length > 0 ? (
                     filteredContracts.map((contract, index) => (
-                      <th key={index}>{contract.school_name}</th>
+                      <th key={index}>{contract?.school_name || "N/A"}</th>
                     ))
                   ) : (
                     <th>No Contract Found</th>
                   )}
                 </tr>
               </thead>
-              {filteredContracts.length > 0 ? (
+              {filteredContracts && filteredContracts.length > 0 ? (
                 <tbody>
                   <tr>
                     <th>Start Date</th>
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>
-                        {new Date(
-                          contract.contract_start_date
-                        ).toLocaleDateString()}
+                        {contract?.contract_start_date
+                          ? new Date(
+                              contract.contract_start_date
+                            ).toLocaleDateString()
+                          : "N/A"}
                       </td>
                     ))}
                   </tr>
@@ -249,8 +281,10 @@ const StaffDetailPage = () => {
                   </tr>
                   <tr>
                     <th>Status</th>
-                    {filteredContracts.map((contract, index) => (
-                      <td key={index}>{contract.status}</td>
+                    {filteredContracts?.map((contract, index) => (
+                      <th key={index}>
+                        {contract?.school_name || "No Contract Found"}
+                      </th>
                     ))}
                   </tr>
                   <tr>
@@ -344,7 +378,7 @@ const StaffDetailPage = () => {
           {/* Add New Contract Form */}
           <h2>Postings</h2>
           <div className="postings-table-container">
-            {filteredPostings.length > 0 ? (
+            {filteredPostings && filteredPostings.length > 0 ? (
               <table className="posting-detail-table">
                 <thead>
                   <tr>
@@ -360,20 +394,24 @@ const StaffDetailPage = () => {
                     <tr
                       key={`${posting.academic_year}-${posting.posting_number}`}
                     >
-                      <td>{posting.academic_year}</td>
-                      <td>{posting.posting_number}</td>
-                      <td>{posting.total_training_hour}</td>
-                      <td>{posting.school_name}</td>
-                      <td>{posting.rating}</td>
+                      <td>{posting.academic_year || "N/A"}</td>
+                      <td>{posting.posting_number || "N/A"}</td>
+                      <td>{posting.total_training_hour || "N/A"}</td>
+                      <td>{posting.school_name || "N/A"}</td>
+                      <td>{posting.rating || "N/A"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
               <table className="posting-detail-table">
-                <th>
-                  <tr>No postings found for selected years.</tr>
-                </th>
+                <tbody>
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: "center" }}>
+                      No postings found.
+                    </td>
+                  </tr>
+                </tbody>
               </table>
             )}
           </div>

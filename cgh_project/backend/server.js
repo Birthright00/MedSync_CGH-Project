@@ -1,3 +1,14 @@
+// -----------------------------------------------------------------------------------------------------------------------------//
+//Frequently used sql
+// Deleting all "TEST" data
+// -------------------------------------------------------------------------------------------------------------//
+// DELETE c
+// FROM contracts c
+// JOIN main_data m ON c.mcr_number = m.mcr_number
+// WHERE m.first_name = 'test';
+// DELETE FROM main_data
+// WHERE first_name = 'test';
+
 import express from "express";
 import mysql2 from "mysql2";
 import cors from "cors";
@@ -359,12 +370,10 @@ app.post("/contracts/:mcr_number", verifyToken, (req, res) => {
   db.query(deleteQuery, [mcr_number, school_name], (deleteErr, deleteData) => {
     if (deleteErr) {
       console.error("Error deleting existing contract:", deleteErr.message);
-      return res
-        .status(500)
-        .json({
-          error: "Failed to delete existing contract",
-          details: deleteErr.message,
-        });
+      return res.status(500).json({
+        error: "Failed to delete existing contract",
+        details: deleteErr.message,
+      });
     }
 
     // Then insert the new contract
@@ -386,12 +395,10 @@ app.post("/contracts/:mcr_number", verifyToken, (req, res) => {
     db.query(insertQuery, insertValues, (insertErr, insertData) => {
       if (insertErr) {
         console.error("Error inserting new contract:", insertErr.message);
-        return res
-          .status(500)
-          .json({
-            error: "Failed to add new contract",
-            details: insertErr.message,
-          });
+        return res.status(500).json({
+          error: "Failed to add new contract",
+          details: insertErr.message,
+        });
       }
 
       return res
@@ -431,50 +438,92 @@ app.get("/contracts/:mcr_number/:school_name", verifyToken, (req, res) => {
 // POST REQUEST FOR ADDING NEW STAFF DETAILS TO MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/entry", verifyToken, (req, res) => {
-  const { mcr_number, first_name, last_name, department, designation, email } =
-    req.body;
-
+  const { mcr_number, first_name, last_name, department, designation, email } = req.body;
   const userMcrNumber = req.user.id;
 
-  if (
-    !mcr_number ||
-    !first_name ||
-    !last_name ||
-    !department ||
-    !designation ||
-    !email
-  ) {
-    return res
-      .status(400)
-      .json({ error: "Please provide all required fields" });
+  // Check for required fields
+  if (!mcr_number || !first_name || !last_name || !department || !designation || !email) {
+    return res.status(400).json({ error: "Please provide all required fields" });
   }
 
-  const q = `
+  // Insert new doctor into main_data
+  const insertDoctorQuery = `
     INSERT INTO main_data 
-    (mcr_number, first_name, last_name, designation, email, department, created_by) 
+    (mcr_number, first_name, last_name, department, designation, email, created_by) 
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
-  const values = [
+  const doctorValues = [
     mcr_number,
     first_name,
     last_name,
     department,
     designation,
     email,
-    userMcrNumber, // Log who created the record (the currently logged-in user)
+    userMcrNumber, // Log who created the record
   ];
 
-  db.query(q, values, (err, data) => {
-    if (err) {
-      console.error("Error inserting new staff details:", err);
-      return res.status(500).json({ error: "Failed to add new staff details" });
+  db.query(insertDoctorQuery, doctorValues, (doctorErr, doctorData) => {
+    if (doctorErr) {
+      console.error("Error inserting new staff details:", doctorErr.message);
+      return res.status(500).json({ error: "Failed to add new staff details", details: doctorErr.message });
     }
-    return res
-      .status(201)
-      .json({ message: "New staff details added successfully", data });
+
+    // Insert a dummy contract for the new doctor
+    const insertContractQuery = `
+      INSERT INTO contracts 
+      (mcr_number, school_name, contract_start_date, contract_end_date, status, prev_title, new_title) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    const contractValues = [
+      mcr_number,
+      "Default School", // Default school name
+      null, // Null start date
+      null, // Null end date
+      "inactive", // Default status
+      null, // Null previous title
+      null, // Null new title
+    ];
+
+    db.query(insertContractQuery, contractValues, (contractErr, contractData) => {
+      if (contractErr) {
+        console.error("Error inserting dummy contract:", contractErr.message);
+        return res.status(500).json({ error: "Failed to add dummy contract", details: contractErr.message });
+      }
+
+      // Insert a dummy posting for the new doctor
+      const insertPostingQuery = `
+        INSERT INTO postings 
+        (mcr_number, academic_year, school_name, posting_number, total_training_hour, rating) 
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      const postingValues = [
+        mcr_number,
+        1990, // Default academic year outside standard range
+        "Default School", // Default school name
+        1, // Default posting number
+        0, // Default training hours
+        null, // Null rating
+      ];
+
+      db.query(insertPostingQuery, postingValues, (postingErr, postingData) => {
+        if (postingErr) {
+          console.error("Error inserting dummy posting:", postingErr.message);
+          return res.status(500).json({ error: "Failed to add dummy posting", details: postingErr.message });
+        }
+
+        // Successfully added all entries
+        return res.status(201).json({
+          message: "New staff details, dummy contract, and dummy posting added successfully",
+          doctorData,
+          contractData,
+          postingData,
+        });
+      });
+    });
   });
 });
+
 
 // -------------------------------------------------------------------------------------------------------------//
 // DELETE REQUEST FOR DELETING STAFF DETAILS FROM MAIN_DATA TABLE
@@ -593,7 +642,6 @@ app.post("/postings", verifyToken, async (req, res) => {
     res.status(500).json({ error: "An error occurred while adding posting" });
   }
 });
-
 
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FOR POSTINGS

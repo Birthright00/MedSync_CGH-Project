@@ -1,26 +1,19 @@
 import "../styles/staffdetailpage.css";
-import Navbar from "../components/Navbar";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { CSVLink } from "react-csv";
-import { FaEdit, FaTrash } from "react-icons/fa";
-import { confirmAlert } from "react-confirm-alert"; // Import the confirmation alert library
 import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
-import AddNewContract from "./AddNewContract";
 const AddNewPostings = () => {
   // ########################################## //
   // Generic Constants
   // ########################################## //
   const { mcr_number } = useParams(); // Get the MCR number from route params
   const [postings, setPostings] = useState([]); // State to hold postings data
-  const [selectedYears, setSelectedYears] = useState([]);
   const [isPostingFormOpen, setPostingFormOpen] = useState(false);
-  const [filteredPostings, setFilteredPostings] = useState([]);
 
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "";
@@ -60,17 +53,8 @@ const AddNewPostings = () => {
     rating: "", // Add the rating field here
   });
 
-  // ########################################## //
-  // Generic Button Functions
-  // ########################################## //
-
-  const handleReset = () => {
-    setSelectedYears([]);
-    setFilteredPostings([]); // Clear postings when reset
-  };
   return (
     <div>
- 
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.9 }}
@@ -154,15 +138,7 @@ const AddNewPostings = () => {
             </motion.button>
           </div>
         </>
-      )}{" "}
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.9 }}
-        className="toggle-add-contract-button"
-        onClick={handleReset}
-      >
-        Reset
-      </motion.button>
+      )}
     </div>
   );
 };

@@ -25,8 +25,14 @@ const StaffDetailPage = () => {
   const [staffContractDetails, setStaffContractDetails] = useState([]);
   const [selectedYears, setSelectedYears] = useState([]);
   const [postings, setPostings] = useState([]); // State to hold postings data
-  const [filteredPostings, setFilteredPostings] = useState([]);
   const [filteredContracts, setFilteredContracts] = useState([]);
+  const filteredPostings =
+    selectedYears.length > 0
+      ? postings.filter((posting) =>
+          selectedYears.includes(posting.academic_year.toString())
+        )
+      : [];
+
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -44,7 +50,7 @@ const StaffDetailPage = () => {
 
   const handleReset = () => {
     setSelectedYears([]);
-    setFilteredPostings([]); // Clear postings when reset
+    // setFilteredPostings([]); // Clear postings when reset
   };
 
   // ########################################## //
@@ -52,19 +58,13 @@ const StaffDetailPage = () => {
   // ########################################## //
   useEffect(() => {
     const updatedFilteredContracts = contracts.filter((contract) => {
-      const startYear = new Date(contract.contract_start_date)
-        .getFullYear()
-        .toString();
-      const endYear = new Date(contract.contract_end_date)
-        .getFullYear()
-        .toString();
+      // Convert contract start and end dates to year numbers
+      const startYear = new Date(contract.contract_start_date).getFullYear();
+      const endYear = new Date(contract.contract_end_date).getFullYear();
 
-      return (
-        selectedYears.includes(startYear) || selectedYears.includes(endYear)
-      );
+      // Check if any selected year falls within the contract period
+      return selectedYears.some((year) => year >= startYear && year <= endYear);
     });
-
-    console.log("Filtered Contracts:", updatedFilteredContracts); // Debug: Check filtered contracts
 
     setFilteredContracts(updatedFilteredContracts);
   }, [selectedYears, contracts]);
@@ -118,30 +118,15 @@ const StaffDetailPage = () => {
   // ########################################## //
   // Filter by year total training hours
   // ########################################## //
-  useEffect(() => {
-    if (selectedYears.length === 0) {
-      // If no years are selected, clear the filtered postings
-      setFilteredPostings([]);
-    } else {
-      // Filter postings based on selected years
-      const updatedFilteredPostings = postings.filter((posting) =>
-        selectedYears.includes(posting.academic_year.toString())
-      );
 
-      console.log("Selected Years:", selectedYears); // Debug: Check selected years
-      console.log("Filtered Postings:", updatedFilteredPostings); // Debug: Check filtered postings
-
-      setFilteredPostings(updatedFilteredPostings);
-    }
-  }, [selectedYears, postings]);
-
+  // Function to handle year selection and deselection
   const handleYearToggle = (year) => {
     setSelectedYears((prevSelectedYears) => {
       if (prevSelectedYears.includes(year)) {
-        // If the year is already selected, remove it
+        // Remove the year if it's being unchecked
         return prevSelectedYears.filter((y) => y !== year);
       } else {
-        // If not selected, add it
+        // Add the year if it's being checked
         return [...prevSelectedYears, year];
       }
     });
@@ -301,6 +286,22 @@ const StaffDetailPage = () => {
       ],
     });
   };
+  const [totalTrainingHours, setTotalTrainingHours] = useState(0);
+
+  useEffect(() => {
+    // Calculate the total training hours based on selected years
+    const total = filteredContracts.reduce((acc, contract) => {
+      return (
+        acc +
+        selectedYears.reduce((yearSum, year) => {
+          const yearKey = `training_hours_${year}`;
+          return yearSum + (parseFloat(contract[yearKey]) || 0);
+        }, 0)
+      );
+    }, 0);
+
+    setTotalTrainingHours(total); // Update the total training hours in state
+  }, [selectedYears, filteredContracts]);
 
   // ############################################
   // useEffect to retrieve data from main_data
@@ -526,8 +527,6 @@ const StaffDetailPage = () => {
             <th colSpan={3}>
               <div>
                 {[
-                  "2013",
-                  "2014",
                   "2015",
                   "2016",
                   "2017",
@@ -553,119 +552,126 @@ const StaffDetailPage = () => {
             </th>
           </table>
           <h2>Contracts</h2>
-          <table className="staff-detail-table">
-            <thead>
-              <tr>
-                <th>Contract Detail</th>
-                {filteredContracts.length > 0 ? (
-                  filteredContracts.map((contract, index) => (
-                    <th key={index}>{contract.school_name}</th>
-                  ))
-                ) : (
-                  <th>No Contract Found</th>
-                )}
-              </tr>
-            </thead>
-            {filteredContracts.length > 0 ? (
-              <tbody>
+          <div className="contracts-table-container">
+            <table className="staff-detail-table">
+              <thead>
                 <tr>
-                  <th>Start Date</th>
-                  {filteredContracts.map((contract, index) => (
-                    <td key={index}>
-                      {new Date(
-                        contract.contract_start_date
-                      ).toLocaleDateString()}
-                    </td>
-                  ))}
+                  <th>Contract Detail</th>
+                  {filteredContracts.length > 0 ? (
+                    filteredContracts.map((contract, index) => (
+                      <th key={index}>{contract.school_name}</th>
+                    ))
+                  ) : (
+                    <th>No Contract Found</th>
+                  )}
                 </tr>
-                <tr>
-                  <th>End Date</th>
-                  {filteredContracts.map((contract, index) => (
-                    <td key={index}>
-                      {new Date(
-                        contract.contract_end_date
-                      ).toLocaleDateString()}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <th>Status</th>
-                  {filteredContracts.map((contract, index) => (
-                    <td key={index}>{contract.status}</td>
-                  ))}
-                </tr>
-                <tr>
-                  <th>Previous Title</th>
-                  {filteredContracts.map((contract, index) => (
-                    <td key={index}>{contract.prev_title}</td>
-                  ))}
-                </tr>
-                <tr>
-                  <th>New Title</th>
-                  {filteredContracts.map((contract, index) => (
-                    <td key={index}>{contract.new_title}</td>
-                  ))}
-                </tr>
+              </thead>
+              {filteredContracts.length > 0 ? (
+                <tbody>
+                  <tr>
+                    <th>Start Date</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>
+                        {new Date(
+                          contract.contract_start_date
+                        ).toLocaleDateString()}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>End Date</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>
+                        {new Date(
+                          contract.contract_end_date
+                        ).toLocaleDateString()}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>Status</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.status}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>Previous Title</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.prev_title}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th>New Title</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.new_title}</td>
+                    ))}
+                  </tr>
 
-                {selectedYears.includes("2022") && (
+                  {selectedYears.includes("2022") && (
+                    <tr>
+                      <th>Total Training Hours in 2022</th>
+                      {filteredContracts.map((contract, index) => (
+                        <td key={index}>
+                          {contract.training_hours_2022 || "0"}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
+                  {selectedYears.includes("2023") && (
+                    <tr>
+                      <th>Total Training Hours in 2023</th>
+                      {filteredContracts.map((contract, index) => (
+                        <td key={index}>
+                          {contract.training_hours_2023 || "0"}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
+                  {selectedYears.includes("2024") && (
+                    <tr>
+                      <th>Total Training Hours in 2024</th>
+                      {filteredContracts.map((contract, index) => (
+                        <td key={index}>
+                          {contract.training_hours_2024 || "0"}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
                   <tr>
-                    <th>Total Training Hours in 2022</th>
+                    <th>Total Training Hours ({selectedYears.join(", ")})</th>
                     {filteredContracts.map((contract, index) => (
-                      <td key={index}>{contract.training_hours_2022 || "0"}</td>
+                      <td key={index}>
+                        {selectedYears
+                          .reduce((sum, year) => {
+                            const yearKey = `training_hours_${year}`;
+                            return sum + (parseFloat(contract[yearKey]) || 0);
+                          }, 0)
+                          .toFixed(2)}{" "}
+                        {/* Rounds to 2 decimal places */}
+                      </td>
                     ))}
                   </tr>
-                )}
-                {selectedYears.includes("2023") && (
                   <tr>
-                    <th>Total Training Hours in 2023</th>
-                    {filteredContracts.map((contract, index) => (
-                      <td key={index}>{contract.training_hours_2023 || "0"}</td>
-                    ))}
+                    <th>
+                      Overall Total Training Hours ({selectedYears.join(", ")})
+                    </th>
+                    <td colSpan={filteredContracts.length}>
+                      {totalTrainingHours.toFixed(2)}
+                    </td>{" "}
+                    {/* Rounds to 2 decimal places */}
                   </tr>
-                )}
-                {selectedYears.includes("2024") && (
+                </tbody>
+              ) : (
+                <tbody>
                   <tr>
-                    <th>Total Training Hours in 2024</th>
-                    {filteredContracts.map((contract, index) => (
-                      <td key={index}>{contract.training_hours_2024 || "0"}</td>
-                    ))}
+                    <td colSpan="5" style={{ textAlign: "center" }}>
+                      No Contract Found
+                    </td>
                   </tr>
-                )}
-                {/* <tr>
-                <th>Total Training Hours in 2022</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.training_hours_2022}</td>
-                ))}
-              </tr>
-              <tr>
-                <th>Total Training Hours in 2023</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.training_hours_2023}</td>
-                ))}
-              </tr>
-              <tr>
-                <th>Total Training Hours in 2024</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.training_hours_2024}</td>
-                ))}
-              </tr>
-              <tr>
-                <th>Total Training Hours</th>
-                {staffContractDetails.map((contract, index) => (
-                  <td key={index}>{contract.total_training_hours}</td>
-                ))}
-              </tr> */}
-              </tbody>
-            ) : (
-              <tbody>
-                <tr>
-                  <td colSpan="5" style={{ textAlign: "center" }}>
-                    No Contract Found
-                  </td>
-                </tr>
-              </tbody>
-            )}
-          </table>
+                </tbody>
+              )}
+            </table>
+          </div>
           {/* <CSVLink
             filename={`staff_details_${mcr_number}.csv`}
             className="csv-link"
@@ -683,19 +689,19 @@ const StaffDetailPage = () => {
           {/* Add New Contract Form */}
           <h2>Postings</h2>
           <div className="postings-table-container">
-            <table className="posting-detail-table">
-              <thead>
-                <tr>
-                  <th>Academic Year</th>
-                  <th>Posting Number</th>
-                  <th>Training Hours</th>
-                  <th>School</th>
-                  <th>Rating</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPostings.length > 0 ? (
-                  filteredPostings.map((posting) => (
+            {filteredPostings.length > 0 ? (
+              <table className="posting-detail-table">
+                <thead>
+                  <tr>
+                    <th>Academic Year</th>
+                    <th>Posting Number</th>
+                    <th>Training Hours</th>
+                    <th>School</th>
+                    <th>Rating</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPostings.map((posting) => (
                     <tr
                       key={`${posting.academic_year}-${posting.posting_number}`}
                     >
@@ -705,16 +711,26 @@ const StaffDetailPage = () => {
                       <td>{posting.school_name}</td>
                       <td>{posting.rating}</td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5">No postings found for selected years.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>{" "}
-          <AddNewPostings />
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <table className="posting-detail-table">
+                <th>
+                  <tr>No postings found for selected years.</tr>
+                </th>
+              </table>
+            )}
+          </div>
+          <AddNewPostings />{" "}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="toggle-add-contract-button"
+            onClick={handleReset}
+          >
+            Reset
+          </motion.button>
         </motion.div>{" "}
       </motion.div>{" "}
     </>

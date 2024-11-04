@@ -1,18 +1,17 @@
 import "../styles/staffdetailpage.css";
-import Navbar from "../components/Navbar";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { CSVLink } from "react-csv";
-import { FaEdit, FaTrash } from "react-icons/fa";
-import { confirmAlert } from "react-confirm-alert"; // Import the confirmation alert library
 import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 
 const AddNewContract = () => {
+  // ########################################## //
+  // Generic Constants
+  // ########################################## //
   const { mcr_number } = useParams(); // Get the MCR number from route params
   const [contracts, setContracts] = useState([]);
   const [isContractFormOpen, setContractFormOpen] = useState(false);
@@ -362,7 +361,7 @@ const AddNewContract = () => {
             Submit
           </motion.button>
         </div>
-      )}{" "}
+      )}
     </div>
   );
 };

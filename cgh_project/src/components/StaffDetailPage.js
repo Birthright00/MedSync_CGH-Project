@@ -282,9 +282,9 @@ const StaffDetailPage = () => {
                   <tr>
                     <th>Status</th>
                     {filteredContracts?.map((contract, index) => (
-                      <th key={index}>
-                        {contract?.school_name || "No Contract Found"}
-                      </th>
+                      <td key={index}>
+                        {contract?.status || "No Contract Found"}
+                      </td>
                     ))}
                   </tr>
                   <tr>

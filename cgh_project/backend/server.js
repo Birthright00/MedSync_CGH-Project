@@ -9,6 +9,13 @@
 // DELETE FROM main_data
 // WHERE first_name = 'test';
 
+// -------------------------------------------------------------------------------------------------------------//
+// Check if there are any triggers
+// -------------------------------------------------------------------------------------------------------------//
+// SELECT TRIGGER_NAME 
+// FROM information_schema.TRIGGERS
+// WHERE TRIGGER_SCHEMA = 'main_db';
+
 import express from "express";
 import mysql2 from "mysql2";
 import cors from "cors";
@@ -438,12 +445,22 @@ app.get("/contracts/:mcr_number/:school_name", verifyToken, (req, res) => {
 // POST REQUEST FOR ADDING NEW STAFF DETAILS TO MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/entry", verifyToken, (req, res) => {
-  const { mcr_number, first_name, last_name, department, designation, email } = req.body;
+  const { mcr_number, first_name, last_name, department, designation, email } =
+    req.body;
   const userMcrNumber = req.user.id;
 
   // Check for required fields
-  if (!mcr_number || !first_name || !last_name || !department || !designation || !email) {
-    return res.status(400).json({ error: "Please provide all required fields" });
+  if (
+    !mcr_number ||
+    !first_name ||
+    !last_name ||
+    !department ||
+    !designation ||
+    !email
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Please provide all required fields" });
   }
 
   // Insert new doctor into main_data
@@ -466,7 +483,12 @@ app.post("/entry", verifyToken, (req, res) => {
   db.query(insertDoctorQuery, doctorValues, (doctorErr, doctorData) => {
     if (doctorErr) {
       console.error("Error inserting new staff details:", doctorErr.message);
-      return res.status(500).json({ error: "Failed to add new staff details", details: doctorErr.message });
+      return res
+        .status(500)
+        .json({
+          error: "Failed to add new staff details",
+          details: doctorErr.message,
+        });
     }
 
     // Insert a dummy contract for the new doctor
@@ -485,45 +507,66 @@ app.post("/entry", verifyToken, (req, res) => {
       null, // Null new title
     ];
 
-    db.query(insertContractQuery, contractValues, (contractErr, contractData) => {
-      if (contractErr) {
-        console.error("Error inserting dummy contract:", contractErr.message);
-        return res.status(500).json({ error: "Failed to add dummy contract", details: contractErr.message });
-      }
+    db.query(
+      insertContractQuery,
+      contractValues,
+      (contractErr, contractData) => {
+        if (contractErr) {
+          console.error("Error inserting dummy contract:", contractErr.message);
+          return res
+            .status(500)
+            .json({
+              error: "Failed to add dummy contract",
+              details: contractErr.message,
+            });
+        }
 
-      // Insert a dummy posting for the new doctor
-      const insertPostingQuery = `
+        // Insert a dummy posting for the new doctor
+        const insertPostingQuery = `
         INSERT INTO postings 
         (mcr_number, academic_year, school_name, posting_number, total_training_hour, rating) 
         VALUES (?, ?, ?, ?, ?, ?)
       `;
-      const postingValues = [
-        mcr_number,
-        1990, // Default academic year outside standard range
-        "Default School", // Default school name
-        1, // Default posting number
-        0, // Default training hours
-        null, // Null rating
-      ];
+        const postingValues = [
+          mcr_number,
+          1990, // Default academic year outside standard range
+          "Default School", // Default school name
+          1, // Default posting number
+          0, // Default training hours
+          null, // Null rating
+        ];
 
-      db.query(insertPostingQuery, postingValues, (postingErr, postingData) => {
-        if (postingErr) {
-          console.error("Error inserting dummy posting:", postingErr.message);
-          return res.status(500).json({ error: "Failed to add dummy posting", details: postingErr.message });
-        }
+        db.query(
+          insertPostingQuery,
+          postingValues,
+          (postingErr, postingData) => {
+            if (postingErr) {
+              console.error(
+                "Error inserting dummy posting:",
+                postingErr.message
+              );
+              return res
+                .status(500)
+                .json({
+                  error: "Failed to add dummy posting",
+                  details: postingErr.message,
+                });
+            }
 
-        // Successfully added all entries
-        return res.status(201).json({
-          message: "New staff details, dummy contract, and dummy posting added successfully",
-          doctorData,
-          contractData,
-          postingData,
-        });
-      });
-    });
+            // Successfully added all entries
+            return res.status(201).json({
+              message:
+                "New staff details, dummy contract, and dummy posting added successfully",
+              doctorData,
+              contractData,
+              postingData,
+            });
+          }
+        );
+      }
+    );
   });
 });
-
 
 // -------------------------------------------------------------------------------------------------------------//
 // DELETE REQUEST FOR DELETING STAFF DETAILS FROM MAIN_DATA TABLE
@@ -608,7 +651,7 @@ app.post("/postings", verifyToken, async (req, res) => {
     !academic_year ||
     !school_name ||
     !posting_number ||
-    !total_training_hour ||
+    total_training_hour === undefined ||
     rating === undefined
   ) {
     return res.status(400).json({ error: "All fields are required" });
@@ -625,23 +668,27 @@ app.post("/postings", verifyToken, async (req, res) => {
       academic_year,
       school_name,
       posting_number,
-      total_training_hour,
+      total_training_hour,  // Insert raw value
       rating,
     ];
 
+    console.log("Attempting to insert posting with values:", values); // Debugging line
+
     db.query(query, values, (err, result) => {
       if (err) {
-        console.error("Database insertion error:", err);
+        console.error("Database insertion error:", err); // Logs the exact database error
         return res.status(500).json({ error: "Failed to add new posting" });
       }
 
       res.status(201).json({ message: "New posting added successfully" });
     });
   } catch (error) {
-    console.error("Server error:", error);
+    console.error("Server error:", error); // Logs server-side errors
     res.status(500).json({ error: "An error occurred while adding posting" });
   }
 });
+
+
 
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FOR POSTINGS

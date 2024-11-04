@@ -183,34 +183,33 @@ const StaffDetailPage = () => {
         >
           {" "}
           <h2>Select Year(s)</h2>
-          <table className="staff-detail-table">
-            <th colSpan={3}>
-              <div>
-                {[
-                  "2015",
-                  "2016",
-                  "2017",
-                  "2018",
-                  "2019",
-                  "2020",
-                  "2021",
-                  "2022",
-                  "2023",
-                  "2024",
-                  "2025",
-                ].map((year) => (
-                  <label key={year} style={{ marginRight: "10px" }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedYears.includes(year)}
-                      onChange={() => handleYearToggle(year)}
-                    />
-                    {year}
-                  </label>
-                ))}
-              </div>
-            </th>
-          </table>
+          <div className="year-buttons-container">
+            {[
+              "2015",
+              "2016",
+              "2017",
+              "2018",
+              "2019",
+              "2020",
+              "2021",
+              "2022",
+              "2023",
+              "2024",
+              "2025",
+            ].map((year) => (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                key={year}
+                onClick={() => handleYearToggle(year)}
+                className={`year-button ${
+                  selectedYears.includes(year) ? "selected" : ""
+                }`}
+              >
+                {year}
+              </motion.button>
+            ))}
+          </div>
           <h2>Contracts</h2>
           <div className="contracts-table-container">
             <table className="staff-detail-table">

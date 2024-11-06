@@ -12,7 +12,19 @@ const AddNewContract = () => {
   const { mcr_number } = useParams();
   const [isContractFormOpen, setContractFormOpen] = useState(false);
   const [contracts, setContracts] = useState([]);
-  
+  const [userRole, setUserRole] = useState(""); // Track user role
+
+  // Fetch user role from token on initial load
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
+      setUserRole(role);
+    }
+  }, []);
+  const handleRestrictedAction = () => {
+    toast.error("Access Denied: Please contact management to make changes.");
+  };
   const [newContract, setNewContract] = useState({
     school_name: "",
     start_date: "",
@@ -88,8 +100,12 @@ const AddNewContract = () => {
           } = response.data;
 
           // Set pre-existing data with correct SQL `DATE` format
-          updatedContract.start_date = contract_start_date ? contract_start_date.split('T')[0] : "";
-          updatedContract.end_date = contract_end_date ? contract_end_date.split('T')[0] : "";
+          updatedContract.start_date = contract_start_date
+            ? contract_start_date.split("T")[0]
+            : "";
+          updatedContract.end_date = contract_end_date
+            ? contract_end_date.split("T")[0]
+            : "";
           updatedContract.prev_title = prev_title || "";
           updatedContract.status = status || "";
           updatedContract.training_hours_2022 = training_hours_2022 || 0;
@@ -103,7 +119,8 @@ const AddNewContract = () => {
     }
 
     // Calculate the total training hours
-    updatedContract.total_training_hours = calculateTotalTrainingHours(updatedContract);
+    updatedContract.total_training_hours =
+      calculateTotalTrainingHours(updatedContract);
     setNewContract(updatedContract);
   };
 
@@ -189,7 +206,9 @@ const AddNewContract = () => {
               <option value="Duke NUS">Duke NUS</option>
               <option value="SingHealth Residency">SingHealth Residency</option>
               <option value="SUTD">SUTD</option>
-              <option value="NUS Yong Loo Lin School">NUS Yong Loo Lin School</option>
+              <option value="NUS Yong Loo Lin School">
+                NUS Yong Loo Lin School
+              </option>
               <option value="NTU LKC">NTU LKC</option>
             </select>
           </div>
@@ -267,7 +286,9 @@ const AddNewContract = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="add-contract-button"
-            onClick={handleNewContract}
+            onClick={
+              userRole === "hr" ? handleRestrictedAction : handleNewContract
+            }
           >
             Submit
           </motion.button>

@@ -41,6 +41,21 @@ const app = express(); // Create an instance of the express app
 const upload = multer({ storage: multer.memoryStorage() }); // Multer configuration
 
 // -------------------------------------------------------------------------------------------------------------//
+// RESTRICT READ-ONLY MIDDLEWARE FOR HR USERS
+// -------------------------------------------------------------------------------------------------------------//
+const restrictToReadOnlyforHR = (req, res, next) => {
+  if (
+    req.user.role === "hr" &&
+    ["POST", "PUT", "DELETE"].includes(req.method)
+  ) {
+    return res
+      .status(403)
+      .json({ message: "Access Denied: Read-only mode for HR" });
+  }
+  next();
+};
+
+// -------------------------------------------------------------------------------------------------------------//
 // MIDDLEWARE SETUP
 // -------------------------------------------------------------------------------------------------------------//
 app.use(express.json()); // Parse incoming JSON requests, so you can access req.body in POST requests when the data is sent in JSON format.
@@ -111,82 +126,59 @@ app.get("/", (req, res) => {
 // LOGIN ROUTE
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/login", (req, res) => {
-  // req.body is the data sent by the client, commonly used when a user submits a form
-  // This line then extracts the mcr_number, password, and selectedRole from the request body.
-  // These are required fields for login.
+  // Extract user ID, password, and selected role from request body
   const { user_id, password, selectedRole } = req.body;
 
-  // Check if all required fields are present
+  // Ensure all required fields are provided
   if (!user_id || !password || !selectedRole) {
     return res
       .status(400)
       .json({ error: "User ID, password, and role are required" });
   }
 
-  // Check if the user exists in the database
+  // Query the database to find the user by user_id
   const q = "SELECT * FROM user_data WHERE user_id = ?";
-
-  // Execute and handles the query
   db.query(q, [user_id], (err, data) => {
     if (err) {
       return res.status(500).json({ error: "Database error occurred" });
     }
 
+    // Check if user exists in the database
     if (data.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const user = data[0];
+    const user = data[0]; // Retrieve user data
 
-    // bcrypt.compare() and how it works (NOT SIMPLY STRING COMPARISON)
-    // For e.g. password = "password123"
-    // bcrypt will hash the password with salt and cost factor
-    // salt is a random string e.g. KkT48OvTzVQjTTvYbRLmQG
-    // cost factor is represented as a number that determines how many times the password will be hashed
-    // cost factor basically prevents brute force attacks, each increment of 1 doubles the time taken to hash the password
-
-    // salt is embedded into the final hash along with the cost factor resulting in :
-    // $2b$10$KkT48OvTzVQjTTvYbRLmQG1XsYfdGQFtBddtvImR5XM4vFElxuRm
-    //        |--------------------|
-    //               |salt|
-
-    // hackers who manage to access the database will see this, even if they are aware of the salt and cost factor,
-    // they would not be able to guess the password
-
-    // Verifying the password
-    // Backend retrieves the hashed password, bcrypts extracts salt and cost factor fro the storeed hash
-    // rehash the INPUTTED password with the extracted salt and cost factor
-    // Compares this new hash with the stored hash via string comparison
-
+    // Compare the provided password with the stored hashed password
     bcrypt.compare(password, user.user_password, (err, isMatch) => {
       if (err) {
         return res.status(500).json({ error: "Error comparing passwords" });
       }
 
+      // If the password does not match, send an error
       if (!isMatch) {
         return res.status(401).json({ error: "Incorrect password" });
       }
 
-      // Check if the selected role matches the role stored in the database
-      if (user.role !== selectedRole) {
+      // Allow login if selectedRole is either the exact user role, or "HR" logging in as "management"
+      if (
+        user.role !== selectedRole &&
+        !(user.role === "hr" && selectedRole === "management")
+      ) {
         return res.status(403).json({ error: "Role does not match" });
       }
 
-      // IF all checks pass, Create a JWT token
+      // Create a JWT token upon successful authentication
       const token = jwt.sign(
         { id: user.user_id, role: user.role },
         JWT_SECRET,
         {
-          expiresIn: "12h", // Edit this for token expiration
+          expiresIn: "12h",
         }
       );
 
-      // When a user logs in, a token is created that contains information like
-      // the user's MCR number, role, and expiration time.
-      // This token is then SIGNED with the JWT_SECRET
-      // This signing ensures that if the user presents this token later,
-      // the server can decrypt and verify that it hasn’t been tampered with.
-
+      // Respond with success message, token, and user role
       return res.status(200).json({
         message: "Authentication successful",
         token,
@@ -308,51 +300,58 @@ app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
 // for example, making a PUT request will just overwrite the exisiting user data regardless
 // of how many times you sent, it wont create multiple entries
 
-app.put("/staff/:mcr_number", verifyToken, (req, res) => {
-  const { mcr_number } = req.params;
-  const { first_name, last_name, department, designation, email, fte } =
-    req.body;
-  const userMcrNumber = req.user.id; // Assuming this is the logged-in user
+app.put(
+  "/staff/:mcr_number",
+  verifyToken,
+  restrictToReadOnlyforHR,
+  (req, res) => {
+    const { mcr_number } = req.params;
+    const { first_name, last_name, department, designation, email, fte } =
+      req.body;
+    const userMcrNumber = req.user.id; // Assuming this is the logged-in user
 
-  console.log("Updating staff details for MCR:", mcr_number); // Debug
-  console.log("Request body:", req.body); // Debug
+    console.log("Updating staff details for MCR:", mcr_number); // Debug
+    console.log("Request body:", req.body); // Debug
 
-  const q = `
+    const q = `
     UPDATE main_data 
     SET first_name = ?, last_name = ?, department = ?, designation = ?, 
         email = ?, fte = ?, updated_by = ?, updated_at = NOW()
     WHERE mcr_number = ?
   `;
 
-  const values = [
-    first_name,
-    last_name,
-    department,
-    designation,
-    email,
-    fte,
-    userMcrNumber, // Log who updated the record
-    mcr_number, // For the WHERE clause
-  ];
+    const values = [
+      first_name,
+      last_name,
+      department,
+      designation,
+      email,
+      fte,
+      userMcrNumber, // Log who updated the record
+      mcr_number, // For the WHERE clause
+    ];
 
-  db.query(q, values, (err, data) => {
-    if (err) {
-      console.error("Error updating staff details:", err);
-      return res.status(500).json({ error: "Failed to update staff details" });
-    }
+    db.query(q, values, (err, data) => {
+      if (err) {
+        console.error("Error updating staff details:", err);
+        return res
+          .status(500)
+          .json({ error: "Failed to update staff details" });
+      }
 
-    if (data.affectedRows === 0) {
-      // No rows affected means the mcr_number might not exist
-      console.log("No rows updated, check if MCR number exists");
-      return res.status(404).json({ error: "Staff not found" });
-    }
+      if (data.affectedRows === 0) {
+        // No rows affected means the mcr_number might not exist
+        console.log("No rows updated, check if MCR number exists");
+        return res.status(404).json({ error: "Staff not found" });
+      }
 
-    console.log("Staff details updated successfully"); // Success message
-    return res
-      .status(200)
-      .json({ message: "Staff details updated successfully" });
-  });
-});
+      console.log("Staff details updated successfully"); // Success message
+      return res
+        .status(200)
+        .json({ message: "Staff details updated successfully" });
+    });
+  }
+);
 
 // -------------------------------------------------------------------------------------------------------------//
 // POST REQUEST FOR ADDING NEW CONTRACTS TO CONTRACTS TABLE
@@ -776,86 +775,36 @@ app.get("/postings", async (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// Backend endpoint to check if a contract exists for a given mcr_number, school_name, and academic_year
-// -------------------------------------------------------------------------------------------------------------//
-// Backend endpoint to check if a contract exists for a given mcr_number, school_name, and academic_year
-app.get("/contracts/check", async (req, res) => {
-  const { mcr_number, school_name, academic_year } = req.query;
-
-  try {
-    // Query to check if a matching contract exists that covers the academic year
-    const contracts = await new Promise((resolve, reject) => {
-      db.query(
-        "SELECT * FROM contracts WHERE mcr_number = ? AND school_name = ? AND YEAR(contract_start_date) <= ? AND YEAR(contract_end_date) >= ?",
-        [mcr_number, school_name, academic_year, academic_year],
-        (error, results) => {
-          if (error) {
-            console.error("Database query error:", error);
-            return reject(error);
-          }
-          resolve(results);
-        }
-      );
-    });
-
-    if (contracts.length === 0) {
-      // No contract exists for this school and academic year
-      return res
-        .status(404)
-        .json({
-          message: "No contract exists for the selected school and period",
-        });
-    } else {
-      // Contract exists
-      return res.status(200).json({ message: "Contract exists" });
-    }
-  } catch (error) {
-    console.error("Error checking contract:", error);
-    res.status(500).json({ error: "Error checking contract" });
-  }
-});
-
-// -------------------------------------------------------------------------------------------------------------//
 // Backend endpoint to check if a posting number is available based on mcr_number, school_name, and academic_year
 // -------------------------------------------------------------------------------------------------------------//
+// Posting Number Check Endpoint
 app.get("/postings/check", async (req, res) => {
   const { mcr_number, school_name, academic_year, posting_number } = req.query;
 
   try {
-    // First query: check for postings with matching mcr_number, school_name, and academic_year
-    const postings = await new Promise((resolve, reject) => {
+    const query =
+      "SELECT * FROM postings WHERE mcr_number = ? AND school_name = ? AND academic_year = ? AND posting_number = ?";
+    const results = await new Promise((resolve, reject) => {
       db.query(
-        "SELECT * FROM postings WHERE mcr_number = ? AND school_name = ? AND academic_year = ?",
-        [mcr_number, school_name, academic_year],
-        (error, results) => {
+        query,
+        [mcr_number, school_name, academic_year, posting_number],
+        (error, rows) => {
           if (error) {
             console.error("Database query error:", error);
             return reject(error);
           }
-          resolve(results);
+          resolve(rows);
         }
       );
     });
 
-    if (postings.length === 0) {
-      // No postings found for these criteria, so posting number is considered available
-      return res.status(404).json({ message: "Posting number is available" });
-    }
-
-    // If postings exist, check specifically for the posting_number
-    const postingExists = postings.some(
-      (posting) => posting.posting_number === parseInt(posting_number)
-    );
-
-    if (postingExists) {
-      // Posting number exists within this set of postings
+    if (results.length > 0) {
       return res.status(200).json({ message: "Posting number already exists" });
     } else {
-      // Posting number does not exist within this set, so it's available
       return res.status(404).json({ message: "Posting number is available" });
     }
   } catch (error) {
-    console.error("Error in checking posting number:", error);
+    console.error("Error checking posting number:", error);
     res.status(500).json({ error: "Error checking posting number" });
   }
 });

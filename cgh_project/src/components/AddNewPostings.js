@@ -1,6 +1,6 @@
 import "../styles/staffdetailpage.css";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
@@ -10,7 +10,21 @@ import React from "react";
 const AddNewPostings = () => {
   const { mcr_number } = useParams(); // Get the MCR number from route params
   const [isPostingFormOpen, setPostingFormOpen] = useState(false);
+  const [contracts, setContracts] = useState([]); // Store contract data
+  const [schoolNames, setSchoolNames] = useState([]); // Store unique school names
+  const [userRole, setUserRole] = useState(""); // Track user role
 
+  // Fetch user role from token on initial load
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
+      setUserRole(role);
+    }
+  }, []);
+  const handleRestrictedAction = () => {
+    toast.error("Access Denied: Please contact management to make changes.");
+  };
   const [newPosting, setNewPosting] = useState({
     mcr_number: mcr_number, // Set from URL params
     academic_year: "",
@@ -22,6 +36,34 @@ const AddNewPostings = () => {
 
   const [postingStatus, setPostingStatus] = useState(""); // Status for posting number check
   const [postingMessage, setPostingMessage] = useState(""); // Message for posting number availability
+  const [contractErrorMessage, setContractErrorMessage] = useState(""); // Error message for academic year validation
+
+  // Fetch contracts to display the existing contracts
+  const fetchContracts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3001/contracts/${mcr_number}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setContracts(response.data);
+
+      // Extract unique school names
+      const uniqueSchoolNames = Array.from(
+        new Set(response.data.map((contract) => contract.school_name))
+      );
+      setSchoolNames(uniqueSchoolNames);
+    } catch (error) {
+      console.error("Error fetching contracts:", error);
+      toast.error("Failed to fetch contracts");
+    }
+  };
+
+  useEffect(() => {
+    fetchContracts();
+  }, []);
 
   const handleNewPostingInputChange = async (event) => {
     const { name, value } = event.target;
@@ -30,7 +72,14 @@ const AddNewPostings = () => {
       [name]: value,
     });
 
-    // Only proceed if mcr_number, school_name, academic_year, and posting_number are all set
+    // Validate academic year against contract dates when both school and academic year are selected
+    if (name === "academic_year" || name === "school_name") {
+      validateContractForAcademicYear(
+        newPosting.school_name,
+        value || newPosting.academic_year
+      );
+    }
+
     if (
       name === "posting_number" &&
       newPosting.mcr_number &&
@@ -56,20 +105,51 @@ const AddNewPostings = () => {
           setPostingMessage(
             "Posting number already exists for this MCR number, school, and academic year."
           );
+          toast.error(
+            "Posting number already exists for this MCR number, school, and academic year."
+          );
         }
       } catch (err) {
         if (err.response && err.response.status === 404) {
           setPostingStatus("available");
           setPostingMessage("Posting number is available");
+          toast.success("Posting number is available");
         } else {
           setPostingStatus("error");
           setPostingMessage("Error checking posting number");
+          toast.error("Error checking posting number");
         }
       }
     }
   };
+
+  // Function to validate if the selected academic year falls within the contract period
+  const validateContractForAcademicYear = (selectedSchool, selectedYear) => {
+    if (!selectedSchool || !selectedYear) return;
+
+    const contract = contracts.find(
+      (contract) => contract.school_name === selectedSchool
+    );
+
+    if (contract) {
+      const startYear = new Date(contract.contract_start_date).getFullYear();
+      const endYear = new Date(contract.contract_end_date).getFullYear();
+      const academicYear = parseInt(selectedYear, 10);
+
+      if (academicYear < startYear || academicYear > endYear) {
+        toast.error(
+          "This user does not have a contract with this school in the selected academic year."
+        );
+        setContractErrorMessage(
+          "This user does not have a contract with this school in the selected academic year."
+        );
+      } else {
+        setContractErrorMessage(""); // Clear error message if valid
+      }
+    }
+  };
+
   const handleNewPosting = async () => {
-    // Input validation
     if (
       !newPosting.academic_year ||
       !newPosting.school_name ||
@@ -102,6 +182,7 @@ const AddNewPostings = () => {
         });
         setPostingStatus(""); // Reset posting status
         setPostingMessage(""); // Reset message
+        setContractErrorMessage(""); // Reset error message
         setTimeout(() => {
           window.location.reload();
         }, 1000);
@@ -134,17 +215,14 @@ const AddNewPostings = () => {
                 onChange={handleNewPostingInputChange}
               >
                 <option value="">Select School</option>
-                <option value="Duke NUS">Duke NUS</option>
-                <option value="SingHealth Residency">
-                  SingHealth Residency
-                </option>
-                <option value="SUTD">SUTD</option>
-                <option value="NUS YLL">NUS Yong Loo Lin School</option>
-                <option value="NTU LKC">NTU LKC</option>
+                {schoolNames.map((school) => (
+                  <option key={school} value={school}>
+                    {school}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
-
           <div className="contract-input-container">
             <div className="input-group">
               <label>Academic Year:</label>
@@ -160,7 +238,19 @@ const AddNewPostings = () => {
               </select>
             </div>
           </div>
-
+          <div className="contract-input-container">
+            {contractErrorMessage && (
+              <div
+                style={{
+                  color: "red",
+                  marginTop: "5px",
+                  justifyContent: "center",
+                }}
+              >
+                {contractErrorMessage}
+              </div>
+            )}
+          </div>
           <div className="contract-input-container">
             <div className="input-group">
               <label>Posting Number:</label>
@@ -173,8 +263,7 @@ const AddNewPostings = () => {
               />
             </div>
           </div>
-
-          <div className="contract-input-container">
+          {/* <div className="contract-input-container">
             <div className="input-group">
               {postingMessage && (
                 <div
@@ -186,8 +275,7 @@ const AddNewPostings = () => {
                 </div>
               )}
             </div>
-          </div>
-
+          </div> */}
           <div className="contract-input-container">
             <div className="input-group">
               <label>Training Hours:</label>
@@ -200,7 +288,6 @@ const AddNewPostings = () => {
               />
             </div>
           </div>
-
           <div className="contract-input-container">
             <div className="input-group">
               <label>Rating:</label>
@@ -214,12 +301,11 @@ const AddNewPostings = () => {
               />
             </div>
           </div>
-
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="add-contract-button"
-            onClick={handleNewPosting}
+            onClick={userRole === "hr" ? handleRestrictedAction : handleNewPosting}
           >
             Submit
           </motion.button>

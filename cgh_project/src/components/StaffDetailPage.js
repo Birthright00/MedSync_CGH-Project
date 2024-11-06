@@ -28,6 +28,16 @@ const StaffDetailPage = () => {
   const [filteredContracts, setFilteredContracts] = useState([]);
   const [postingStatus, setPostingStatus] = useState(""); // Status of posting number check
   const [postingMessage, setPostingMessage] = useState(""); // Message for posting number check
+  const [userRole, setUserRole] = useState(""); // Track user role
+
+  // Fetch user role from token on initial load
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
+      setUserRole(role);
+    }
+  }, []);
   const filteredPostings =
     selectedYears.length > 0
       ? postings.filter((posting) =>
@@ -196,6 +206,11 @@ const StaffDetailPage = () => {
     fetchStaffContracts();
   }, [mcr_number]);
 
+  const handleRestrictedAction = () => {
+    if (userRole === "hr") {
+      toast.error("Access Denied: Please contact management to make changes.");
+    }
+  };
   return (
     <>
       <ToastContainer />

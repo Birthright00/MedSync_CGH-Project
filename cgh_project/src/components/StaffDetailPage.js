@@ -26,6 +26,18 @@ const StaffDetailPage = () => {
   const [selectedYears, setSelectedYears] = useState([]);
   const [postings, setPostings] = useState([]); // State to hold postings data
   const [filteredContracts, setFilteredContracts] = useState([]);
+  const [postingStatus, setPostingStatus] = useState(""); // Status of posting number check
+  const [postingMessage, setPostingMessage] = useState(""); // Message for posting number check
+  const [userRole, setUserRole] = useState(""); // Track user role
+
+  // Fetch user role from token on initial load
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
+      setUserRole(role);
+    }
+  }, []);
   const filteredPostings =
     selectedYears.length > 0
       ? postings.filter((posting) =>
@@ -194,6 +206,11 @@ const StaffDetailPage = () => {
     fetchStaffContracts();
   }, [mcr_number]);
 
+  const handleRestrictedAction = () => {
+    if (userRole === "hr") {
+      toast.error("Access Denied: Please contact management to make changes.");
+    }
+  };
   return (
     <>
       <ToastContainer />
@@ -282,9 +299,9 @@ const StaffDetailPage = () => {
                   <tr>
                     <th>Status</th>
                     {filteredContracts?.map((contract, index) => (
-                      <th key={index}>
-                        {contract?.school_name || "No Contract Found"}
-                      </th>
+                      <td key={index}>
+                        {contract?.status || "No Contract Found"}
+                      </td>
                     ))}
                   </tr>
                   <tr>
@@ -331,7 +348,7 @@ const StaffDetailPage = () => {
                     </tr>
                   )}
                   <tr>
-                    <th>Total Training Hours</th>
+                    <th>Total Training Hours for Selected Year(s)</th>
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {selectedYears
@@ -344,7 +361,7 @@ const StaffDetailPage = () => {
                     ))}
                   </tr>
                   <tr>
-                    <th>Overall Total Training Hours</th>
+                    <th>Overall Total Training Hours for all contracts</th>
                     <td colSpan={filteredContracts.length}>
                       {totalTrainingHours.toFixed(2)}
                     </td>

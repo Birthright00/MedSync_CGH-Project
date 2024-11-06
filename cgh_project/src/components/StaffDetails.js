@@ -17,6 +17,19 @@ const StaffDetails = () => {
   const [loading, setLoading] = useState(true);
   const [selectedYears, setSelectedYears] = useState([]);
   const [postings, setPostings] = useState([]); // State to hold postings data
+  const [userRole, setUserRole] = useState(""); // Track user role
+
+  // Fetch user role from token on initial load
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
+      setUserRole(role);
+    }
+  }, []);
+  const handleRestrictedAction = () => {
+    toast.error("Access Denied: Please contact management to make changes.");
+  };
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -330,15 +343,15 @@ const StaffDetails = () => {
         </tbody>
       </table>
 
+      {/* Update Details Button */}
       <motion.button
-        whileHover={{ scale: 1.05 }}
+        whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         className="update-button"
-        onClick={handleSubmit}
+        onClick={userRole === "hr" ? handleRestrictedAction : handleInputChange}
       >
-        Update Details
+        <FaEdit /> Update Details
       </motion.button>
-
       {staffDetails.deleted === 1 ? (
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -350,12 +363,14 @@ const StaffDetails = () => {
         </motion.button>
       ) : (
         <motion.button
-          whileHover={{ scale: 1.05 }}
+          whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           className="delete-button"
-          onClick={handleDelete}
+          onClick={
+            userRole === "hr" ? handleRestrictedAction : handleDelete
+          }
         >
-          Delete
+          <FaTrash /> Delete
         </motion.button>
       )}
     </motion.div>

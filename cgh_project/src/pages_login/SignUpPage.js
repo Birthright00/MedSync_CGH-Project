@@ -17,6 +17,8 @@ import staff from "../images/staff.png";
 import management from "../images/management.png";
 import show_pw from "../images/show_pw.png";
 import hide_pw from "../images/hide_pw.png";
+import hr from "../images/hr.png";
+import hr_white from "../images/hr_white.png";
 
 const SignUpPage = () => {
   const nav = useNavigate();
@@ -63,7 +65,7 @@ const SignUpPage = () => {
     // Comment out this part for easier account creation
     // ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
     // ----------------------------------------------------------------------------------------//
-    
+
     // if (!validateMCRNumber(username)) {
     //   toast.error(
     //     <div>
@@ -171,6 +173,18 @@ const SignUpPage = () => {
               >
                 <img src={staff} alt="staff" />
                 Staff
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className={`login-button ${
+                  selectedRole === "hr" ? "selected" : ""
+                }`}
+                type="button"
+                onClick={() => setSelectedRole("hr")}
+              >
+                <img src={hr} alt="hr" />
+                Human Resource
               </motion.button>
             </div>
 

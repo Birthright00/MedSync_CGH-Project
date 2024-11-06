@@ -9,6 +9,13 @@
 // DELETE FROM main_data
 // WHERE first_name = 'test';
 
+// -------------------------------------------------------------------------------------------------------------//
+// Check if there are any triggers
+// -------------------------------------------------------------------------------------------------------------//
+// SELECT TRIGGER_NAME
+// FROM information_schema.TRIGGERS
+// WHERE TRIGGER_SCHEMA = 'main_db';
+
 import express from "express";
 import mysql2 from "mysql2";
 import cors from "cors";
@@ -32,6 +39,21 @@ import csv from "csv-parser";
 
 const app = express(); // Create an instance of the express app
 const upload = multer({ storage: multer.memoryStorage() }); // Multer configuration
+
+// -------------------------------------------------------------------------------------------------------------//
+// RESTRICT READ-ONLY MIDDLEWARE FOR HR USERS
+// -------------------------------------------------------------------------------------------------------------//
+const restrictToReadOnlyforHR = (req, res, next) => {
+  if (
+    req.user.role === "hr" &&
+    ["POST", "PUT", "DELETE"].includes(req.method)
+  ) {
+    return res
+      .status(403)
+      .json({ message: "Access Denied: Read-only mode for HR" });
+  }
+  next();
+};
 
 // -------------------------------------------------------------------------------------------------------------//
 // MIDDLEWARE SETUP
@@ -104,82 +126,56 @@ app.get("/", (req, res) => {
 // LOGIN ROUTE
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/login", (req, res) => {
-  // req.body is the data sent by the client, commonly used when a user submits a form
-  // This line then extracts the mcr_number, password, and selectedRole from the request body.
-  // These are required fields for login.
+  // Extract user ID, password, and selected role from request body
   const { user_id, password, selectedRole } = req.body;
 
-  // Check if all required fields are present
+  // Ensure all required fields are provided
   if (!user_id || !password || !selectedRole) {
     return res
       .status(400)
       .json({ error: "User ID, password, and role are required" });
   }
 
-  // Check if the user exists in the database
+  // Query the database to find the user by user_id
   const q = "SELECT * FROM user_data WHERE user_id = ?";
-
-  // Execute and handles the query
   db.query(q, [user_id], (err, data) => {
     if (err) {
       return res.status(500).json({ error: "Database error occurred" });
     }
 
+    // Check if user exists in the database
     if (data.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const user = data[0];
+    const user = data[0]; // Retrieve user data
 
-    // bcrypt.compare() and how it works (NOT SIMPLY STRING COMPARISON)
-    // For e.g. password = "password123"
-    // bcrypt will hash the password with salt and cost factor
-    // salt is a random string e.g. KkT48OvTzVQjTTvYbRLmQG
-    // cost factor is represented as a number that determines how many times the password will be hashed
-    // cost factor basically prevents brute force attacks, each increment of 1 doubles the time taken to hash the password
-
-    // salt is embedded into the final hash along with the cost factor resulting in :
-    // $2b$10$KkT48OvTzVQjTTvYbRLmQG1XsYfdGQFtBddtvImR5XM4vFElxuRm
-    //        |--------------------|
-    //               |salt|
-
-    // hackers who manage to access the database will see this, even if they are aware of the salt and cost factor,
-    // they would not be able to guess the password
-
-    // Verifying the password
-    // Backend retrieves the hashed password, bcrypts extracts salt and cost factor fro the storeed hash
-    // rehash the INPUTTED password with the extracted salt and cost factor
-    // Compares this new hash with the stored hash via string comparison
-
+    // Compare the provided password with the stored hashed password
     bcrypt.compare(password, user.user_password, (err, isMatch) => {
       if (err) {
         return res.status(500).json({ error: "Error comparing passwords" });
       }
 
+      // If the password does not match, send an error
       if (!isMatch) {
         return res.status(401).json({ error: "Incorrect password" });
       }
 
-      // Check if the selected role matches the role stored in the database
+      // Allow login if selectedRole is either the exact user role, or "HR" logging in as "management"
       if (user.role !== selectedRole) {
         return res.status(403).json({ error: "Role does not match" });
       }
 
-      // IF all checks pass, Create a JWT token
+      // Create a JWT token upon successful authentication
       const token = jwt.sign(
         { id: user.user_id, role: user.role },
         JWT_SECRET,
         {
-          expiresIn: "12h", // Edit this for token expiration
+          expiresIn: "12h",
         }
       );
 
-      // When a user logs in, a token is created that contains information like
-      // the user's MCR number, role, and expiration time.
-      // This token is then SIGNED with the JWT_SECRET
-      // This signing ensures that if the user presents this token later,
-      // the server can decrypt and verify that it hasn’t been tampered with.
-
+      // Respond with success message, token, and user role
       return res.status(200).json({
         message: "Authentication successful",
         token,
@@ -301,51 +297,58 @@ app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
 // for example, making a PUT request will just overwrite the exisiting user data regardless
 // of how many times you sent, it wont create multiple entries
 
-app.put("/staff/:mcr_number", verifyToken, (req, res) => {
-  const { mcr_number } = req.params;
-  const { first_name, last_name, department, designation, email, fte } =
-    req.body;
-  const userMcrNumber = req.user.id; // Assuming this is the logged-in user
+app.put(
+  "/staff/:mcr_number",
+  verifyToken,
+  restrictToReadOnlyforHR,
+  (req, res) => {
+    const { mcr_number } = req.params;
+    const { first_name, last_name, department, designation, email, fte } =
+      req.body;
+    const userMcrNumber = req.user.id; // Assuming this is the logged-in user
 
-  console.log("Updating staff details for MCR:", mcr_number); // Debug
-  console.log("Request body:", req.body); // Debug
+    console.log("Updating staff details for MCR:", mcr_number); // Debug
+    console.log("Request body:", req.body); // Debug
 
-  const q = `
+    const q = `
     UPDATE main_data 
     SET first_name = ?, last_name = ?, department = ?, designation = ?, 
         email = ?, fte = ?, updated_by = ?, updated_at = NOW()
     WHERE mcr_number = ?
   `;
 
-  const values = [
-    first_name,
-    last_name,
-    department,
-    designation,
-    email,
-    fte,
-    userMcrNumber, // Log who updated the record
-    mcr_number, // For the WHERE clause
-  ];
+    const values = [
+      first_name,
+      last_name,
+      department,
+      designation,
+      email,
+      fte,
+      userMcrNumber, // Log who updated the record
+      mcr_number, // For the WHERE clause
+    ];
 
-  db.query(q, values, (err, data) => {
-    if (err) {
-      console.error("Error updating staff details:", err);
-      return res.status(500).json({ error: "Failed to update staff details" });
-    }
+    db.query(q, values, (err, data) => {
+      if (err) {
+        console.error("Error updating staff details:", err);
+        return res
+          .status(500)
+          .json({ error: "Failed to update staff details" });
+      }
 
-    if (data.affectedRows === 0) {
-      // No rows affected means the mcr_number might not exist
-      console.log("No rows updated, check if MCR number exists");
-      return res.status(404).json({ error: "Staff not found" });
-    }
+      if (data.affectedRows === 0) {
+        // No rows affected means the mcr_number might not exist
+        console.log("No rows updated, check if MCR number exists");
+        return res.status(404).json({ error: "Staff not found" });
+      }
 
-    console.log("Staff details updated successfully"); // Success message
-    return res
-      .status(200)
-      .json({ message: "Staff details updated successfully" });
-  });
-});
+      console.log("Staff details updated successfully"); // Success message
+      return res
+        .status(200)
+        .json({ message: "Staff details updated successfully" });
+    });
+  }
+);
 
 // -------------------------------------------------------------------------------------------------------------//
 // POST REQUEST FOR ADDING NEW CONTRACTS TO CONTRACTS TABLE
@@ -438,12 +441,22 @@ app.get("/contracts/:mcr_number/:school_name", verifyToken, (req, res) => {
 // POST REQUEST FOR ADDING NEW STAFF DETAILS TO MAIN_DATA TABLE
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/entry", verifyToken, (req, res) => {
-  const { mcr_number, first_name, last_name, department, designation, email } = req.body;
+  const { mcr_number, first_name, last_name, department, designation, email } =
+    req.body;
   const userMcrNumber = req.user.id;
 
   // Check for required fields
-  if (!mcr_number || !first_name || !last_name || !department || !designation || !email) {
-    return res.status(400).json({ error: "Please provide all required fields" });
+  if (
+    !mcr_number ||
+    !first_name ||
+    !last_name ||
+    !department ||
+    !designation ||
+    !email
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Please provide all required fields" });
   }
 
   // Insert new doctor into main_data
@@ -466,7 +479,10 @@ app.post("/entry", verifyToken, (req, res) => {
   db.query(insertDoctorQuery, doctorValues, (doctorErr, doctorData) => {
     if (doctorErr) {
       console.error("Error inserting new staff details:", doctorErr.message);
-      return res.status(500).json({ error: "Failed to add new staff details", details: doctorErr.message });
+      return res.status(500).json({
+        error: "Failed to add new staff details",
+        details: doctorErr.message,
+      });
     }
 
     // Insert a dummy contract for the new doctor
@@ -485,45 +501,62 @@ app.post("/entry", verifyToken, (req, res) => {
       null, // Null new title
     ];
 
-    db.query(insertContractQuery, contractValues, (contractErr, contractData) => {
-      if (contractErr) {
-        console.error("Error inserting dummy contract:", contractErr.message);
-        return res.status(500).json({ error: "Failed to add dummy contract", details: contractErr.message });
-      }
+    db.query(
+      insertContractQuery,
+      contractValues,
+      (contractErr, contractData) => {
+        if (contractErr) {
+          console.error("Error inserting dummy contract:", contractErr.message);
+          return res.status(500).json({
+            error: "Failed to add dummy contract",
+            details: contractErr.message,
+          });
+        }
 
-      // Insert a dummy posting for the new doctor
-      const insertPostingQuery = `
+        // Insert a dummy posting for the new doctor
+        const insertPostingQuery = `
         INSERT INTO postings 
         (mcr_number, academic_year, school_name, posting_number, total_training_hour, rating) 
         VALUES (?, ?, ?, ?, ?, ?)
       `;
-      const postingValues = [
-        mcr_number,
-        1990, // Default academic year outside standard range
-        "Default School", // Default school name
-        1, // Default posting number
-        0, // Default training hours
-        null, // Null rating
-      ];
+        const postingValues = [
+          mcr_number,
+          1990, // Default academic year outside standard range
+          "Default School", // Default school name
+          1, // Default posting number
+          0, // Default training hours
+          null, // Null rating
+        ];
 
-      db.query(insertPostingQuery, postingValues, (postingErr, postingData) => {
-        if (postingErr) {
-          console.error("Error inserting dummy posting:", postingErr.message);
-          return res.status(500).json({ error: "Failed to add dummy posting", details: postingErr.message });
-        }
+        db.query(
+          insertPostingQuery,
+          postingValues,
+          (postingErr, postingData) => {
+            if (postingErr) {
+              console.error(
+                "Error inserting dummy posting:",
+                postingErr.message
+              );
+              return res.status(500).json({
+                error: "Failed to add dummy posting",
+                details: postingErr.message,
+              });
+            }
 
-        // Successfully added all entries
-        return res.status(201).json({
-          message: "New staff details, dummy contract, and dummy posting added successfully",
-          doctorData,
-          contractData,
-          postingData,
-        });
-      });
-    });
+            // Successfully added all entries
+            return res.status(201).json({
+              message:
+                "New staff details, dummy contract, and dummy posting added successfully",
+              doctorData,
+              contractData,
+              postingData,
+            });
+          }
+        );
+      }
+    );
   });
 });
-
 
 // -------------------------------------------------------------------------------------------------------------//
 // DELETE REQUEST FOR DELETING STAFF DETAILS FROM MAIN_DATA TABLE
@@ -608,19 +641,20 @@ app.post("/postings", verifyToken, async (req, res) => {
     !academic_year ||
     !school_name ||
     !posting_number ||
-    !total_training_hour ||
+    total_training_hour === undefined ||
     rating === undefined
   ) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
   try {
-    const query = `
+    // Insert the new posting
+    const insertQuery = `
       INSERT INTO postings 
       (mcr_number, academic_year, school_name, posting_number, total_training_hour, rating) 
       VALUES (?, ?, ?, ?, ?, ?)
     `;
-    const values = [
+    const insertValues = [
       mcr_number,
       academic_year,
       school_name,
@@ -629,13 +663,59 @@ app.post("/postings", verifyToken, async (req, res) => {
       rating,
     ];
 
-    db.query(query, values, (err, result) => {
-      if (err) {
-        console.error("Database insertion error:", err);
+    db.query(insertQuery, insertValues, (insertErr, result) => {
+      if (insertErr) {
+        console.error("Database insertion error:", insertErr);
         return res.status(500).json({ error: "Failed to add new posting" });
       }
 
-      res.status(201).json({ message: "New posting added successfully" });
+      // After successful insertion, calculate the updated total training hours
+      const sumQuery = `
+        SELECT SUM(total_training_hour) AS year_total_training_hours
+        FROM postings
+        WHERE mcr_number = ? AND academic_year = ? AND school_name = ?
+      `;
+
+      db.query(
+        sumQuery,
+        [mcr_number, academic_year, school_name],
+        (sumErr, sumResult) => {
+          if (sumErr) {
+            console.error("Error calculating total training hours:", sumErr);
+            return res
+              .status(500)
+              .json({ error: "Failed to calculate total training hours" });
+          }
+
+          const yearTotalTrainingHours =
+            sumResult[0].year_total_training_hours || 0;
+
+          // Update the contracts table for the specific year column
+          const updateQuery = `
+            UPDATE contracts
+            SET training_hours_${academic_year} = ?
+            WHERE mcr_number = ? AND school_name = ?
+          `;
+
+          db.query(
+            updateQuery,
+            [yearTotalTrainingHours, mcr_number, school_name],
+            (updateErr, updateResult) => {
+              if (updateErr) {
+                console.error("Error updating contracts:", updateErr);
+                return res.status(500).json({
+                  error: "Failed to update total training hours in contracts",
+                });
+              }
+
+              res.status(201).json({
+                message:
+                  "New posting added and total training hours updated successfully",
+              });
+            }
+          );
+        }
+      );
     });
   } catch (error) {
     console.error("Server error:", error);
@@ -688,6 +768,41 @@ app.get("/postings", async (req, res) => {
   } catch (error) {
     console.error("Unexpected error in /postings route:", error);
     res.status(500).json({ error: "Unexpected error", details: error.message });
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// Backend endpoint to check if a posting number is available based on mcr_number, school_name, and academic_year
+// -------------------------------------------------------------------------------------------------------------//
+// Posting Number Check Endpoint
+app.get("/postings/check", async (req, res) => {
+  const { mcr_number, school_name, academic_year, posting_number } = req.query;
+
+  try {
+    const query =
+      "SELECT * FROM postings WHERE mcr_number = ? AND school_name = ? AND academic_year = ? AND posting_number = ?";
+    const results = await new Promise((resolve, reject) => {
+      db.query(
+        query,
+        [mcr_number, school_name, academic_year, posting_number],
+        (error, rows) => {
+          if (error) {
+            console.error("Database query error:", error);
+            return reject(error);
+          }
+          resolve(rows);
+        }
+      );
+    });
+
+    if (results.length > 0) {
+      return res.status(200).json({ message: "Posting number already exists" });
+    } else {
+      return res.status(404).json({ message: "Posting number is available" });
+    }
+  } catch (error) {
+    console.error("Error checking posting number:", error);
+    res.status(500).json({ error: "Error checking posting number" });
   }
 });
 

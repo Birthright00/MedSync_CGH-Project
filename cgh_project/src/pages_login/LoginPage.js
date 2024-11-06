@@ -19,6 +19,8 @@ import show_pw from "../images/show_pw.png";
 import hide_pw from "../images/hide_pw.png";
 import white_management from "../images/management_white.png";
 import white_staff from "../images/staff_white.png";
+import hr from "../images/hr.png";
+import hr_white from "../images/hr_white.png";
 
 const LoginPage = () => {
   const nav = useNavigate();
@@ -60,6 +62,8 @@ const LoginPage = () => {
     } else if (role === "staff") {
       return mcrOrSnbPattern.test(username); // Validate MCR or SNB for staff
     }
+    if (role === "hr") return adidPattern.test(username); // Assuming HR follows management pattern
+
     return false; // Invalid if no role is selected or pattern doesn't match
   };
 
@@ -76,13 +80,13 @@ const LoginPage = () => {
   // when staff is clicked, only mcr or snb number can be typed
   // For adid, their role MUST BE management
   // for mcr and snb number, their roles MUST BE STAFF
-  
+
   const handleSignIn = async (e) => {
     e.preventDefault(); // Prevent the default form submission behavior
 
     // Making sure users select a role
     if (!selectedRole) {
-      toast.warn("Please select a role (Management or Staff)");
+      toast.warn("Please select a role (Management, Staff or HR)");
       return;
     }
 
@@ -120,7 +124,11 @@ const LoginPage = () => {
         // Successful login
         toast.success("Login successful! Welcome Back!");
         setTimeout(() => {
-          nav(data.role === "management" ? "/home" : "/staff-home");
+          nav(
+            data.role === "management" || data.role === "hr"
+              ? "/home"
+              : "/staff-home"
+          );
         }, 1000); // Small delay for toast visibility
       } else {
         // Handle specific status codes and show custom toast messages
@@ -214,6 +222,21 @@ const LoginPage = () => {
                   alt="staff"
                 />
                 Doctor/Nurse
+              </motion.button>{" "}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className={`login-button ${
+                  selectedRole === "hr" ? "selected" : ""
+                }`}
+                type="button"
+                onClick={() => setSelectedRole("hr")}
+              >
+                <img
+                  src={isStaffHovered || isRoleSelected("hr") ? hr_white : hr}
+                  alt="hr"
+                />
+                Human Resource
               </motion.button>
             </motion.div>
 

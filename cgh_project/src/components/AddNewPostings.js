@@ -20,14 +20,54 @@ const AddNewPostings = () => {
     rating: "",
   });
 
-  const handleNewPostingInputChange = (event) => {
+  const [postingStatus, setPostingStatus] = useState(""); // Status for posting number check
+  const [postingMessage, setPostingMessage] = useState(""); // Message for posting number availability
+
+  const handleNewPostingInputChange = async (event) => {
     const { name, value } = event.target;
     setNewPosting({
       ...newPosting,
       [name]: value,
     });
-  };
 
+    // Only proceed if mcr_number, school_name, academic_year, and posting_number are all set
+    if (
+      name === "posting_number" &&
+      newPosting.mcr_number &&
+      newPosting.school_name &&
+      newPosting.academic_year
+    ) {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.log("No token found");
+        return;
+      }
+
+      try {
+        const response = await axios.get(
+          `http://localhost:3001/postings/check?mcr_number=${newPosting.mcr_number}&school_name=${newPosting.school_name}&academic_year=${newPosting.academic_year}&posting_number=${value}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (response.status === 200) {
+          setPostingStatus("taken");
+          setPostingMessage(
+            "Posting number already exists for this MCR number, school, and academic year."
+          );
+        }
+      } catch (err) {
+        if (err.response && err.response.status === 404) {
+          setPostingStatus("available");
+          setPostingMessage("Posting number is available");
+        } else {
+          setPostingStatus("error");
+          setPostingMessage("Error checking posting number");
+        }
+      }
+    }
+  };
   const handleNewPosting = async () => {
     // Input validation
     if (
@@ -60,6 +100,8 @@ const AddNewPostings = () => {
           total_training_hour: "",
           rating: "",
         });
+        setPostingStatus(""); // Reset posting status
+        setPostingMessage(""); // Reset message
         setTimeout(() => {
           window.location.reload();
         }, 1000);
@@ -93,9 +135,11 @@ const AddNewPostings = () => {
               >
                 <option value="">Select School</option>
                 <option value="Duke NUS">Duke NUS</option>
-                <option value="SingHealth Residency">SingHealth Residency</option>
+                <option value="SingHealth Residency">
+                  SingHealth Residency
+                </option>
                 <option value="SUTD">SUTD</option>
-                <option value="NUS Yong Loo Lin School">NUS Yong Loo Lin School</option>
+                <option value="NUS YLL">NUS Yong Loo Lin School</option>
                 <option value="NTU LKC">NTU LKC</option>
               </select>
             </div>
@@ -127,6 +171,20 @@ const AddNewPostings = () => {
                 value={newPosting.posting_number}
                 onChange={handleNewPostingInputChange}
               />
+            </div>
+          </div>
+
+          <div className="contract-input-container">
+            <div className="input-group">
+              {postingMessage && (
+                <div
+                  className={`posting-message ${
+                    postingStatus === "taken" ? "taken" : "available"
+                  }`}
+                >
+                  <p>{postingMessage}</p>
+                </div>
+              )}
             </div>
           </div>
 

@@ -26,6 +26,8 @@ const StaffDetailPage = () => {
   const [selectedYears, setSelectedYears] = useState([]);
   const [postings, setPostings] = useState([]); // State to hold postings data
   const [filteredContracts, setFilteredContracts] = useState([]);
+  const [postingStatus, setPostingStatus] = useState(""); // Status of posting number check
+  const [postingMessage, setPostingMessage] = useState(""); // Message for posting number check
   const filteredPostings =
     selectedYears.length > 0
       ? postings.filter((posting) =>
@@ -331,7 +333,7 @@ const StaffDetailPage = () => {
                     </tr>
                   )}
                   <tr>
-                    <th>Total Training Hours</th>
+                    <th>Total Training Hours for Selected Year(s)</th>
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {selectedYears
@@ -344,7 +346,7 @@ const StaffDetailPage = () => {
                     ))}
                   </tr>
                   <tr>
-                    <th>Overall Total Training Hours</th>
+                    <th>Overall Total Training Hours for all contracts</th>
                     <td colSpan={filteredContracts.length}>
                       {totalTrainingHours.toFixed(2)}
                     </td>

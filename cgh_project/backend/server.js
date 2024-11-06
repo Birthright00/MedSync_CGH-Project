@@ -12,7 +12,7 @@
 // -------------------------------------------------------------------------------------------------------------//
 // Check if there are any triggers
 // -------------------------------------------------------------------------------------------------------------//
-// SELECT TRIGGER_NAME 
+// SELECT TRIGGER_NAME
 // FROM information_schema.TRIGGERS
 // WHERE TRIGGER_SCHEMA = 'main_db';
 
@@ -483,12 +483,10 @@ app.post("/entry", verifyToken, (req, res) => {
   db.query(insertDoctorQuery, doctorValues, (doctorErr, doctorData) => {
     if (doctorErr) {
       console.error("Error inserting new staff details:", doctorErr.message);
-      return res
-        .status(500)
-        .json({
-          error: "Failed to add new staff details",
-          details: doctorErr.message,
-        });
+      return res.status(500).json({
+        error: "Failed to add new staff details",
+        details: doctorErr.message,
+      });
     }
 
     // Insert a dummy contract for the new doctor
@@ -513,12 +511,10 @@ app.post("/entry", verifyToken, (req, res) => {
       (contractErr, contractData) => {
         if (contractErr) {
           console.error("Error inserting dummy contract:", contractErr.message);
-          return res
-            .status(500)
-            .json({
-              error: "Failed to add dummy contract",
-              details: contractErr.message,
-            });
+          return res.status(500).json({
+            error: "Failed to add dummy contract",
+            details: contractErr.message,
+          });
         }
 
         // Insert a dummy posting for the new doctor
@@ -545,12 +541,10 @@ app.post("/entry", verifyToken, (req, res) => {
                 "Error inserting dummy posting:",
                 postingErr.message
               );
-              return res
-                .status(500)
-                .json({
-                  error: "Failed to add dummy posting",
-                  details: postingErr.message,
-                });
+              return res.status(500).json({
+                error: "Failed to add dummy posting",
+                details: postingErr.message,
+              });
             }
 
             // Successfully added all entries
@@ -658,37 +652,80 @@ app.post("/postings", verifyToken, async (req, res) => {
   }
 
   try {
-    const query = `
+    // Insert the new posting
+    const insertQuery = `
       INSERT INTO postings 
       (mcr_number, academic_year, school_name, posting_number, total_training_hour, rating) 
       VALUES (?, ?, ?, ?, ?, ?)
     `;
-    const values = [
+    const insertValues = [
       mcr_number,
       academic_year,
       school_name,
       posting_number,
-      total_training_hour,  // Insert raw value
+      total_training_hour,
       rating,
     ];
 
-    console.log("Attempting to insert posting with values:", values); // Debugging line
-
-    db.query(query, values, (err, result) => {
-      if (err) {
-        console.error("Database insertion error:", err); // Logs the exact database error
+    db.query(insertQuery, insertValues, (insertErr, result) => {
+      if (insertErr) {
+        console.error("Database insertion error:", insertErr);
         return res.status(500).json({ error: "Failed to add new posting" });
       }
 
-      res.status(201).json({ message: "New posting added successfully" });
+      // After successful insertion, calculate the updated total training hours
+      const sumQuery = `
+        SELECT SUM(total_training_hour) AS year_total_training_hours
+        FROM postings
+        WHERE mcr_number = ? AND academic_year = ? AND school_name = ?
+      `;
+
+      db.query(
+        sumQuery,
+        [mcr_number, academic_year, school_name],
+        (sumErr, sumResult) => {
+          if (sumErr) {
+            console.error("Error calculating total training hours:", sumErr);
+            return res
+              .status(500)
+              .json({ error: "Failed to calculate total training hours" });
+          }
+
+          const yearTotalTrainingHours =
+            sumResult[0].year_total_training_hours || 0;
+
+          // Update the contracts table for the specific year column
+          const updateQuery = `
+            UPDATE contracts
+            SET training_hours_${academic_year} = ?
+            WHERE mcr_number = ? AND school_name = ?
+          `;
+
+          db.query(
+            updateQuery,
+            [yearTotalTrainingHours, mcr_number, school_name],
+            (updateErr, updateResult) => {
+              if (updateErr) {
+                console.error("Error updating contracts:", updateErr);
+                return res.status(500).json({
+                  error: "Failed to update total training hours in contracts",
+                });
+              }
+
+              res.status(201).json({
+                message:
+                  "New posting added and total training hours updated successfully",
+              });
+            }
+          );
+        }
+      );
     });
   } catch (error) {
-    console.error("Server error:", error); // Logs server-side errors
+    console.error("Server error:", error);
     res.status(500).json({ error: "An error occurred while adding posting" });
   }
 });
-
-
 
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FOR POSTINGS
@@ -735,6 +772,91 @@ app.get("/postings", async (req, res) => {
   } catch (error) {
     console.error("Unexpected error in /postings route:", error);
     res.status(500).json({ error: "Unexpected error", details: error.message });
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// Backend endpoint to check if a contract exists for a given mcr_number, school_name, and academic_year
+// -------------------------------------------------------------------------------------------------------------//
+// Backend endpoint to check if a contract exists for a given mcr_number, school_name, and academic_year
+app.get("/contracts/check", async (req, res) => {
+  const { mcr_number, school_name, academic_year } = req.query;
+
+  try {
+    // Query to check if a matching contract exists that covers the academic year
+    const contracts = await new Promise((resolve, reject) => {
+      db.query(
+        "SELECT * FROM contracts WHERE mcr_number = ? AND school_name = ? AND YEAR(contract_start_date) <= ? AND YEAR(contract_end_date) >= ?",
+        [mcr_number, school_name, academic_year, academic_year],
+        (error, results) => {
+          if (error) {
+            console.error("Database query error:", error);
+            return reject(error);
+          }
+          resolve(results);
+        }
+      );
+    });
+
+    if (contracts.length === 0) {
+      // No contract exists for this school and academic year
+      return res
+        .status(404)
+        .json({
+          message: "No contract exists for the selected school and period",
+        });
+    } else {
+      // Contract exists
+      return res.status(200).json({ message: "Contract exists" });
+    }
+  } catch (error) {
+    console.error("Error checking contract:", error);
+    res.status(500).json({ error: "Error checking contract" });
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// Backend endpoint to check if a posting number is available based on mcr_number, school_name, and academic_year
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/postings/check", async (req, res) => {
+  const { mcr_number, school_name, academic_year, posting_number } = req.query;
+
+  try {
+    // First query: check for postings with matching mcr_number, school_name, and academic_year
+    const postings = await new Promise((resolve, reject) => {
+      db.query(
+        "SELECT * FROM postings WHERE mcr_number = ? AND school_name = ? AND academic_year = ?",
+        [mcr_number, school_name, academic_year],
+        (error, results) => {
+          if (error) {
+            console.error("Database query error:", error);
+            return reject(error);
+          }
+          resolve(results);
+        }
+      );
+    });
+
+    if (postings.length === 0) {
+      // No postings found for these criteria, so posting number is considered available
+      return res.status(404).json({ message: "Posting number is available" });
+    }
+
+    // If postings exist, check specifically for the posting_number
+    const postingExists = postings.some(
+      (posting) => posting.posting_number === parseInt(posting_number)
+    );
+
+    if (postingExists) {
+      // Posting number exists within this set of postings
+      return res.status(200).json({ message: "Posting number already exists" });
+    } else {
+      // Posting number does not exist within this set, so it's available
+      return res.status(404).json({ message: "Posting number is available" });
+    }
+  } catch (error) {
+    console.error("Error in checking posting number:", error);
+    res.status(500).json({ error: "Error checking posting number" });
   }
 });
 

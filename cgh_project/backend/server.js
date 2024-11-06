@@ -162,10 +162,7 @@ app.post("/login", (req, res) => {
       }
 
       // Allow login if selectedRole is either the exact user role, or "HR" logging in as "management"
-      if (
-        user.role !== selectedRole &&
-        !(user.role === "hr" && selectedRole === "management")
-      ) {
+      if (user.role !== selectedRole) {
         return res.status(403).json({ error: "Role does not match" });
       }
 

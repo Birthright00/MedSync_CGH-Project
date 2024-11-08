@@ -22,6 +22,16 @@ const quotes = [
   "'Success is not the key to happiness. Happiness is the key to success.'",
   "'Health is not valued till sickness comes.'",
   "'To know even one life has breathed easier because you have lived. This is to have succeeded.'",
+  "'The greatest gift you can give someone is your time, your attention, your love, your concern.'",
+  "'Nurses are a unique kind. They have this insatiable need to care for others, which is both their greatest strength and fatal flaw.'",
+  "'Saving lives is not a job, it’s a calling. For those who choose to answer, the world is forever grateful.'",
+  "'A hero is someone who has given his or her life to something bigger than oneself.'",
+  "'It is not how much you do, but how much love you put in the doing.'",
+  "'To care for those who once cared for us is one of the highest honors.'",
+  "'You don’t build a house without its foundation. You don’t build a hospital without its nurses.'",
+  "'Medicine is a science of uncertainty and an art of probability.'",
+  "'In nothing do men more nearly approach the gods than in giving health to men.'",
+  "'Caring for others is an expression of what it means to be fully human.'",
 ];
 
 const HomePage = () => {
@@ -68,7 +78,7 @@ const HomePage = () => {
     const interval = setInterval(() => {
       setDirection(1); // Always move forward
       setQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length);
-    }, 5000); // Rotate every 5 seconds
+    }, 3000); // Rotate every 5 seconds
 
     return () => clearInterval(interval); // Cleanup on unmount
   }, []);

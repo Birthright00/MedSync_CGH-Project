@@ -28,6 +28,7 @@ const StaffDetailPage = () => {
   const [filteredContracts, setFilteredContracts] = useState([]);
   const [postingStatus, setPostingStatus] = useState(""); // Status of posting number check
   const [postingMessage, setPostingMessage] = useState(""); // Message for posting number check
+  const [nonInstitutional, setNonInstitutional] = useState([]); // State to hold non-institutional data
   const [userRole, setUserRole] = useState(""); // Track user role
 
   // Fetch user role from token on initial load
@@ -141,10 +142,25 @@ const StaffDetailPage = () => {
       toast.error("Failed to fetch postings");
     }
   };
+  const fetchNonInstitutional = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:3001/non_institutional/${mcr_number}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setNonInstitutional(response.data.length > 0 ? response.data : []);
+    } catch (error) {
+      toast.error("Failed to fetch non-institutional data");
+    }
+  };
 
   useEffect(() => {
     fetchContracts();
     fetchPostings();
+    fetchNonInstitutional(); // Fetch non-institutional data
   }, [mcr_number]);
 
   // ########################################## //
@@ -211,6 +227,19 @@ const StaffDetailPage = () => {
       toast.error("Access Denied: Please contact management to make changes.");
     }
   };
+  const filteredNonInstitutional =
+    selectedYears.length > 0
+      ? nonInstitutional.filter((activity) => {
+          console.log(
+            "Activity academic year:",
+            activity.academic_year,
+            "Selected years:",
+            selectedYears
+          );
+          return selectedYears.includes(activity.academic_year?.toString());
+        })
+      : nonInstitutional;
+
   return (
     <>
       <ToastContainer />
@@ -371,7 +400,7 @@ const StaffDetailPage = () => {
                 <tbody>
                   <tr>
                     <td colSpan="5" style={{ textAlign: "center" }}>
-                      No Contract Found
+                      Please select a year to view Contracts.
                     </td>
                   </tr>
                 </tbody>
@@ -425,7 +454,7 @@ const StaffDetailPage = () => {
                 <tbody>
                   <tr>
                     <td colSpan="5" style={{ textAlign: "center" }}>
-                      No postings found.
+                      Please select a year to view Postings.
                     </td>
                   </tr>
                 </tbody>
@@ -433,6 +462,65 @@ const StaffDetailPage = () => {
             )}
           </div>
           <AddNewPostings />{" "}
+          <div>
+            {" "}
+            <h2>Non-Institutional Activities</h2>
+            <div className="non-institutional-table-container">
+              {selectedYears.length > 0 ? (
+                filteredNonInstitutional &&
+                filteredNonInstitutional.length > 0 ? (
+                  <table className="staff-detail-table">
+                    <thead>
+                      <tr>
+                        <th>Academic Year</th>
+                        <th>Teaching Categories</th>
+                        <th>Role</th>
+                        <th>Activity Type</th>
+                        <th>Medium</th>
+                        <th>Host Country</th>
+                        <th>Honorarium</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredNonInstitutional.map((activity, index) => (
+                        <tr key={index}>
+                          <td>{activity.academic_year || "N/A"}</td>
+                          <td>{activity.teaching_categories || "N/A"}</td>
+                          <td>{activity.role || "N/A"}</td>
+                          <td>{activity.activity_type || "N/A"}</td>
+                          <td>{activity.medium || "N/A"}</td>
+                          <td>{activity.host_country || "N/A"}</td>
+                          <td>{activity.honorarium || "N/A"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <table className="posting-detail-table">
+                    <tbody>
+                      <tr>
+                        <td colSpan="5" style={{ textAlign: "center" }}>
+                          No non-institutional activities found for the selected
+                          year(s).
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                )
+              ) : (
+                <table className="posting-detail-table">
+                  <tbody>
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: "center" }}>
+                        Please select a year to view non-institutional
+                        activities.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}

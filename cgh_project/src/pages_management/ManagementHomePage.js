@@ -286,8 +286,7 @@ const ManagementHomePage = () => {
       // School filtering logic - "AND" logic for selected schools
       const matchesSchools =
         (!selectedSchools.duke_nus || staff.duke_nus_status) &&
-        (!selectedSchools.singhealth ||
-          staff.singhealth_status) &&
+        (!selectedSchools.singhealth || staff.singhealth_status) &&
         (!selectedSchools.sutd || staff.sutd_status) &&
         (!selectedSchools.nus_ylls || staff.nus_ylls_status) &&
         (!selectedSchools.ntu_lkc || staff.ntu_lkc_status);
@@ -498,6 +497,8 @@ const ManagementHomePage = () => {
                   <th colSpan="3">SUTD</th>
                   <th colSpan="3">NUS YLL</th>
                   <th colSpan="3">NTU LKC</th>
+                  <th colSpan="6">Non Institutional</th>{" "}
+                  {/* New group header for Non Institutional */}
                   <th rowSpan="2">Created At</th>
                   <th rowSpan="2">Updated At</th>
                   <th rowSpan="2">Created By</th>
@@ -550,8 +551,25 @@ const ManagementHomePage = () => {
                     End Date
                   </th>
                   <th onClick={() => handleSort("ntu_lkc_status")}>Status</th>
+
+                  {/* Sub-headers for Non Institutional */}
+                  <th onClick={() => handleSort("teaching_categories")}>
+                    Teaching Categories
+                  </th>
+                  <th onClick={() => handleSort("non_institutional_role")}>
+                    Role
+                  </th>
+                  <th onClick={() => handleSort("activity_type")}>
+                    Activity Type
+                  </th>
+                  <th onClick={() => handleSort("medium")}>Medium</th>
+                  <th onClick={() => handleSort("host_country")}>
+                    Host Country
+                  </th>
+                  <th onClick={() => handleSort("honorarium")}>Honorarium</th>
                 </tr>
               </thead>
+              {/* Rest of the table code */}
 
               <tbody>
                 {rowsToDisplay.map((staff, index) => (
@@ -583,6 +601,13 @@ const ManagementHomePage = () => {
                     <td>{formatDateTime(staff.ntu_lkc_start_date)}</td>
                     <td>{formatDateTime(staff.ntu_lkc_end_date)}</td>
                     <td>{staff.ntu_lkc_status}</td>
+
+                    <td>{staff.teaching_categories}</td>
+                    <td>{staff.non_institutional_role}</td>
+                    <td>{staff.activity_type}</td>
+                    <td>{staff.medium}</td>
+                    <td>{staff.host_country}</td>
+                    <td>{staff.honorarium}</td>
 
                     <td>{formatDateTime(staff.created_at)}</td>
                     <td>{formatDateTime(staff.updated_at)}</td>

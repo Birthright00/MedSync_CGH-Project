@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../styles/staffdetailpage.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/footer";
@@ -6,18 +6,6 @@ import { motion } from "framer-motion";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
-// Function to format date values for display in datetime-local input fields
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return ""; // Return empty string if date is null or undefined
-  const date = new Date(dateStr);
-  const year = date.getFullYear();
-  const month = ("0" + (date.getMonth() + 1)).slice(-2); // Ensure two digits for month
-  const day = ("0" + date.getDate()).slice(-2); // Ensure two digits for day
-  const hours = ("0" + date.getHours()).slice(-2); // Ensure two digits for hours
-  const minutes = ("0" + date.getMinutes()).slice(-2); // Ensure two digits for minutes
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
 
 const Entry = () => {
   // State to manage staff details for the form inputs
@@ -31,7 +19,31 @@ const Entry = () => {
   });
   const [mcrStatus, setMcrStatus] = useState(""); // "available" or "taken"
   const [mcrMessage, setMcrMessage] = useState("");
-  // Function to validate input fields before submission
+  // Function to validate input fields before submission// Function to format date values for display in datetime-local input fields
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return ""; // Return empty string if date is null or undefined
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = ("0" + (date.getMonth() + 1)).slice(-2); // Ensure two digits for month
+    const day = ("0" + date.getDate()).slice(-2); // Ensure two digits for day
+    const hours = ("0" + date.getHours()).slice(-2); // Ensure two digits for hours
+    const minutes = ("0" + date.getMinutes()).slice(-2); // Ensure two digits for minutes
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+  const [userRole, setUserRole] = useState(""); // Track user role
+
+  const handleRestrictedAction = () => {
+    toast.error("Access Denied: Please contact management to make changes.");
+  }; // Fetch user role from token on initial load
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
+      setUserRole(role);
+    }
+  }, []);
+
   const validateFields = () => {
     const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/;
     const nameMaxLength = 50;
@@ -336,7 +348,7 @@ const Entry = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="add-contract-button"
-            onClick={handleSubmit}
+            onClick={userRole === "hr" ? handleRestrictedAction : handleSubmit}
           >
             Add New Staff
           </motion.button>

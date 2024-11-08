@@ -235,145 +235,146 @@ const StaffDetails = () => {
   }
 
   return (
-    <motion.div
-      className="staff-info-container"
-      initial={{ x: -100, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-    >
-      <h2>Staff Details {staffDetails.deleted === 1 ? "(Deleted)" : ""}</h2>
-      <table className="staff-detail-table">
-        <tbody>
-          <tr>
-            <th>MCR Number</th>
-            <td>
-              <input
-                type="text"
-                name="mcr_number"
-                value={staffDetails.mcr_number}
-                onChange={handleInputChange}
-                disabled
-                className="staff-detail-input"
-              />
-            </td>
-          </tr>
-          <tr>
-            <th>First Name</th>
-            <td>
-              <input
-                type="text"
-                name="first_name"
-                value={staffDetails.first_name}
-                onChange={handleInputChange}
-              />
-            </td>
-          </tr>
-          <tr>
-            <th>Last Name</th>
-            <td>
-              <input
-                type="text"
-                name="last_name"
-                value={staffDetails.last_name}
-                onChange={handleInputChange}
-              />
-            </td>
-          </tr>
-          <tr>
-            <th>Department</th>
-            <td>
-              <input
-                type="text"
-                name="department"
-                value={staffDetails.department}
-                onChange={handleInputChange}
-              />
-            </td>
-          </tr>
-          <tr>
-            <th>Designation</th>
-            <td>
-              <input
-                type="text"
-                name="designation"
-                value={staffDetails.designation}
-                onChange={handleInputChange}
-              />
-            </td>
-          </tr>
-
-          <tr>
-            <th>Email Address</th>
-            <td>
-              <input
-                type="email"
-                name="email"
-                value={staffDetails.email}
-                onChange={handleInputChange}
-              />
-            </td>
-          </tr>
-          <tr>
-            <th>FTE</th>
-            <td>
-              <input
-                type="email"
-                name="email"
-                value={staffDetails.fte}
-                onChange={handleInputChange}
-              />
-            </td>
-          </tr>
-          <tr>
-            <th>Created At</th>
-            <td>{formatDateTime(staffDetails.created_at)}</td>
-          </tr>
-          <tr>
-            <th>Last Updated At</th>
-            <td>{formatDateTime(staffDetails.updated_at)}</td>
-          </tr>
-          <tr>
-            <th>Created By</th>
-            <td>{staffDetails.created_by}</td>
-          </tr>
-          <tr>
-            <th>Last Updated By</th>
-            <td>{staffDetails.updated_by}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      {/* Update Details Button */}
-      <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className="update-button"
-        onClick={userRole === "hr" ? handleRestrictedAction : handleInputChange}
+    <>
+      <ToastContainer />
+      <motion.div
+        className="staff-info-container"
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <FaEdit /> Update Details
-      </motion.button>
-      {staffDetails.deleted === 1 ? (
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.9 }}
-          className="restore-button"
-          onClick={handleRestore}
-        >
-          Restore
-        </motion.button>
-      ) : (
+        <h2>Staff Details {staffDetails.deleted === 1 ? "(Deleted)" : ""}</h2>
+        <table className="staff-detail-table">
+          <tbody>
+            <tr>
+              <th>MCR Number</th>
+              <td>
+                <input
+                  type="text"
+                  name="mcr_number"
+                  value={staffDetails.mcr_number}
+                  onChange={handleInputChange}
+                  disabled
+                  className="staff-detail-input"
+                />
+              </td>
+            </tr>
+            <tr>
+              <th>First Name</th>
+              <td>
+                <input
+                  type="text"
+                  name="first_name"
+                  value={staffDetails.first_name}
+                  onChange={handleInputChange}
+                />
+              </td>
+            </tr>
+            <tr>
+              <th>Last Name</th>
+              <td>
+                <input
+                  type="text"
+                  name="last_name"
+                  value={staffDetails.last_name}
+                  onChange={handleInputChange}
+                />
+              </td>
+            </tr>
+            <tr>
+              <th>Department</th>
+              <td>
+                <input
+                  type="text"
+                  name="department"
+                  value={staffDetails.department}
+                  onChange={handleInputChange}
+                />
+              </td>
+            </tr>
+            <tr>
+              <th>Designation</th>
+              <td>
+                <input
+                  type="text"
+                  name="designation"
+                  value={staffDetails.designation}
+                  onChange={handleInputChange}
+                />
+              </td>
+            </tr>
+
+            <tr>
+              <th>Email Address</th>
+              <td>
+                <input
+                  type="email"
+                  name="email"
+                  value={staffDetails.email}
+                  onChange={handleInputChange}
+                />
+              </td>
+            </tr>
+            <tr>
+              <th>FTE</th>
+              <td>
+                <input
+                  type="email"
+                  name="email"
+                  value={staffDetails.fte}
+                  onChange={handleInputChange}
+                />
+              </td>
+            </tr>
+            <tr>
+              <th>Created At</th>
+              <td>{formatDateTime(staffDetails.created_at)}</td>
+            </tr>
+            <tr>
+              <th>Last Updated At</th>
+              <td>{formatDateTime(staffDetails.updated_at)}</td>
+            </tr>
+            <tr>
+              <th>Created By</th>
+              <td>{staffDetails.created_by}</td>
+            </tr>
+            <tr>
+              <th>Last Updated By</th>
+              <td>{staffDetails.updated_by}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Update Details Button */}
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          className="delete-button"
-          onClick={
-            userRole === "hr" ? handleRestrictedAction : handleDelete
-          }
+          className="update-button"
+          onClick={userRole === "hr" ? handleRestrictedAction : handleSubmit}
         >
-          <FaTrash /> Delete
+          <FaEdit /> Update Details
         </motion.button>
-      )}
-    </motion.div>
+        {staffDetails.deleted === 1 ? (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="restore-button"
+            onClick={handleRestore}
+          >
+            Restore
+          </motion.button>
+        ) : (
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="delete-button"
+            onClick={userRole === "hr" ? handleRestrictedAction : handleDelete}
+          >
+            <FaTrash /> Delete
+          </motion.button>
+        )}
+      </motion.div>
+    </>
   );
 };
 

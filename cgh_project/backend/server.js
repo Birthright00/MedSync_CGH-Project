@@ -229,8 +229,8 @@ app.get("/main_data", (req, res) => {
 app.get("/database", verifyToken, (req, res) => {
   const includeDeleted = req.query.includeDeleted === "true";
   const query = includeDeleted
-    ? "SELECT * FROM doctor_data_contracts"
-    : "SELECT * FROM doctor_data_contracts WHERE deleted = 0";
+    ? "SELECT * FROM doctor_data_contracts_non_inst"
+    : "SELECT * FROM doctor_data_contracts_non_inst WHERE deleted = 0";
   db.query(query, (err, data) => {
     if (err) {
       console.error("Error retrieving data:", err);
@@ -804,6 +804,24 @@ app.get("/postings/check", async (req, res) => {
     console.error("Error checking posting number:", error);
     res.status(500).json({ error: "Error checking posting number" });
   }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST FOR NON_INSTITUTIONAL
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/non_institutional/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params;
+
+  const query = "SELECT * FROM non_institutional WHERE mcr_number = ?";
+  db.query(query, [mcr_number], (err, results) => {
+    if (err) {
+      console.error("Error fetching non-institutional data:", err);
+      return res
+        .status(500)
+        .json({ error: "Failed to fetch non-institutional data" });
+    }
+    res.status(200).json(results);
+  });
 });
 
 // -------------------------------------------------------------------------------------------------------------//

@@ -428,11 +428,7 @@ const StaffDetailPage = () => {
                     ))}
                   </tr>
                   <tr>
-                    <th
-                      onClick={() =>
-                        handleSort("status", "contracts")
-                      }
-                    >
+                    <th onClick={() => handleSort("status", "contracts")}>
                       Status
                     </th>
                     {filteredContracts.map((contract, index) => (
@@ -440,8 +436,19 @@ const StaffDetailPage = () => {
                         {contract?.status || "No Contract Found"}
                       </td>
                     ))}
+                  </tr>{" "}
+                  <tr>
+                    <th>Previous Title</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.prev_title}</td>
+                    ))}
                   </tr>
-
+                  <tr>
+                    <th>New Title</th>
+                    {filteredContracts.map((contract, index) => (
+                      <td key={index}>{contract.new_title}</td>
+                    ))}
+                  </tr>
                   {/* Training Hours Rows for Selected Years */}
                   {selectedYears.includes("2022") && (
                     <tr>

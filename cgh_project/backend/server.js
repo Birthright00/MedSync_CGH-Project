@@ -1,13 +1,23 @@
 // -----------------------------------------------------------------------------------------------------------------------------//
 //Frequently used sql
-// Deleting all "TEST" data
+// Deleting data
 // -------------------------------------------------------------------------------------------------------------//
-// DELETE c
-// FROM contracts c
-// JOIN main_data m ON c.mcr_number = m.mcr_number
-// WHERE m.first_name = 'test';
+// -- Deleting from the postings table
+// DELETE FROM postings
+// WHERE mcr_number = 'M17253G';
+
+// -- Deleting from the contracts table
+// DELETE FROM contracts
+// WHERE mcr_number = 'M17253G';
+
+// -- Deleting from non_institutional table (if applicable)
+// DELETE FROM non_institutional
+// WHERE mcr_number = 'M17253G';
+
+// -- Deleting from the main_data table (assuming this is the primary table for mcr_number records)
 // DELETE FROM main_data
-// WHERE first_name = 'test';
+// WHERE mcr_number = 'M17253G';
+
 
 // -------------------------------------------------------------------------------------------------------------//
 // Check if there are any triggers
@@ -15,6 +25,7 @@
 // SELECT TRIGGER_NAME
 // FROM information_schema.TRIGGERS
 // WHERE TRIGGER_SCHEMA = 'main_db';
+
 
 import express from "express";
 import mysql2 from "mysql2";

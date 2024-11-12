@@ -71,7 +71,7 @@ const ManagementHomePage = () => {
   const csvFilename = `management_data_${new Date().toISOString()}.csv`;
 
   const [entriesPerPage, setEntriesPerPage] = useState(
-    () => Number(localStorage.getItem("entriesPerPage")) || 50
+    () => Number(localStorage.getItem("entriesPerPage")) || 20
   );
 
   const formatDateTime = (dateStr) => {

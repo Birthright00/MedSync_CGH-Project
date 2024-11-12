@@ -360,7 +360,7 @@ const StaffDetails = () => {
             className="delete-button"
             onClick={userRole === "hr" ? handleRestrictedAction : handleDelete}
           >
-            <FaTrash /> Delete
+            <FaTrash /> Delete This Staff
           </motion.button>
         )}
       </motion.div>

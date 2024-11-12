@@ -281,14 +281,14 @@ const StaffDetailPage = () => {
         <StaffDetails />
         <motion.div
           className="staff-info-container-right"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          {" "}
           <h2>Select Year(s)</h2>
           <div className="year-buttons-container">
             {[
+              "2014",
               "2015",
               "2016",
               "2017",
@@ -313,82 +313,53 @@ const StaffDetailPage = () => {
                 {year}
               </motion.button>
             ))}
-          </div>
-          <h2>FTE</h2>
-          <div className="contracts-table-container">
-            <table className="staff-detail-table">
-              <thead>
-                <tr>
-                  <th>FTE per academic year</th>
-                  {filteredContracts && filteredContracts.length > 0 ? (
-                    filteredContracts.map((contract, index) => (
-                      <th key={index}>{contract.school_name || "N/A"}</th>
-                    ))
-                  ) : (
-                    <th>Please select a year to view FTE</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {selectedYears.length > 0 ? (
-                  selectedYears.map((year) => (
-                    <tr key={year}>
-                      <th>FTE in {year}</th>
-                      {filteredContracts.map((contract, index) => (
-                        <td key={index}>
-                          <input
-                            type="text"
-                            placeholder={contract[`fte_${year}`] || "0.00"}
-                            value={contract[`fte_${year}`] || ""}
-                            onChange={(e) => {
-                              const updatedFTE = e.target.value;
-                              setFilteredContracts((prevContracts) =>
-                                prevContracts.map((c, i) =>
-                                  i === index
-                                    ? { ...c, [`fte_${year}`]: updatedFTE }
-                                    : c
-                                )
-                              );
-                            }}
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={filteredContracts.length + 1}></td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          </div>{" "}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
-            className="add-contract-button"
-            onClick={
-              userRole === "hr" ? handleRestrictedAction : handleFTEUpdate
-            }
+            className="toggle-add-contract-button"
+            onClick={handleReset}
           >
-            Update FTE
+            Reset
           </motion.button>
-          <h2>Contracts</h2>
+          <AddNewPostings />
+          <AddNewContract />
+          {/* ⚠️CONTRACT TABLE⚠️ */}
+          <h2>Contract(s)</h2>
           <div className="contracts-table-container">
-            <table className="staff-detail-table">
-              <thead>
-                <tr>
-                  <th>Contract Detail</th>
-                  {filteredContracts && filteredContracts.length > 0 ? (
-                    filteredContracts.map((contract, index) => (
+            {selectedYears.length === 0 ? (
+              <table className="posting-detail-table">
+                <tbody>
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: "center" }}>
+                      Please select a year to view Contracts.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : filteredContracts.length === 0 ? (
+              <table className="posting-detail-table">
+                <tbody>
+                  <tr>
+                    <td
+                      colSpan="5"
+                      style={{ textAlign: "center", color: "red" }}
+                    >
+                      No contracts found for the selected year(s).
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              <table className="staff-detail-table">
+                <thead>
+                  <tr>
+                    <th>Contract Detail</th>
+                    {filteredContracts.map((contract, index) => (
                       <th key={index}>{contract?.school_name || "N/A"}</th>
-                    ))
-                  ) : (
-                    <th>No Contract Found</th>
-                  )}
-                </tr>
-              </thead>
-              {filteredContracts && filteredContracts.length > 0 ? (
+                    ))}
+                  </tr>
+                </thead>
                 <tbody>
                   <tr>
                     <th>Start Date</th>
@@ -414,27 +385,17 @@ const StaffDetailPage = () => {
                   </tr>
                   <tr>
                     <th>Status</th>
-                    {filteredContracts?.map((contract, index) => (
+                    {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {contract?.status || "No Contract Found"}
                       </td>
                     ))}
                   </tr>
-                  <tr>
-                    <th>Previous Title</th>
-                    {filteredContracts.map((contract, index) => (
-                      <td key={index}>{contract.prev_title}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <th>New Title</th>
-                    {filteredContracts.map((contract, index) => (
-                      <td key={index}>{contract.new_title}</td>
-                    ))}
-                  </tr>{" "}
+
+                  {/* Training Hours Rows for Selected Years */}
                   {selectedYears.includes("2022") && (
                     <tr>
-                      <th>Total Training Hours in 2022</th>
+                      <th>Training Hours in 2022</th>
                       {filteredContracts.map((contract, index) => (
                         <td key={index}>
                           {contract.training_hours_2022 || "0"}
@@ -444,7 +405,7 @@ const StaffDetailPage = () => {
                   )}
                   {selectedYears.includes("2023") && (
                     <tr>
-                      <th>Total Training Hours in 2023</th>
+                      <th>Training Hours in 2023</th>
                       {filteredContracts.map((contract, index) => (
                         <td key={index}>
                           {contract.training_hours_2023 || "0"}
@@ -454,7 +415,7 @@ const StaffDetailPage = () => {
                   )}
                   {selectedYears.includes("2024") && (
                     <tr>
-                      <th>Total Training Hours in 2024</th>
+                      <th>Training Hours in 2024</th>
                       {filteredContracts.map((contract, index) => (
                         <td key={index}>
                           {contract.training_hours_2024 || "0"}
@@ -462,6 +423,7 @@ const StaffDetailPage = () => {
                       ))}
                     </tr>
                   )}
+                  {/* Total Training Hours */}
                   <tr>
                     <th>Total Training Hours for Selected Year(s)</th>
                     {filteredContracts.map((contract, index) => (
@@ -482,16 +444,8 @@ const StaffDetailPage = () => {
                     </td>
                   </tr>
                 </tbody>
-              ) : (
-                <tbody>
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: "center" }}>
-                      Please select a year to view Contracts.
-                    </td>
-                  </tr>
-                </tbody>
-              )}
-            </table>
+              </table>
+            )}
           </div>
           {/* <CSVLink
             filename={`staff_details_${mcr_number}.csv`}
@@ -505,12 +459,106 @@ const StaffDetailPage = () => {
               Download
             </motion.button>
           </CSVLink> */}
-          {/* Add New Contract Form */}
-          <AddNewContract />
-          {/* Add New Contract Form */}
+        </motion.div>
+        <motion.div
+          className="staff-info-container-right"
+          initial={{ x: 100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          {/* ⚠️FTE Table⚠️ */}
+          <h2>FTE per Academic Year</h2>
+          <div className="contracts-table-container">
+            {selectedYears.length === 0 ? (
+              <table className="posting-detail-table">
+                <tbody>
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: "center" }}>
+                      Please select a year to view FTE.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : filteredContracts.length === 0 ? (
+              <table className="posting-detail-table">
+                <tbody>
+                  <tr>
+                    <td
+                      colSpan="5"
+                      style={{ textAlign: "center", color: "red" }}
+                    >
+                      No FTE data found for the selected year(s).
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              <table className="staff-detail-table">
+                <thead>
+                  <tr>
+                    <th>FTE</th>
+                    {filteredContracts.map((contract, index) => (
+                      <th key={index}>{contract.school_name || "N/A"}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedYears.map((year) => (
+                    <tr key={year}>
+                      <th>FTE in {year}</th>
+                      {filteredContracts.map((contract, index) => (
+                        <td key={index}>
+                          <input
+                            type="text"
+                            placeholder={contract[`fte_${year}`] || "0.00"}
+                            value={contract[`fte_${year}`] || ""}
+                            onChange={(e) => {
+                              const updatedFTE = e.target.value;
+                              setFilteredContracts((prevContracts) =>
+                                prevContracts.map((c, i) =>
+                                  i === index
+                                    ? { ...c, [`fte_${year}`]: updatedFTE }
+                                    : c
+                                )
+                              );
+                            }}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* ⚠️Postings Table⚠️ */}
           <h2>Postings</h2>
           <div className="postings-table-container">
-            {filteredPostings && filteredPostings.length > 0 ? (
+            {selectedYears.length === 0 ? (
+              <table className="posting-detail-table">
+                <tbody>
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: "center" }}>
+                      Please select a year to view Postings.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : filteredPostings.length === 0 ? (
+              <table className="posting-detail-table">
+                <tbody>
+                  <tr>
+                    <td
+                      colSpan="5"
+                      style={{ textAlign: "center", color: "red" }}
+                    >
+                      No postings found for the selected year(s).
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
               <table className="posting-detail-table">
                 <thead>
                   <tr>
@@ -535,19 +583,10 @@ const StaffDetailPage = () => {
                   ))}
                 </tbody>
               </table>
-            ) : (
-              <table className="posting-detail-table">
-                <tbody>
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: "center" }}>
-                      Please select a year to view Postings.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
             )}
           </div>
-          <AddNewPostings />{" "}
+
+          {/* ⚠️Non-Institutional Activities⚠️ */}
           <div>
             {" "}
             <h2>Non-Institutional Activities</h2>
@@ -585,8 +624,11 @@ const StaffDetailPage = () => {
                   <table className="posting-detail-table">
                     <tbody>
                       <tr>
-                        <td colSpan="5" style={{ textAlign: "center" }}>
-                          No non-institutional activities found for the selected
+                        <td
+                          colSpan="5"
+                          style={{ textAlign: "center", color: "red" }}
+                        >
+                          No Non-Institutional activities found for the selected
                           year(s).
                         </td>
                       </tr>
@@ -598,7 +640,7 @@ const StaffDetailPage = () => {
                   <tbody>
                     <tr>
                       <td colSpan="5" style={{ textAlign: "center" }}>
-                        Please select a year to view non-institutional
+                        Please select a year to view Non-Institutional
                         activities.
                       </td>
                     </tr>
@@ -607,14 +649,6 @@ const StaffDetailPage = () => {
               )}
             </div>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            className="toggle-add-contract-button"
-            onClick={handleReset}
-          >
-            Reset
-          </motion.button>
         </motion.div>{" "}
       </motion.div>{" "}
     </>

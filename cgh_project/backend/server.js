@@ -825,6 +825,40 @@ app.get("/non_institutional/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// PUT REQUEST FOR FTE UPDATES
+// -------------------------------------------------------------------------------------------------------------//
+app.put("/contracts/update-fte", async (req, res) => {
+  const { fteUpdates } = req.body;
+
+  if (!Array.isArray(fteUpdates) || fteUpdates.length === 0) {
+    return res.status(400).send("No FTE updates provided.");
+  }
+
+  try {
+    for (const update of fteUpdates) {
+      const { mcrNumber, school_name, year, fteValue } = update;
+      const fteColumn = `fte_${year}`;
+
+      console.log(
+        `Updating ${fteColumn} for mcr_number: ${mcrNumber}, school: ${school_name} to ${fteValue}`
+      );
+
+      // Update query targeting the specific FTE column based on the selected year
+      await db
+        .promise()
+        .query(
+          `UPDATE contracts SET ${fteColumn} = ? WHERE mcr_number = ? AND school_name = ?`,
+          [fteValue, mcrNumber, school_name]
+        );
+    }
+    res.status(200).send("FTE values updated successfully.");
+  } catch (error) {
+    console.error("Error updating FTE values:", error);
+    res.status(500).send("Error updating FTE values.");
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start
 // -------------------------------------------------------------------------------------------------------------//
 db.connect((err) => {

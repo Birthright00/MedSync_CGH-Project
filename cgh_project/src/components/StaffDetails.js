@@ -315,17 +315,7 @@ const StaffDetails = () => {
                 />
               </td>
             </tr>
-            <tr>
-              <th>FTE</th>
-              <td>
-                <input
-                  type="email"
-                  name="email"
-                  value={staffDetails.fte}
-                  onChange={handleInputChange}
-                />
-              </td>
-            </tr>
+
             <tr>
               <th>Created At</th>
               <td>{formatDateTime(staffDetails.created_at)}</td>

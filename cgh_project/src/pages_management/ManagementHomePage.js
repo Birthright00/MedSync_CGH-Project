@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CSVLink } from "react-csv";
-import * as XLSX from "xlsx"; // Import the xlsx library for file parsing
+import * as XLSX from "xlsx";
 import { motion } from "framer-motion";
 const ManagementHomePage = () => {
   // ########################################## //
@@ -32,6 +32,43 @@ const ManagementHomePage = () => {
     nus_ylls: false,
     ntu_lkc: false,
   });
+  const csvHeaders = [
+    { label: "MCR Number", key: "mcr_number" },
+    { label: "First Name", key: "first_name" },
+    { label: "Last Name", key: "last_name" },
+    { label: "Department", key: "department" },
+    { label: "Designation", key: "designation" },
+    { label: "FTE", key: "fte" },
+    { label: "Email", key: "email" },
+    { label: "Duke NUS Start Date", key: "duke_nus_start_date" },
+    { label: "Duke NUS End Date", key: "duke_nus_end_date" },
+    { label: "Duke NUS Status", key: "duke_nus_status" },
+    { label: "Singhealth Start Date", key: "singhealth_start_date" },
+    { label: "Singhealth End Date", key: "singhealth_end_date" },
+    { label: "Singhealth Status", key: "singhealth_status" },
+    { label: "SUTD Start Date", key: "sutd_start_date" },
+    { label: "SUTD End Date", key: "sutd_end_date" },
+    { label: "SUTD Status", key: "sutd_status" },
+    { label: "NUS YLL Start Date", key: "nus_ylls_start_date" },
+    { label: "NUS YLL End Date", key: "nus_ylls_end_date" },
+    { label: "NUS YLL Status", key: "nus_ylls_status" },
+    { label: "NTU LKC Start Date", key: "ntu_lkc_start_date" },
+    { label: "NTU LKC End Date", key: "ntu_lkc_end_date" },
+    { label: "NTU LKC Status", key: "ntu_lkc_status" },
+    { label: "Teaching Categories", key: "teaching_categories" },
+    { label: "Non-Institutional Role", key: "non_institutional_role" },
+    { label: "Activity Type", key: "activity_type" },
+    { label: "Medium", key: "medium" },
+    { label: "Host Country", key: "host_country" },
+    { label: "Honorarium", key: "honorarium" },
+    { label: "Created At", key: "created_at" },
+    { label: "Updated At", key: "updated_at" },
+    { label: "Created By", key: "created_by" },
+    { label: "Updated By", key: "updated_by" },
+    { label: "Deleted By", key: "deleted_by" },
+    { label: "Deleted At", key: "deleted_at" },
+  ];
+  const csvFilename = `management_data_${new Date().toISOString()}.csv`;
 
   const [entriesPerPage, setEntriesPerPage] = useState(
     () => Number(localStorage.getItem("entriesPerPage")) || 50
@@ -704,8 +741,9 @@ const ManagementHomePage = () => {
                 </button>
                 <button className="homepg-download-button">
                   <CSVLink
-                    data={rowsToDisplay.filter((row) => row.mcr_number)}
-                    filename={`page-${currentPage}-data.csv`}
+                    headers={csvHeaders}
+                    data={rowsToDisplay.filter((row) => row.mcr_number)} // Filter rows to exclude empty ones
+                    filename={csvFilename}
                     className="csv-link"
                   >
                     Download

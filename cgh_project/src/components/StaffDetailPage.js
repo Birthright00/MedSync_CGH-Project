@@ -240,6 +240,34 @@ const StaffDetailPage = () => {
         })
       : nonInstitutional;
 
+  const handleFTEUpdate = async () => {
+    const fteUpdates = [];
+
+    filteredContracts.forEach((contract) => {
+      selectedYears.forEach((year) => {
+        const fteValue = contract[`fte_${year}`];
+        if (fteValue) {
+          fteUpdates.push({
+            mcrNumber: contract.mcr_number,
+            school_name: contract.school_name,
+            year: year, // Selected year from the button
+            fteValue: parseFloat(fteValue).toFixed(2),
+          });
+        }
+      });
+    });
+
+    try {
+      await axios.put("http://localhost:3001/contracts/update-fte", {
+        fteUpdates,
+      });
+      toast.success("FTE values updated successfully.");
+    } catch (error) {
+      console.error("Error updating FTE values:", error);
+      toast.error("Failed to update FTE values.");
+    }
+  };
+
   return (
     <>
       <ToastContainer />
@@ -286,6 +314,65 @@ const StaffDetailPage = () => {
               </motion.button>
             ))}
           </div>
+          <h2>FTE</h2>
+          <div className="contracts-table-container">
+            <table className="staff-detail-table">
+              <thead>
+                <tr>
+                  <th>FTE per academic year</th>
+                  {filteredContracts && filteredContracts.length > 0 ? (
+                    filteredContracts.map((contract, index) => (
+                      <th key={index}>{contract.school_name || "N/A"}</th>
+                    ))
+                  ) : (
+                    <th>Please select a year to view FTE</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {selectedYears.length > 0 ? (
+                  selectedYears.map((year) => (
+                    <tr key={year}>
+                      <th>FTE in {year}</th>
+                      {filteredContracts.map((contract, index) => (
+                        <td key={index}>
+                          <input
+                            type="text"
+                            placeholder={contract[`fte_${year}`] || "0.00"}
+                            value={contract[`fte_${year}`] || ""}
+                            onChange={(e) => {
+                              const updatedFTE = e.target.value;
+                              setFilteredContracts((prevContracts) =>
+                                prevContracts.map((c, i) =>
+                                  i === index
+                                    ? { ...c, [`fte_${year}`]: updatedFTE }
+                                    : c
+                                )
+                              );
+                            }}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={filteredContracts.length + 1}></td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="add-contract-button"
+            onClick={
+              userRole === "hr" ? handleRestrictedAction : handleFTEUpdate
+            }
+          >
+            Update FTE
+          </motion.button>
           <h2>Contracts</h2>
           <div className="contracts-table-container">
             <table className="staff-detail-table">
@@ -344,8 +431,7 @@ const StaffDetailPage = () => {
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>{contract.new_title}</td>
                     ))}
-                  </tr>
-
+                  </tr>{" "}
                   {selectedYears.includes("2022") && (
                     <tr>
                       <th>Total Training Hours in 2022</th>

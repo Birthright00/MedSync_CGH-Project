@@ -30,6 +30,38 @@ const StaffDetailPage = () => {
   const [postingMessage, setPostingMessage] = useState(""); // Message for posting number check
   const [nonInstitutional, setNonInstitutional] = useState([]); // State to hold non-institutional data
   const [userRole, setUserRole] = useState(""); // Track user role
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
+  const handleSort = (column, table) => {
+    let direction = "asc";
+    if (sortConfig.key === column && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key: column, direction });
+
+    if (table === "contracts") {
+      const sortedContracts = [...filteredContracts].sort((a, b) => {
+        return direction === "asc"
+          ? a[column] > b[column]
+            ? 1
+            : -1
+          : a[column] < b[column]
+          ? 1
+          : -1;
+      });
+      setFilteredContracts(sortedContracts);
+    } else if (table === "postings") {
+      const sortedPostings = [...filteredPostings].sort((a, b) => {
+        return direction === "asc"
+          ? a[column] > b[column]
+            ? 1
+            : -1
+          : a[column] < b[column]
+          ? 1
+          : -1;
+      });
+      setPostings(sortedPostings);
+    }
+  };
 
   // Fetch user role from token on initial load
   useEffect(() => {
@@ -362,7 +394,13 @@ const StaffDetailPage = () => {
                 </thead>
                 <tbody>
                   <tr>
-                    <th>Start Date</th>
+                    <th
+                      onClick={() =>
+                        handleSort("contract_start_date", "contracts")
+                      }
+                    >
+                      Start Date
+                    </th>
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {contract?.contract_start_date
@@ -374,7 +412,13 @@ const StaffDetailPage = () => {
                     ))}
                   </tr>
                   <tr>
-                    <th>End Date</th>
+                    <th
+                      onClick={() =>
+                        handleSort("contract_end_date", "contracts")
+                      }
+                    >
+                      End Date
+                    </th>
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {new Date(
@@ -384,7 +428,13 @@ const StaffDetailPage = () => {
                     ))}
                   </tr>
                   <tr>
-                    <th>Status</th>
+                    <th
+                      onClick={() =>
+                        handleSort("status", "contracts")
+                      }
+                    >
+                      Status
+                    </th>
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {contract?.status || "No Contract Found"}

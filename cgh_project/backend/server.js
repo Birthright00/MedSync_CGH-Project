@@ -4,19 +4,19 @@
 // -------------------------------------------------------------------------------------------------------------//
 // -- Deleting from the postings table
 // DELETE FROM postings
-// WHERE mcr_number = 'M17253G';
+// WHERE mcr_number = 'M12345A';
 
 // -- Deleting from the contracts table
 // DELETE FROM contracts
-// WHERE mcr_number = 'M17253G';
+// WHERE mcr_number = 'M12345A';
 
 // -- Deleting from non_institutional table (if applicable)
 // DELETE FROM non_institutional
-// WHERE mcr_number = 'M17253G';
+// WHERE mcr_number = 'M12345A';
 
 // -- Deleting from the main_data table (assuming this is the primary table for mcr_number records)
 // DELETE FROM main_data
-// WHERE mcr_number = 'M17253G';
+// WHERE mcr_number = 'M12345A';
 
 // -------------------------------------------------------------------------------------------------------------//
 // Check if there are any triggers
@@ -180,7 +180,7 @@ app.post("/login", (req, res) => {
         { id: user.user_id, role: user.role },
         JWT_SECRET,
         {
-          expiresIn: "12h",
+          expiresIn: "3h",
         }
       );
 

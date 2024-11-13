@@ -86,6 +86,30 @@ const StaffDetailPage = () => {
     const minutes = ("0" + date.getMinutes()).slice(-2);
     return `${year}-${month}-${day} @ ${hours}${minutes}H`;
   };
+  const handleUpdatePostings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const updatedPostings = filteredPostings.filter(
+        (posting) => posting.total_training_hour !== "" && posting.rating !== ""
+      );
+
+      await axios.put(
+        "http://localhost:3001/postings/update",
+        {
+          postings: updatedPostings,
+          recalculateTrainingHours: true, // Flag to trigger recalculation
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      toast.success("Postings updated successfully.");
+    } catch (error) {
+      console.error("Error updating postings:", error);
+      toast.error("Failed to update postings.");
+    }
+  };
 
   // ########################################## //
   // Generic Button Functions
@@ -635,21 +659,62 @@ const StaffDetailPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPostings.map((posting) => (
+                  {filteredPostings.map((posting, index) => (
                     <tr
                       key={`${posting.academic_year}-${posting.posting_number}`}
                     >
                       <td>{posting.academic_year || "N/A"}</td>
                       <td>{posting.posting_number || "N/A"}</td>
-                      <td>{posting.total_training_hour || "N/A"}</td>
+                      <td>
+                        <input
+                          type="number"
+                          value={posting.total_training_hour || ""}
+                          onChange={(e) => {
+                            const updatedHours = e.target.value;
+                            setPostings((prevPostings) =>
+                              prevPostings.map((p, i) =>
+                                i === index
+                                  ? { ...p, total_training_hour: updatedHours }
+                                  : p
+                              )
+                            );
+                          }}
+                        />
+                      </td>
                       <td>{posting.school_name || "N/A"}</td>
-                      <td>{posting.rating || "N/A"}</td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={posting.rating || ""}
+                          onChange={(e) => {
+                            const updatedRating = e.target.value;
+                            setPostings((prevPostings) =>
+                              prevPostings.map((p, i) =>
+                                i === index
+                                  ? { ...p, rating: updatedRating }
+                                  : p
+                              )
+                            );
+                          }}
+                        />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
           </div>
+          {selectedYears.length > 0 && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.9 }}
+              className="update-fte-button"
+              onClick={handleUpdatePostings}
+            >
+              Update Postings
+            </motion.button>
+          )}
 
           {/* ⚠️Non-Institutional Activities⚠️ */}
           <div>

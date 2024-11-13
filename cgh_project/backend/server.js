@@ -18,14 +18,12 @@
 // DELETE FROM main_data
 // WHERE mcr_number = 'M17253G';
 
-
 // -------------------------------------------------------------------------------------------------------------//
 // Check if there are any triggers
 // -------------------------------------------------------------------------------------------------------------//
 // SELECT TRIGGER_NAME
 // FROM information_schema.TRIGGERS
 // WHERE TRIGGER_SCHEMA = 'main_db';
-
 
 import express from "express";
 import mysql2 from "mysql2";
@@ -866,6 +864,103 @@ app.put("/contracts/update-fte", async (req, res) => {
   } catch (error) {
     console.error("Error updating FTE values:", error);
     res.status(500).send("Error updating FTE values.");
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// PUT REQUEST FOR POSTING UPDATES
+// -------------------------------------------------------------------------------------------------------------//
+app.put("/postings/update", verifyToken, async (req, res) => {
+  const { postings, recalculateTrainingHours } = req.body;
+
+  // Log the incoming request payload for debugging
+  console.log("Received postings for update:", postings);
+
+  if (!Array.isArray(postings) || postings.length === 0) {
+    return res
+      .status(400)
+      .json({ message: "No postings provided for update." });
+  }
+
+  try {
+    for (const posting of postings) {
+      const {
+        mcr_number,
+        academic_year,
+        school_name,
+        posting_number,
+        total_training_hour,
+        rating,
+      } = posting;
+
+      // Ensure each field is provided; log if any are missing
+      if (
+        !mcr_number ||
+        !academic_year ||
+        !school_name ||
+        !posting_number ||
+        total_training_hour === undefined ||
+        rating === undefined
+      ) {
+        console.error("Missing fields in posting:", posting);
+        return res
+          .status(400)
+          .json({ message: "Invalid posting data provided." });
+      }
+
+      // Attempt to update the posting in the database
+      await db.promise().query(
+        `UPDATE postings 
+         SET total_training_hour = ?, rating = ? 
+         WHERE mcr_number = ? AND academic_year = ? AND school_name = ? AND posting_number = ?`,
+        [
+          total_training_hour,
+          rating,
+          mcr_number,
+          academic_year,
+          school_name,
+          posting_number,
+        ]
+      );
+    }
+
+    if (recalculateTrainingHours) {
+      const contractsToUpdate = {};
+
+      postings.forEach(
+        ({ mcr_number, academic_year, school_name, total_training_hour }) => {
+          const key = `${mcr_number}-${school_name}-${academic_year}`;
+          if (!contractsToUpdate[key]) contractsToUpdate[key] = 0;
+          contractsToUpdate[key] += Number(total_training_hour);
+        }
+      );
+
+      for (const key in contractsToUpdate) {
+        const [mcr_number, school_name, academic_year] = key.split("-");
+        const totalHours = contractsToUpdate[key];
+
+        await db.promise().query(
+          `UPDATE contracts
+           SET training_hours_${academic_year} = ?
+           WHERE mcr_number = ? AND school_name = ?`,
+          [totalHours, mcr_number, school_name]
+        );
+      }
+    }
+
+    res
+      .status(200)
+      .json({
+        message: "Postings and total training hours updated successfully.",
+      });
+  } catch (error) {
+    console.error(
+      "Error updating postings and recalculating training hours:",
+      error
+    );
+    res
+      .status(500)
+      .json({ message: "Failed to update postings and training hours." });
   }
 });
 

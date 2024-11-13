@@ -586,6 +586,16 @@ const StaffDetailPage = () => {
               </table>
             )}
           </div>
+          {selectedYears.length > 0 && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.9 }}
+              className="update-fte-button"
+              onClick={handleFTEUpdate}
+            >
+              Update FTE
+            </motion.button>
+          )}
 
           {/* ⚠️Postings Table⚠️ */}
           <h2>Postings</h2>

@@ -202,7 +202,9 @@ const AddNewContract = () => {
       !newContract.school_name ||
       !newContract.start_date ||
       !newContract.end_date ||
-      !newContract.status
+      !newContract.status ||
+      !newContract.prev_title ||
+      !newContract.new_title
     ) {
       toast.error("Please fill all contract fields before submitting");
       return;

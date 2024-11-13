@@ -262,7 +262,8 @@
 .toggle-add-contract-button,
 .restore-button,
 .delete-button,
-.update-contract-button {
+.update-contract-button,
+.update-fte-button {
   margin-top: 20px;
   font-family: "Montserrat", sans-serif;
   text-align: center;
@@ -317,7 +318,8 @@
 }
 
 .add-contract-button,
-.update-contract-button {
+.update-contract-button,
+.update-fte-button {
   background-color: #72bf78;
   color: white;
 }
@@ -370,4 +372,3 @@
 .mcr-message.taken {
   color: red;
 }
-

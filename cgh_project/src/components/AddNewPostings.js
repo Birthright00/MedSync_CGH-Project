@@ -86,7 +86,7 @@ const AddNewPostings = () => {
       [name]: value,
     });
 
-    // Check for school selection to auto-populate academic years
+    // When a school is selected, fetch the next posting number
     if (name === "school_name" && value) {
       const selectedSchoolContract = contracts.find(
         (contract) => contract.school_name === value
@@ -103,9 +103,32 @@ const AddNewPostings = () => {
         for (let year = startYear; year <= endYear; year++) {
           years.push(year);
         }
-        setAcademicYearOptions(years); // Populate dropdown with valid years
+        setAcademicYearOptions(years);
+
+        // Fetch the highest posting number for this school and mcr_number
+        try {
+          const token = localStorage.getItem("token");
+          const response = await axios.get(
+            `http://localhost:3001/postings?mcr_number=${mcr_number}&school_name=${value}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const postings = response.data;
+
+          // Determine the next posting number based on the current max
+          const maxPostingNumber = postings.reduce(
+            (max, posting) => Math.max(max, posting.posting_number),
+            0
+          );
+          setNewPosting((prev) => ({
+            ...prev,
+            posting_number: maxPostingNumber + 1,
+          }));
+        } catch (error) {
+          console.error("Error fetching postings:", error);
+          toast.error("Failed to retrieve posting numbers");
+        }
       } else {
-        setAcademicYearOptions([]); // Clear options if no contract exists
+        setAcademicYearOptions([]);
         toast.error("No contract exists for the selected school.");
       }
     }
@@ -192,15 +215,21 @@ const AddNewPostings = () => {
       return;
     }
 
-    if (!newPosting.rating) {
-      toast.warn(
-        "Rating is empty. Please confirm if you want to proceed without a rating."
-      );
-    }
+    // Create a conditional message based on whether rating is provided
+    const confirmationMessage = newPosting.rating
+      ? "⚠️Are you sure you want to submit this posting?⚠️"
+      : <div>
+        ⚠️Are you sure you want to submit this posting?⚠️
+        <br />
+        Note : You did not input any ratings for this posting.
+      </div>;
 
+    // Show confirmation dialog with the appropriate message
     confirmAlert({
       title: "Confirm Submission",
-      message: "⚠️Are you sure you want to submit this posting?⚠️",
+      message: (
+        <div style={{ whiteSpace: "pre-line" }}>{confirmationMessage}</div>
+      ),
       buttons: [
         {
           label: "Yes",

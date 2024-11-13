@@ -210,7 +210,13 @@ const AddNewContract = () => {
 
     confirmAlert({
       title: "Confirm Submission",
-      message: "⚠️Are you sure you want to submit this contract?⚠️",
+      message: (
+        <div>
+          ⚠️Are you sure you want to submit this contract?⚠️
+          <br />
+          This will override the existing contract
+        </div>
+      ),
       buttons: [
         {
           label: "Yes",

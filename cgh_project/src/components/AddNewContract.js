@@ -5,6 +5,9 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FaPlus, FaTimes, FaPaperPlane } from "react-icons/fa";
+import { confirmAlert } from "react-confirm-alert";
+import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 
 const AddNewContract = () => {
@@ -192,6 +195,35 @@ const AddNewContract = () => {
       toast.error("Failed to add new contract");
     }
   };
+
+  // Function to handle confirmation of submitting new contract
+  const handleSubmitConfirmation = () => {
+    if (
+      !newContract.school_name ||
+      !newContract.start_date ||
+      !newContract.end_date ||
+      !newContract.status
+    ) {
+      toast.error("Please fill all contract fields before submitting");
+      return;
+    }
+
+    confirmAlert({
+      title: "Confirm Submission",
+      message: "⚠️Are you sure you want to submit this contract?⚠️",
+      buttons: [
+        {
+          label: "Yes",
+          onClick: handleNewContract,
+        },
+        {
+          label: "No",
+          onClick: () => {},
+        },
+      ],
+    });
+  };
+
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   return (
@@ -203,6 +235,8 @@ const AddNewContract = () => {
         className="toggle-add-contract-button"
         onClick={() => setContractFormOpen((prev) => !prev)}
       >
+        {" "}
+        {isContractFormOpen ? <FaTimes /> : <FaPlus />}
         {isContractFormOpen ? "Close" : "Add New Contract"}
       </motion.button>
       {isContractFormOpen && (
@@ -299,9 +333,12 @@ const AddNewContract = () => {
             whileTap={{ scale: 0.9 }}
             className="add-contract-button"
             onClick={
-              userRole === "hr" ? handleRestrictedAction : handleNewContract
+              userRole === "hr"
+                ? handleRestrictedAction
+                : handleSubmitConfirmation
             }
           >
+            <FaPaperPlane />
             Submit
           </motion.button>
         </div>

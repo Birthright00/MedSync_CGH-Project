@@ -7,7 +7,7 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { CSVLink } from "react-csv";
-import { FaEdit, FaTrash } from "react-icons/fa";
+import { FaRedo } from "react-icons/fa";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 import AddNewContract from "./AddNewContract";
@@ -15,11 +15,10 @@ import AddNewPostings from "./AddNewPostings";
 import StaffDetails from "./StaffDetails";
 
 const StaffDetailPage = () => {
-
   // ########################################## //
   // Generic Constants
   // ########################################## //
-  const { mcr_number } = useParams(); 
+  const { mcr_number } = useParams();
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [staffContractDetails, setStaffContractDetails] = useState([]);
@@ -351,7 +350,7 @@ const StaffDetailPage = () => {
             className="toggle-add-contract-button"
             onClick={handleReset}
           >
-            Reset
+            <FaRedo /> Reset
           </motion.button>
           <AddNewPostings />
           <AddNewContract />

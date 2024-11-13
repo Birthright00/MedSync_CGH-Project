@@ -5,6 +5,9 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FaPlus, FaTimes, FaPaperPlane } from "react-icons/fa";
+import { confirmAlert } from "react-confirm-alert";
+import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 
 const AddNewPostings = () => {
@@ -17,6 +20,7 @@ const AddNewPostings = () => {
   const [schoolNames, setSchoolNames] = useState([]);
   const [userRole, setUserRole] = useState("");
   const [contractErrorMessage, setContractErrorMessage] = useState(""); // Error message for academic year validation
+  const [academicYearOptions, setAcademicYearOptions] = useState([]);
   // useState to hold new posting details
   const [newPosting, setNewPosting] = useState({
     mcr_number: mcr_number, // Set from URL params
@@ -82,37 +86,28 @@ const AddNewPostings = () => {
       [name]: value,
     });
 
-    // Check for school selection to auto-populate the next posting number
+    // Check for school selection to auto-populate academic years
     if (name === "school_name" && value) {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          `http://localhost:3001/postings?mcr_number=${mcr_number}&school_name=${value}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const postings = response.data;
-
-        // Determine the next posting number based on the current max
-        const maxPostingNumber = postings.reduce(
-          (max, posting) => Math.max(max, posting.posting_number),
-          0
-        );
-        setNewPosting((prev) => ({
-          ...prev,
-          posting_number: maxPostingNumber + 1,
-        }));
-      } catch (error) {
-        console.error("Error fetching postings:", error);
-        toast.error("Failed to retrieve posting numbers");
-      }
-    }
-
-    // Validate academic year against contract dates when both school and academic year are selected
-    if (name === "academic_year" || name === "school_name") {
-      validateContractForAcademicYear(
-        newPosting.school_name,
-        value || newPosting.academic_year
+      const selectedSchoolContract = contracts.find(
+        (contract) => contract.school_name === value
       );
+
+      if (selectedSchoolContract) {
+        const startYear = new Date(
+          selectedSchoolContract.contract_start_date
+        ).getFullYear();
+        const endYear = new Date(
+          selectedSchoolContract.contract_end_date
+        ).getFullYear();
+        const years = [];
+        for (let year = startYear; year <= endYear; year++) {
+          years.push(year);
+        }
+        setAcademicYearOptions(years); // Populate dropdown with valid years
+      } else {
+        setAcademicYearOptions([]); // Clear options if no contract exists
+        toast.error("No contract exists for the selected school.");
+      }
     }
   };
 
@@ -184,6 +179,41 @@ const AddNewPostings = () => {
       toast.error("Failed to add new posting");
     }
   };
+
+  // Function to handle confirmation of submitssion of new posting
+  const handleSubmitConfirmation = () => {
+    if (
+      !newPosting.academic_year ||
+      !newPosting.school_name ||
+      !newPosting.total_training_hour ||
+      !newPosting.posting_number
+    ) {
+      toast.error("All fields except Rating are required.");
+      return;
+    }
+
+    if (!newPosting.rating) {
+      toast.warn(
+        "Rating is empty. Please confirm if you want to proceed without a rating."
+      );
+    }
+
+    confirmAlert({
+      title: "Confirm Submission",
+      message: "⚠️Are you sure you want to submit this posting?⚠️",
+      buttons: [
+        {
+          label: "Yes",
+          onClick: handleNewPosting,
+        },
+        {
+          label: "No",
+          onClick: () => {},
+        },
+      ],
+    });
+  };
+
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   return (
@@ -195,6 +225,8 @@ const AddNewPostings = () => {
         className="toggle-add-contract-button"
         onClick={() => setPostingFormOpen((prev) => !prev)}
       >
+        {" "}
+        {isPostingFormOpen ? <FaTimes /> : <FaPlus />}
         {isPostingFormOpen ? "Close" : "Add New Postings"}
       </motion.button>
       {isPostingFormOpen && (
@@ -225,12 +257,15 @@ const AddNewPostings = () => {
                 onChange={handleNewPostingInputChange}
               >
                 <option value="">Select Academic Year</option>
-                <option value="2022">2022</option>
-                <option value="2023">2023</option>
-                <option value="2024">2024</option>
+                {academicYearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
+
           <div className="contract-input-container">
             {contractErrorMessage && (
               <div
@@ -286,10 +321,12 @@ const AddNewPostings = () => {
             whileTap={{ scale: 0.9 }}
             className="add-contract-button"
             onClick={
-              userRole === "hr" ? handleRestrictedAction : handleNewPosting
+              userRole === "hr"
+                ? handleRestrictedAction
+                : handleSubmitConfirmation
             }
           >
-            Submit
+            <FaPaperPlane /> Submit
           </motion.button>
         </div>
       )}

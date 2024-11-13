@@ -1,25 +1,49 @@
 import "../styles/staffdetailpage.css";
-import Navbar from "../components/Navbar";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { CSVLink } from "react-csv";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { confirmAlert } from "react-confirm-alert"; // Import the confirmation alert library
 import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
+
 const StaffDetails = () => {
-  const { mcr_number } = useParams(); // Get the MCR number from route params
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Generic Constants
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  const { mcr_number } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [selectedYears, setSelectedYears] = useState([]);
-  const [postings, setPostings] = useState([]); // State to hold postings data
-  const [userRole, setUserRole] = useState(""); // Track user role
+  const [postings, setPostings] = useState([]);
+  const [userRole, setUserRole] = useState("");
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = ("0" + (date.getMonth() + 1)).slice(-2);
+    const day = ("0" + date.getDate()).slice(-2);
+    const hours = ("0" + date.getHours()).slice(-2);
+    const minutes = ("0" + date.getMinutes()).slice(-2);
+    return `${year}-${month}-${day} @ ${hours}${minutes}H`;
+  };
+  // useState to hold staff details
+  const [staffDetails, setStaffDetails] = useState({
+    mcr_number: "",
+    first_name: "",
+    last_name: "",
+    department: "",
+    designation: "",
+    fte: "",
+    email: "",
+  });
 
-  // Fetch user role from token on initial load
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // HR Read-only mode check - Fetch user role from token on initial load
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -30,6 +54,34 @@ const StaffDetails = () => {
   const handleRestrictedAction = () => {
     toast.error("Access Denied: Please contact management to make changes.");
   };
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Fetch staff details
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  useEffect(() => {
+    const fetchStaffDetails = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `http://localhost:3001/staff/${mcr_number}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setStaffDetails(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching staff details:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchStaffDetails();
+  }, [mcr_number]); // Add mcr_number as a dependency to avoid re-fetching on every render
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to handle Update Staff
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -59,9 +111,9 @@ const StaffDetails = () => {
     }
   };
 
-  // ########################################## //
-  // Delete Staff
-  // ########################################## //
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to handle Delete Staff with confirmation
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleDelete = () => {
     confirmAlert({
       title: "❗Confirm Deletion❗",
@@ -128,9 +180,9 @@ const StaffDetails = () => {
     });
   };
 
-  // ########################################## //
-  // Restore Staff Details with Confirmation
-  // ########################################## //
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to Restore Staff Details with Confirmation
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleRestore = () => {
     confirmAlert({
       title: "Confirm Restoration",
@@ -172,51 +224,6 @@ const StaffDetails = () => {
         )
       : [];
 
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    const year = date.getFullYear();
-    const month = ("0" + (date.getMonth() + 1)).slice(-2);
-    const day = ("0" + date.getDate()).slice(-2);
-    const hours = ("0" + date.getHours()).slice(-2);
-    const minutes = ("0" + date.getMinutes()).slice(-2);
-    return `${year}-${month}-${day} @ ${hours}${minutes}H`;
-  };
-
-  const [staffDetails, setStaffDetails] = useState({
-    mcr_number: "",
-    first_name: "",
-    last_name: "",
-    department: "",
-    designation: "",
-    fte: "",
-    email: "",
-  });
-
-  // #############################################s
-  // useEffect to retrieve data from main_data
-  // ############################################
-  useEffect(() => {
-    const fetchStaffDetails = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          `http://localhost:3001/staff/${mcr_number}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setStaffDetails(response.data);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching staff details:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchStaffDetails();
-  }, [mcr_number]); // Add mcr_number as a dependency to avoid re-fetching on every render
-
   // Remove any early return statements that would prevent the useEffect hook from executing
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -233,6 +240,7 @@ const StaffDetails = () => {
   if (!staffDetails) {
     return <div>No staff data found</div>;
   }
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   return (
     <>

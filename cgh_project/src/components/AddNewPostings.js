@@ -8,23 +8,16 @@ import "react-toastify/dist/ReactToastify.css";
 import React from "react";
 
 const AddNewPostings = () => {
-  const { mcr_number } = useParams(); // Get the MCR number from route params
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Generic Constants
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  const { mcr_number } = useParams();
   const [isPostingFormOpen, setPostingFormOpen] = useState(false);
-  const [contracts, setContracts] = useState([]); // Store contract data
-  const [schoolNames, setSchoolNames] = useState([]); // Store unique school names
-  const [userRole, setUserRole] = useState(""); // Track user role
-
-  // Fetch user role from token on initial load
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
-      setUserRole(role);
-    }
-  }, []);
-  const handleRestrictedAction = () => {
-    toast.error("Access Denied: Please contact management to make changes.");
-  };
+  const [contracts, setContracts] = useState([]);
+  const [schoolNames, setSchoolNames] = useState([]);
+  const [userRole, setUserRole] = useState("");
+  const [contractErrorMessage, setContractErrorMessage] = useState(""); // Error message for academic year validation
+  // useState to hold new posting details
   const [newPosting, setNewPosting] = useState({
     mcr_number: mcr_number, // Set from URL params
     academic_year: "",
@@ -34,11 +27,24 @@ const AddNewPostings = () => {
     rating: "",
   });
 
-  const [postingStatus, setPostingStatus] = useState(""); // Status for posting number check
-  const [postingMessage, setPostingMessage] = useState(""); // Message for posting number availability
-  const [contractErrorMessage, setContractErrorMessage] = useState(""); // Error message for academic year validation
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // HR Read-only mode check - Fetch user role from token on initial load
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
+      setUserRole(role);
+    }
+  }, []);
 
+  const handleRestrictedAction = () => {
+    toast.error("Access Denied: Please contact management to make changes.");
+  };
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Fetch contracts to display the existing contracts
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const fetchContracts = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -65,6 +71,10 @@ const AddNewPostings = () => {
     fetchContracts();
   }, []);
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Postings Form - Submitting New Postings
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to handle input changes in the new posting form
   const handleNewPostingInputChange = async (event) => {
     const { name, value } = event.target;
     setNewPosting({
@@ -72,54 +82,37 @@ const AddNewPostings = () => {
       [name]: value,
     });
 
+    // Check for school selection to auto-populate the next posting number
+    if (name === "school_name" && value) {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `http://localhost:3001/postings?mcr_number=${mcr_number}&school_name=${value}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const postings = response.data;
+
+        // Determine the next posting number based on the current max
+        const maxPostingNumber = postings.reduce(
+          (max, posting) => Math.max(max, posting.posting_number),
+          0
+        );
+        setNewPosting((prev) => ({
+          ...prev,
+          posting_number: maxPostingNumber + 1,
+        }));
+      } catch (error) {
+        console.error("Error fetching postings:", error);
+        toast.error("Failed to retrieve posting numbers");
+      }
+    }
+
     // Validate academic year against contract dates when both school and academic year are selected
     if (name === "academic_year" || name === "school_name") {
       validateContractForAcademicYear(
         newPosting.school_name,
         value || newPosting.academic_year
       );
-    }
-
-    if (
-      name === "posting_number" &&
-      newPosting.mcr_number &&
-      newPosting.school_name &&
-      newPosting.academic_year
-    ) {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.log("No token found");
-        return;
-      }
-
-      try {
-        const response = await axios.get(
-          `http://localhost:3001/postings/check?mcr_number=${newPosting.mcr_number}&school_name=${newPosting.school_name}&academic_year=${newPosting.academic_year}&posting_number=${value}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        if (response.status === 200) {
-          setPostingStatus("taken");
-          setPostingMessage(
-            "Posting number already exists for this MCR number, school, and academic year."
-          );
-          toast.error(
-            "Posting number already exists for this MCR number, school, and academic year."
-          );
-        }
-      } catch (err) {
-        if (err.response && err.response.status === 404) {
-          setPostingStatus("available");
-          setPostingMessage("Posting number is available");
-          toast.success("Posting number is available");
-        } else {
-          setPostingStatus("error");
-          setPostingMessage("Error checking posting number");
-          toast.error("Error checking posting number");
-        }
-      }
     }
   };
 
@@ -149,6 +142,7 @@ const AddNewPostings = () => {
     }
   };
 
+  // Function to handle submission of new posting
   const handleNewPosting = async () => {
     if (
       !newPosting.academic_year ||
@@ -180,8 +174,6 @@ const AddNewPostings = () => {
           total_training_hour: "",
           rating: "",
         });
-        setPostingStatus(""); // Reset posting status
-        setPostingMessage(""); // Reset message
         setContractErrorMessage(""); // Reset error message
         setTimeout(() => {
           window.location.reload();
@@ -192,6 +184,7 @@ const AddNewPostings = () => {
       toast.error("Failed to add new posting");
     }
   };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   return (
     <div>
@@ -259,23 +252,10 @@ const AddNewPostings = () => {
                 name="posting_number"
                 placeholder="Posting Number"
                 value={newPosting.posting_number}
-                onChange={handleNewPostingInputChange}
+                readOnly // Set as read-only
               />
             </div>
           </div>
-          {/* <div className="contract-input-container">
-            <div className="input-group">
-              {postingMessage && (
-                <div
-                  className={`posting-message ${
-                    postingStatus === "taken" ? "taken" : "available"
-                  }`}
-                >
-                  <p>{postingMessage}</p>
-                </div>
-              )}
-            </div>
-          </div> */}
           <div className="contract-input-container">
             <div className="input-group">
               <label>Training Hours:</label>
@@ -305,7 +285,9 @@ const AddNewPostings = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="add-contract-button"
-            onClick={userRole === "hr" ? handleRestrictedAction : handleNewPosting}
+            onClick={
+              userRole === "hr" ? handleRestrictedAction : handleNewPosting
+            }
           >
             Submit
           </motion.button>

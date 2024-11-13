@@ -15,19 +15,18 @@ import AddNewPostings from "./AddNewPostings";
 import StaffDetails from "./StaffDetails";
 
 const StaffDetailPage = () => {
+
   // ########################################## //
   // Generic Constants
   // ########################################## //
-  const { mcr_number } = useParams(); // Get the MCR number from route params
-  const navigate = useNavigate();
+  const { mcr_number } = useParams(); 
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [staffContractDetails, setStaffContractDetails] = useState([]);
   const [selectedYears, setSelectedYears] = useState([]);
   const [postings, setPostings] = useState([]); // State to hold postings data
   const [filteredContracts, setFilteredContracts] = useState([]);
-  const [postingStatus, setPostingStatus] = useState(""); // Status of posting number check
-  const [postingMessage, setPostingMessage] = useState(""); // Message for posting number check
+
   const [nonInstitutional, setNonInstitutional] = useState([]); // State to hold non-institutional data
   const [userRole, setUserRole] = useState(""); // Track user role
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });

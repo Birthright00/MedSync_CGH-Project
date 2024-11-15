@@ -71,13 +71,15 @@ const StaffDetailPage = () => {
       setUserRole(role);
     }
   }, []);
-  const filteredPostings =
-    selectedYears.length > 0
-      ? postings.filter((posting) =>
-          selectedYears.includes(posting.academic_year.toString())
-        )
-      : [];
+  // Filter Postings by Selected Years
+  const filteredPostings = postings.filter((posting) =>
+    selectedYears.includes(posting.academic_year.toString())
+  );
 
+  // Filter Non-Institutional Activities by Selected Years
+  const filteredNonInstitutional = nonInstitutional.filter((activity) =>
+    selectedYears.includes(activity.academic_year.toString())
+  );
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -125,16 +127,15 @@ const StaffDetailPage = () => {
   // ########################################## //
   // Filter Functions
   // ########################################## //
+  // Filter Contracts by Selected Years
   useEffect(() => {
     const updatedFilteredContracts = contracts.filter((contract) => {
-      // Convert contract start and end dates to year numbers
       const startYear = new Date(contract.contract_start_date).getFullYear();
       const endYear = new Date(contract.contract_end_date).getFullYear();
 
-      // Check if any selected year falls within the contract period
+      // Check if any selected year is within the contract period
       return selectedYears.some((year) => year >= startYear && year <= endYear);
     });
-
     setFilteredContracts(updatedFilteredContracts);
   }, [selectedYears, contracts]);
 
@@ -283,18 +284,6 @@ const StaffDetailPage = () => {
       toast.error("Access Denied: Please contact management to make changes.");
     }
   };
-  const filteredNonInstitutional =
-    selectedYears.length > 0
-      ? nonInstitutional.filter((activity) => {
-          console.log(
-            "Activity academic year:",
-            activity.academic_year,
-            "Selected years:",
-            selectedYears
-          );
-          return selectedYears.includes(activity.academic_year?.toString());
-        })
-      : nonInstitutional;
 
   const handleFTEUpdate = async () => {
     const fteUpdates = [];
@@ -664,7 +653,7 @@ const StaffDetailPage = () => {
                 <tbody>
                   {filteredPostings.map((posting, index) => (
                     <tr
-                      key={`${posting.academic_year}-${posting.posting_number}`}
+                      key={`${posting.academic_year}-${posting.posting_number}-${index}`}
                     >
                       <td>{posting.academic_year || "N/A"}</td>
                       <td>{posting.school_name || "N/A"}</td>
@@ -683,7 +672,7 @@ const StaffDetailPage = () => {
                             );
                           }}
                         />
-                      </td>{" "}
+                      </td>
                       <td>{posting.posting_number || "N/A"}</td>
                       <td>
                         <input
@@ -741,7 +730,7 @@ const StaffDetailPage = () => {
                     </thead>
                     <tbody>
                       {filteredNonInstitutional.map((activity, index) => (
-                        <tr key={index}>
+                        <tr key={`${activity.academic_year}-${index}`}>
                           <td>{activity.academic_year || "N/A"}</td>
                           <td>{activity.teaching_categories || "N/A"}</td>
                           <td>{activity.role || "N/A"}</td>

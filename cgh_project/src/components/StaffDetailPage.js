@@ -13,6 +13,7 @@ import React from "react";
 import AddNewContract from "./AddNewContract";
 import AddNewPostings from "./AddNewPostings";
 import StaffDetails from "./StaffDetails";
+import AddNewNonInst from "./AddNewNonInst";
 
 const StaffDetailPage = () => {
   // ########################################## //
@@ -25,6 +26,7 @@ const StaffDetailPage = () => {
   const [selectedYears, setSelectedYears] = useState([]);
   const [postings, setPostings] = useState([]); // State to hold postings data
   const [filteredContracts, setFilteredContracts] = useState([]);
+  const [totalNonInstTrainingHours, setTotalNonInstTrainingHours] = useState(0);
 
   const [nonInstitutional, setNonInstitutional] = useState([]); // State to hold non-institutional data
   const [userRole, setUserRole] = useState(""); // Track user role
@@ -378,6 +380,7 @@ const StaffDetailPage = () => {
           </motion.button>
           <AddNewPostings />
           <AddNewContract />
+          <AddNewNonInst />
           {/* ⚠️CONTRACT TABLE⚠️ */}
           <h2>Contract(s)</h2>
           <div className="contracts-table-container">
@@ -652,9 +655,9 @@ const StaffDetailPage = () => {
                 <thead>
                   <tr>
                     <th>Academic Year</th>
-                    <th>Posting Number</th>
-                    <th>Training Hours</th>
                     <th>School</th>
+                    <th>Training Hours</th>
+                    <th>Posting Number</th>
                     <th>Rating</th>
                   </tr>
                 </thead>
@@ -664,7 +667,7 @@ const StaffDetailPage = () => {
                       key={`${posting.academic_year}-${posting.posting_number}`}
                     >
                       <td>{posting.academic_year || "N/A"}</td>
-                      <td>{posting.posting_number || "N/A"}</td>
+                      <td>{posting.school_name || "N/A"}</td>
                       <td>
                         <input
                           type="number"
@@ -680,8 +683,8 @@ const StaffDetailPage = () => {
                             );
                           }}
                         />
-                      </td>
-                      <td>{posting.school_name || "N/A"}</td>
+                      </td>{" "}
+                      <td>{posting.posting_number || "N/A"}</td>
                       <td>
                         <input
                           type="number"
@@ -718,7 +721,6 @@ const StaffDetailPage = () => {
 
           {/* ⚠️Non-Institutional Activities⚠️ */}
           <div>
-            {" "}
             <h2>Non-Institutional Activities</h2>
             <div className="non-institutional-table-container">
               {selectedYears.length > 0 ? (
@@ -734,6 +736,7 @@ const StaffDetailPage = () => {
                         <th>Medium</th>
                         <th>Host Country</th>
                         <th>Honorarium</th>
+                        <th>Training Hours</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -746,8 +749,29 @@ const StaffDetailPage = () => {
                           <td>{activity.medium || "N/A"}</td>
                           <td>{activity.host_country || "N/A"}</td>
                           <td>{activity.honorarium || "N/A"}</td>
+                          <td>{activity.training_hours || "0"}</td>
                         </tr>
                       ))}
+                      <tr>
+                        <th colSpan={4}>
+                          Total Non-Institutional Training Hours for Selected
+                          Year(s)
+                        </th>
+                        <td colSpan={4}>
+                          {filteredNonInstitutional
+                            .reduce((sum, activity) => {
+                              return (
+                                sum +
+                                (selectedYears.includes(
+                                  activity.academic_year?.toString()
+                                )
+                                  ? parseFloat(activity.training_hours) || 0
+                                  : 0)
+                              );
+                            }, 0)
+                            .toFixed(2)}
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
                 ) : (

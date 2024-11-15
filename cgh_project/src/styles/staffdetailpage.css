@@ -54,14 +54,13 @@
 /* ################################################# */
 
 .staff-detail-page {
-  width: 100vw;
   min-height: 100vh;
   position: absolute;
   display: flex;
   justify-content: flex-start;
   align-items: flex-start; /* Align items from the top */
   overflow: hidden;
-  padding: 10px;
+  width: 100%;
 }
 
 .staff-detail-page:before {
@@ -101,7 +100,7 @@
   border-radius: 10px;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
   width: 100%;
-  max-width: 530px;
+  max-width: 480px;
   margin: 10px;
   z-index: 1; /* Ensure content is on top of the background */
 }

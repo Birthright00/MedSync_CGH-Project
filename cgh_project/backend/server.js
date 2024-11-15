@@ -965,6 +965,60 @@ app.put("/postings/update", verifyToken, async (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// POST REQUEST FOR ADDING NEW NON-INSTITUTIONAL ACTIVITY
+// -------------------------------------------------------------------------------------------------------------//
+app.post("/non_institutional", verifyToken, (req, res) => {
+  const {
+    mcr_number,
+    teaching_categories,
+    role,
+    activity_type,
+    medium,
+    host_country,
+    honorarium,
+    academic_year,
+  } = req.body;
+
+  // Input validation
+  if (
+    !mcr_number ||
+    !teaching_categories ||
+    !role ||
+    !activity_type ||
+    !medium ||
+    !host_country ||
+    honorarium === undefined ||
+    !academic_year
+  ) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  const insertQuery = `
+    INSERT INTO non_institutional 
+    (mcr_number, teaching_categories, role, activity_type, medium, host_country, honorarium, academic_year) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  const values = [
+    mcr_number,
+    teaching_categories,
+    role,
+    activity_type,
+    medium,
+    host_country,
+    honorarium,
+    academic_year,
+  ];
+
+  db.query(insertQuery, values, (err, result) => {
+    if (err) {
+      console.error("Error adding non-institutional activity:", err);
+      return res.status(500).json({ error: "Failed to add activity" });
+    }
+    res.status(201).json({ message: "Non-institutional activity added successfully" });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start
 // -------------------------------------------------------------------------------------------------------------//
 db.connect((err) => {

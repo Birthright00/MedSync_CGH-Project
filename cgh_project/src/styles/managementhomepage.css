@@ -6,8 +6,8 @@
   height: 100%;
   display: flex;
   justify-content: center;
+  overflow-x: hidden;
   box-sizing: border-box;
-  overflow-x: hidden; /* Content is clipped (cut off) and not visible beyond the container. No scrollbars are added. */
 }
 
 .management-home-page:before {
@@ -17,7 +17,6 @@
   left: 0;
   width: 100%;
   height: 100%;
-  /* background-image: url("../images/login-background-img.jpg"); */
   background-color: #d8e6ff;
   background-position: center;
   opacity: 0.6;
@@ -27,94 +26,127 @@
 /* ################################################# */
 /* Filter Section (General) */
 /* ################################################# */
-.filter-section {
-  width: 15%;
-  max-width: 400px;
-  max-height: 680px;
-  margin-left: 50px;
+.filter-section,
+.school-filter-button-section {
+  width: 100%;
+  max-width: 300px;
   padding: 20px;
+  margin-top: 30px;
   background-color: white;
   opacity: 0.95;
   z-index: 1;
-  border-radius: 8px;
   display: flex;
   flex-direction: column;
   font-weight: 500;
-  margin-top: 30px;
-  margin-right: -50px;
+  border-radius: 10px;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
-.filter-section label {
+.filter-section {
+  margin-left: 50px;
+  margin-right: -30px;
+}
+
+.school-filter-button-section {
+  margin-left: 50px;
+  margin-right: -80px;
+}
+
+.filter-section label,
+.school-filter-button-section label {
   display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0083ca;
+}
+
+.filter-section h4,
+.school-filter-button-section h4 {
+  position: sticky;
+  top: -1px;
+  z-index: 2;
   font-size: 14px;
   color: #0083ca;
+  text-align: center;
+  height: 25px;
+  cursor: pointer;
   font-weight: 600;
-  margin-bottom: 2px;
 }
 
 .filter-section input {
   width: 100%;
   padding: 10px;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
-  box-sizing: border-box;
   font-weight: 500;
+  box-sizing: border-box;
 }
 
 /* ################################################# */
 /* Filter Section (Buttons)*/
 /* ################################################# */
+
+/* Inactive Button */
 .filter-button,
 .reset-button,
-.school-filter-buttons button {
+.school-filter-buttons button,
+.entries-per-page-button,
+.pagination button,
+.homepg-download-button,
+.submit-file-button,
+.add-dr-button {
   width: 100%;
-  height: 40px;
-  margin-bottom: 10px;
-  padding: 10px;
+  height: 45px;
+  margin-bottom: 15px;
+  padding: 5px;
+  background-color: #ccc; /* Neutral grey */
+  color: #666; /* Darker text color */
   font-size: 14px;
-  cursor: pointer;
-  background-color: #ccc;
-  color: #666;
+  font-weight: 500;
   border: none;
   border-radius: 4px;
-  font-weight: 500;
+  cursor: pointer;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
-.reset-button {
-  background-color: #0083ca !important;
-  color: white !important;
+/* Hovered (Inactive) */
+.filter-button:hover,
+.reset-button:hover,
+.school-filter-buttons button:hover,
+.entries-per-page-button:hover,
+.pagination button:hover,
+.homepg-download-button:hover,
+.submit-file-button:hover,
+.add-dr-button:hover {
+  background-color: #999999; /* Darker grey on hover */
 }
 
-.reset-button:hover {
-  background-color: #006ea1;
-}
-
-.filter-button.button-grey,
-.school-filter-buttons button {
-  background-color: #ccc !important;
-}
-
-.filter-button.button-blue {
-  background-color: #0083ca !important;
-}
-
-.filter-button.button-blue:hover {
-  background-color: #006ea1 !important;
-}
-
-.filter-button.button-grey:hover,
-.school-filter-buttons button:hover {
-  background-color: #999 !important;
-}
-
+/* Active Button */
+.filter-button.button-blue,
+.reset-button.active,
 .school-filter-buttons button.active,
-.filter-button.button-blue:hover {
-  color: white;
-  background-color: #0083ca !important;
+.entries-per-page-button.active,
+.pagination button.active,
+.homepg-download-button.active,
+.submit-file-button.active,
+.add-dr-button.active {
+  background-color: #0083ca; /* Vibrant blue */
+  color: white; /* White text */
+}
+
+/* Hovered (Active) */
+.filter-button.button-blue:hover,
+.reset-button.active:hover,
+.school-filter-buttons button.active:hover,
+.entries-per-page-button.active:hover,
+.pagination button.active:hover,
+.homepg-download-button.active:hover,
+.submit-file-button.active:hover,
+.add-dr-button.active:hover {
+  background-color: #006ea1; /* Darker blue on hover */
 }
 
 /* ################################################# */
@@ -122,24 +154,22 @@
 /* ################################################# */
 .table-container {
   width: 87%;
-  max-width: 1100px;
-  max-height: 550px;
-  overflow-x: auto; /* Enable horizontal scrolling */
-  overflow-y: auto; /* Enable vertical scrolling */
-  background-color: white;
-  opacity: 0.9;
-  z-index: 1;
+  max-width: 1000px;
+  max-height: 500px;
   margin-top: 30px;
   margin-left: 100px;
-  white-space: nowrap;
+  overflow: auto;
+  background-color: white;
+  opacity: 0.9;
   border-radius: 5px;
+  z-index: 1;
+  white-space: nowrap;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
 .data-table {
   width: max-content;
   border-collapse: collapse;
-  table-layout: auto; /* Use auto for flexible column widths */
   font-size: 14px;
   font-weight: 500;
 }
@@ -149,33 +179,68 @@
 /* ################################################# */
 .data-table th,
 .data-table td {
-  border: 1px solid #ccc;
+  height: 20px;
   padding: 8px;
+  border: 1px solid #ccc;
   text-align: center;
-  height: 20px; /* Set a consistent height for each row */
-  overflow: hidden; /* Ensures no content overflow */
-  white-space: nowrap; /* Prevents text from wrapping */
-  text-overflow: ellipsis; /* Adds ellipsis if the text overflows */
-  font-weight: 500;
-  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Hovering over rows */
 .data-table tr:hover {
-  background-color: #b7e0ff !important; /* Force hover color to override other background styles */
+  background-color: #b7e0ff !important;
   transition: background-color 0.3s ease;
 }
-
-/* "No" Column */
-th:first-child,
-td:first-child {
-  width: 3%;
+.data-table tr:nth-child(even) {
+  background-color: #e0f7fa;
+}
+.data-table thead tr:first-of-type th,
+.data-table thead tr:nth-of-type(2) th {
+  position: sticky;
+  top: 0;
+  background-color: #f2f2f2;
+  color: #0083ca;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 2;
+  cursor: pointer;
+  border: 1px solid #ddd;
   text-align: center;
 }
+.data-table thead tr:first-of-type th {
+  top: -1px;
+  height: 25px;
+  font-weight: 600;
+}
 
-/* Alternate Rows Highlight */
-.data-table tr:nth-child(even) {
-  background-color: #E0F7FA;
+.data-table thead tr:nth-of-type(2) th {
+  top: 40px;
+  height: 30px;
+}
+.sort-icon {
+  margin-left: 8px;
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+.sort-asc .sort-icon::before {
+  content: "▲";
+}
+
+.sort-desc .sort-icon::before {
+  content: "▼";
+}
+
+.data-table th.sorted-asc,
+.data-table th.sorted-desc {
+  background-color: #006699;
+  color: white;
+}
+
+.data-table th:hover {
+  background-color: #0083ca;
+  color: white;
 }
 
 /* ################################################# */
@@ -347,7 +412,6 @@ td:first-child {
   width: 100%;
   z-index: 1;
   border-radius: 5px;
-  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
 .current-page {

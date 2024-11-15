@@ -251,7 +251,7 @@ const StaffDetails = () => {
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <h2>Staff Details {staffDetails.deleted === 1 ? "(Deleted)" : ""}</h2>
+        <h2>General Details {staffDetails.deleted === 1 ? "(Deleted)" : ""}</h2>
         <table className="staff-detail-table">
           <tbody>
             <tr>

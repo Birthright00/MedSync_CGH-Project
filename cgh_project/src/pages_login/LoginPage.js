@@ -317,8 +317,6 @@ const LoginPage = () => {
           </form>
         </motion.div>
       </motion.div>
-
-      <Footer />
     </>
   );
 };

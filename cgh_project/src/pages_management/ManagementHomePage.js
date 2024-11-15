@@ -363,6 +363,9 @@ const ManagementHomePage = () => {
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
+          {" "}
+          <h4>Filter by Doctor</h4>
+          <br></br>
           <label htmlFor="mcr-number-filter">MCR No.</label>
           <input
             type="text"
@@ -411,6 +414,16 @@ const ManagementHomePage = () => {
             placeholder="Designation"
             autoComplete="off"
           />
+        </motion.div>
+        <motion.div
+          className="school-filter-button-section"
+          initial={{ x: -100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
+          {" "}
+          <h4>Filter by School</h4>
+          <br></br>
           <div className="school-filter-buttons">
             <button
               onClick={() =>
@@ -491,7 +504,6 @@ const ManagementHomePage = () => {
           >
             Only Show Deleted Data
           </button>
-
           <button className="reset-button" onClick={resetFilters}>
             Reset
           </button>

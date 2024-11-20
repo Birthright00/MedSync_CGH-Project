@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import "../styles/navbar.css";
 import logo from "../images/cgh_logo.png";
-import HomePage from "../pages_login/HomePage";
 
 const Navbar = ({ homeRoute }) => {
   const nav = useNavigate();
@@ -26,6 +25,10 @@ const Navbar = ({ homeRoute }) => {
 
   const handleEntry = () => {
     nav("/entry");
+  };
+
+  const handleAboutUs = () => {
+    nav("/about-us");
   };
 
   return (
@@ -55,8 +58,9 @@ const Navbar = ({ homeRoute }) => {
           className="navbarbutton"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
+          onClick={handleAboutUs}
         >
-          Profile
+          About Me
         </motion.button>
         <motion.button
           className="navbarbutton"

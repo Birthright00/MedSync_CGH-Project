@@ -90,15 +90,25 @@ const LoginPage = () => {
       return;
     }
 
-    // Validate the username based on the selected role
-    if (!validateUsername(username, selectedRole)) {
-      const errorMsg =
-        selectedRole === "management"
-          ? "Invalid ADID. ADID must consist of lowercase alphabets only."
-          : "Invalid MCR or SNB Number. Please enter a valid MCR or SNB number.";
-      toast.error(errorMsg);
-      return;
-    }
+    // Function to validate usernames based on the selected role
+    const validateUsername = (username, role) => {
+      // For Management and HR (ADID): Only lowercase alphabets, no spaces, numbers, or uppercase letters
+      const adidPattern = /^[a-z]+$/;
+
+      // For Staff (MCR or SNB):
+      // MCR number: M or m followed by 5 digits and 1 letter
+      // SNB number: N or n followed by 5 digits and 1 letter
+      const mcrOrSnbPattern = /^[Mm]\d{5}[A-Za-z]$|^[Nn]\d{5}[A-Za-z]$/;
+
+      // Check the pattern based on the selected role
+      if (role === "management" || role === "hr") {
+        return adidPattern.test(username); // Validate ADID for management and HR
+      } else if (role === "staff") {
+        return mcrOrSnbPattern.test(username); // Validate MCR or SNB for staff
+      }
+
+      return false; // Invalid if no role is selected or pattern doesn't match
+    };
 
     // API Call to Backend for Login
     try {
@@ -307,8 +317,6 @@ const LoginPage = () => {
           </form>
         </motion.div>
       </motion.div>
-
-      <Footer />
     </>
   );
 };

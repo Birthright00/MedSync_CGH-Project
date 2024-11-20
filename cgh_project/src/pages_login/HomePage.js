@@ -135,21 +135,25 @@ const HomePage = () => {
             <p>Access nurse records and shift schedules.</p>
           </motion.div>
         </div>{" "}
-        <div className="quote-carousel">
+        <motion.div
+          className="quote-carousel"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
           <AnimatePresence initial={false} custom={direction}>
             <motion.p
               key={quoteIndex}
               initial={{ x: direction * 100, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -direction * 100, opacity: 0 }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.8, ease: "easeInOut" }}
             >
               {quotes[quoteIndex]}
             </motion.p>
           </AnimatePresence>
-        </div>
+        </motion.div>
       </div>
-      <Footer />
     </>
   );
 };

@@ -5,26 +5,23 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FaPlus, FaTimes, FaPaperPlane } from "react-icons/fa";
+import { confirmAlert } from "react-confirm-alert";
+import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 
 const AddNewPostings = () => {
-  const { mcr_number } = useParams(); // Get the MCR number from route params
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Generic Constants
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  const { mcr_number } = useParams();
   const [isPostingFormOpen, setPostingFormOpen] = useState(false);
-  const [contracts, setContracts] = useState([]); // Store contract data
-  const [schoolNames, setSchoolNames] = useState([]); // Store unique school names
-  const [userRole, setUserRole] = useState(""); // Track user role
-
-  // Fetch user role from token on initial load
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
-      setUserRole(role);
-    }
-  }, []);
-  const handleRestrictedAction = () => {
-    toast.error("Access Denied: Please contact management to make changes.");
-  };
+  const [contracts, setContracts] = useState([]);
+  const [schoolNames, setSchoolNames] = useState([]);
+  const [userRole, setUserRole] = useState("");
+  const [contractErrorMessage, setContractErrorMessage] = useState(""); // Error message for academic year validation
+  const [academicYearOptions, setAcademicYearOptions] = useState([]);
+  // useState to hold new posting details
   const [newPosting, setNewPosting] = useState({
     mcr_number: mcr_number, // Set from URL params
     academic_year: "",
@@ -34,11 +31,24 @@ const AddNewPostings = () => {
     rating: "",
   });
 
-  const [postingStatus, setPostingStatus] = useState(""); // Status for posting number check
-  const [postingMessage, setPostingMessage] = useState(""); // Message for posting number availability
-  const [contractErrorMessage, setContractErrorMessage] = useState(""); // Error message for academic year validation
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // HR Read-only mode check - Fetch user role from token on initial load
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
+      setUserRole(role);
+    }
+  }, []);
 
+  const handleRestrictedAction = () => {
+    toast.error("Access Denied: Please contact management to make changes.");
+  };
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Fetch contracts to display the existing contracts
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const fetchContracts = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -65,6 +75,10 @@ const AddNewPostings = () => {
     fetchContracts();
   }, []);
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Postings Form - Submitting New Postings
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to handle input changes in the new posting form
   const handleNewPostingInputChange = async (event) => {
     const { name, value } = event.target;
     setNewPosting({
@@ -72,53 +86,50 @@ const AddNewPostings = () => {
       [name]: value,
     });
 
-    // Validate academic year against contract dates when both school and academic year are selected
-    if (name === "academic_year" || name === "school_name") {
-      validateContractForAcademicYear(
-        newPosting.school_name,
-        value || newPosting.academic_year
+    // When a school is selected, fetch the next posting number
+    if (name === "school_name" && value) {
+      const selectedSchoolContract = contracts.find(
+        (contract) => contract.school_name === value
       );
-    }
 
-    if (
-      name === "posting_number" &&
-      newPosting.mcr_number &&
-      newPosting.school_name &&
-      newPosting.academic_year
-    ) {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.log("No token found");
-        return;
-      }
-
-      try {
-        const response = await axios.get(
-          `http://localhost:3001/postings/check?mcr_number=${newPosting.mcr_number}&school_name=${newPosting.school_name}&academic_year=${newPosting.academic_year}&posting_number=${value}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        if (response.status === 200) {
-          setPostingStatus("taken");
-          setPostingMessage(
-            "Posting number already exists for this MCR number, school, and academic year."
-          );
-          toast.error(
-            "Posting number already exists for this MCR number, school, and academic year."
-          );
+      if (selectedSchoolContract) {
+        const startYear = new Date(
+          selectedSchoolContract.contract_start_date
+        ).getFullYear();
+        const endYear = new Date(
+          selectedSchoolContract.contract_end_date
+        ).getFullYear();
+        const years = [];
+        for (let year = startYear; year <= endYear; year++) {
+          years.push(year);
         }
-      } catch (err) {
-        if (err.response && err.response.status === 404) {
-          setPostingStatus("available");
-          setPostingMessage("Posting number is available");
-          toast.success("Posting number is available");
-        } else {
-          setPostingStatus("error");
-          setPostingMessage("Error checking posting number");
-          toast.error("Error checking posting number");
+        setAcademicYearOptions(years);
+
+        // Fetch the highest posting number for this school and mcr_number
+        try {
+          const token = localStorage.getItem("token");
+          const response = await axios.get(
+            `http://localhost:3001/postings?mcr_number=${mcr_number}&school_name=${value}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const postings = response.data;
+
+          // Determine the next posting number based on the current max
+          const maxPostingNumber = postings.reduce(
+            (max, posting) => Math.max(max, posting.posting_number),
+            0
+          );
+          setNewPosting((prev) => ({
+            ...prev,
+            posting_number: maxPostingNumber + 1,
+          }));
+        } catch (error) {
+          console.error("Error fetching postings:", error);
+          toast.error("Failed to retrieve posting numbers");
         }
+      } else {
+        setAcademicYearOptions([]);
+        toast.error("No contract exists for the selected school.");
       }
     }
   };
@@ -149,6 +160,7 @@ const AddNewPostings = () => {
     }
   };
 
+  // Function to handle submission of new posting
   const handleNewPosting = async () => {
     if (
       !newPosting.academic_year ||
@@ -180,8 +192,6 @@ const AddNewPostings = () => {
           total_training_hour: "",
           rating: "",
         });
-        setPostingStatus(""); // Reset posting status
-        setPostingMessage(""); // Reset message
         setContractErrorMessage(""); // Reset error message
         setTimeout(() => {
           window.location.reload();
@@ -193,6 +203,48 @@ const AddNewPostings = () => {
     }
   };
 
+  // Function to handle confirmation of submitssion of new posting
+  const handleSubmitConfirmation = () => {
+    if (
+      !newPosting.academic_year ||
+      !newPosting.school_name ||
+      !newPosting.total_training_hour ||
+      !newPosting.posting_number
+    ) {
+      toast.error("All fields except Rating are required.");
+      return;
+    }
+
+    // Create a conditional message based on whether rating is provided
+    const confirmationMessage = newPosting.rating
+      ? "⚠️Are you sure you want to submit this posting?⚠️"
+      : <div>
+        ⚠️Are you sure you want to submit this posting?⚠️
+        <br />
+        Note : You did not input any ratings for this posting.
+      </div>;
+
+    // Show confirmation dialog with the appropriate message
+    confirmAlert({
+      title: "Confirm Submission",
+      message: (
+        <div style={{ whiteSpace: "pre-line" }}>{confirmationMessage}</div>
+      ),
+      buttons: [
+        {
+          label: "Yes",
+          onClick: handleNewPosting,
+        },
+        {
+          label: "No",
+          onClick: () => {},
+        },
+      ],
+    });
+  };
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   return (
     <div>
       <ToastContainer />
@@ -202,6 +254,8 @@ const AddNewPostings = () => {
         className="toggle-add-contract-button"
         onClick={() => setPostingFormOpen((prev) => !prev)}
       >
+        {" "}
+        {isPostingFormOpen ? <FaTimes /> : <FaPlus />}
         {isPostingFormOpen ? "Close" : "Add New Postings"}
       </motion.button>
       {isPostingFormOpen && (
@@ -232,12 +286,15 @@ const AddNewPostings = () => {
                 onChange={handleNewPostingInputChange}
               >
                 <option value="">Select Academic Year</option>
-                <option value="2022">2022</option>
-                <option value="2023">2023</option>
-                <option value="2024">2024</option>
+                {academicYearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
+
           <div className="contract-input-container">
             {contractErrorMessage && (
               <div
@@ -259,23 +316,10 @@ const AddNewPostings = () => {
                 name="posting_number"
                 placeholder="Posting Number"
                 value={newPosting.posting_number}
-                onChange={handleNewPostingInputChange}
+                readOnly // Set as read-only
               />
             </div>
           </div>
-          {/* <div className="contract-input-container">
-            <div className="input-group">
-              {postingMessage && (
-                <div
-                  className={`posting-message ${
-                    postingStatus === "taken" ? "taken" : "available"
-                  }`}
-                >
-                  <p>{postingMessage}</p>
-                </div>
-              )}
-            </div>
-          </div> */}
           <div className="contract-input-container">
             <div className="input-group">
               <label>Training Hours:</label>
@@ -305,9 +349,13 @@ const AddNewPostings = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="add-contract-button"
-            onClick={userRole === "hr" ? handleRestrictedAction : handleNewPosting}
+            onClick={
+              userRole === "hr"
+                ? handleRestrictedAction
+                : handleSubmitConfirmation
+            }
           >
-            Submit
+            <FaPaperPlane /> Submit
           </motion.button>
         </div>
       )}

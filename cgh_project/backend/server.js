@@ -1,13 +1,22 @@
 // -----------------------------------------------------------------------------------------------------------------------------//
 //Frequently used sql
-// Deleting all "TEST" data
+// Deleting data
 // -------------------------------------------------------------------------------------------------------------//
-// DELETE c
-// FROM contracts c
-// JOIN main_data m ON c.mcr_number = m.mcr_number
-// WHERE m.first_name = 'test';
+// -- Deleting from the postings table
+// DELETE FROM postings
+// WHERE mcr_number = 'M12345A';
+
+// -- Deleting from the contracts table
+// DELETE FROM contracts
+// WHERE mcr_number = 'M12345A';
+
+// -- Deleting from non_institutional table (if applicable)
+// DELETE FROM non_institutional
+// WHERE mcr_number = 'M12345A';
+
+// -- Deleting from the main_data table (assuming this is the primary table for mcr_number records)
 // DELETE FROM main_data
-// WHERE first_name = 'test';
+// WHERE mcr_number = 'M12345A';
 
 // -------------------------------------------------------------------------------------------------------------//
 // Check if there are any triggers
@@ -171,7 +180,7 @@ app.post("/login", (req, res) => {
         { id: user.user_id, role: user.role },
         JWT_SECRET,
         {
-          expiresIn: "12h",
+          expiresIn: "3h",
         }
       );
 
@@ -822,6 +831,272 @@ app.get("/non_institutional/:mcr_number", verifyToken, (req, res) => {
     }
     res.status(200).json(results);
   });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// PUT REQUEST FOR FTE UPDATES
+// -------------------------------------------------------------------------------------------------------------//
+app.put("/contracts/update-fte", async (req, res) => {
+  const { fteUpdates } = req.body;
+
+  if (!Array.isArray(fteUpdates) || fteUpdates.length === 0) {
+    return res.status(400).send("No FTE updates provided.");
+  }
+
+  try {
+    for (const update of fteUpdates) {
+      const { mcrNumber, school_name, year, fteValue } = update;
+      const fteColumn = `fte_${year}`;
+
+      console.log(
+        `Updating ${fteColumn} for mcr_number: ${mcrNumber}, school: ${school_name} to ${fteValue}`
+      );
+
+      // Update query targeting the specific FTE column based on the selected year
+      await db
+        .promise()
+        .query(
+          `UPDATE contracts SET ${fteColumn} = ? WHERE mcr_number = ? AND school_name = ?`,
+          [fteValue, mcrNumber, school_name]
+        );
+    }
+    res.status(200).send("FTE values updated successfully.");
+  } catch (error) {
+    console.error("Error updating FTE values:", error);
+    res.status(500).send("Error updating FTE values.");
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// PUT REQUEST FOR POSTING UPDATES
+// -------------------------------------------------------------------------------------------------------------//
+app.put("/postings/update", verifyToken, async (req, res) => {
+  const { postings, recalculateTrainingHours } = req.body;
+
+  // Log the incoming request payload for debugging
+  console.log("Received postings for update:", postings);
+
+  if (!Array.isArray(postings) || postings.length === 0) {
+    return res
+      .status(400)
+      .json({ message: "No postings provided for update." });
+  }
+
+  try {
+    for (const posting of postings) {
+      const {
+        mcr_number,
+        academic_year,
+        school_name,
+        posting_number,
+        total_training_hour,
+        rating,
+      } = posting;
+
+      // Ensure each field is provided; log if any are missing
+      if (
+        !mcr_number ||
+        !academic_year ||
+        !school_name ||
+        !posting_number ||
+        total_training_hour === undefined ||
+        rating === undefined
+      ) {
+        console.error("Missing fields in posting:", posting);
+        return res
+          .status(400)
+          .json({ message: "Invalid posting data provided." });
+      }
+
+      // Attempt to update the posting in the database
+      await db.promise().query(
+        `UPDATE postings 
+         SET total_training_hour = ?, rating = ? 
+         WHERE mcr_number = ? AND academic_year = ? AND school_name = ? AND posting_number = ?`,
+        [
+          total_training_hour,
+          rating,
+          mcr_number,
+          academic_year,
+          school_name,
+          posting_number,
+        ]
+      );
+    }
+
+    if (recalculateTrainingHours) {
+      const contractsToUpdate = {};
+
+      postings.forEach(
+        ({ mcr_number, academic_year, school_name, total_training_hour }) => {
+          const key = `${mcr_number}-${school_name}-${academic_year}`;
+          if (!contractsToUpdate[key]) contractsToUpdate[key] = 0;
+          contractsToUpdate[key] += Number(total_training_hour);
+        }
+      );
+
+      for (const key in contractsToUpdate) {
+        const [mcr_number, school_name, academic_year] = key.split("-");
+        const totalHours = contractsToUpdate[key];
+
+        await db.promise().query(
+          `UPDATE contracts
+           SET training_hours_${academic_year} = ?
+           WHERE mcr_number = ? AND school_name = ?`,
+          [totalHours, mcr_number, school_name]
+        );
+      }
+    }
+
+    res.status(200).json({
+      message: "Postings and total training hours updated successfully.",
+    });
+  } catch (error) {
+    console.error(
+      "Error updating postings and recalculating training hours:",
+      error
+    );
+    res
+      .status(500)
+      .json({ message: "Failed to update postings and training hours." });
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// POST REQUEST FOR ADDING NEW NON-INSTITUTIONAL ACTIVITY
+// -------------------------------------------------------------------------------------------------------------//
+app.post("/non_institutional", verifyToken, (req, res) => {
+  const {
+    mcr_number,
+    teaching_categories,
+    role,
+    activity_type,
+    medium,
+    host_country,
+    honorarium,
+    academic_year,
+    training_hours,
+  } = req.body;
+
+  // Input validation
+  if (
+    !mcr_number ||
+    !teaching_categories ||
+    !role ||
+    !activity_type ||
+    !medium ||
+    !host_country ||
+    honorarium === undefined ||
+    !academic_year ||
+    training_hours === undefined
+  ) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  const insertQuery = `
+    INSERT INTO non_institutional 
+    (mcr_number, teaching_categories, role, activity_type, medium, host_country, honorarium, academic_year, training_hours) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  const values = [
+    mcr_number,
+    teaching_categories,
+    role,
+    activity_type,
+    medium,
+    host_country,
+    honorarium,
+    academic_year,
+    training_hours,
+  ];
+
+  db.query(insertQuery, values, (err, result) => {
+    if (err) {
+      console.error("Error adding non-institutional activity:", err);
+      return res.status(500).json({ error: "Failed to add activity" });
+    }
+    res
+      .status(201)
+      .json({ message: "Non-institutional activity added successfully" });
+  });
+});
+// -------------------------------------------------------------------------------------------------------------//
+// PUT REQUEST FOR UPDATING NON-INSTITUTIONAL ACTIVITIES
+// -------------------------------------------------------------------------------------------------------------//
+app.put("/non_institutional/update", verifyToken, (req, res) => {
+  const { activities } = req.body;
+
+  // Validate input
+  if (!Array.isArray(activities) || activities.length === 0) {
+    return res
+      .status(400)
+      .json({ message: "No activities provided for update." });
+  }
+
+  const updatePromises = activities.map((activity) => {
+    const {
+      activity_id,
+      training_hours,
+      teaching_categories,
+      role,
+      activity_type,
+      medium,
+      host_country,
+      honorarium,
+    } = activity;
+
+    // Ensure activity_id and training_hours are provided
+    if (!activity_id || training_hours === undefined) {
+      return Promise.reject(new Error("Invalid activity data provided."));
+    }
+
+    // Construct the update query
+    const query = `
+      UPDATE non_institutional
+      SET 
+        training_hours = ?, 
+        teaching_categories = ?, 
+        role = ?, 
+        activity_type = ?, 
+        medium = ?, 
+        host_country = ?, 
+        honorarium = ?
+      WHERE activity_id = ?
+    `;
+
+    const values = [
+      training_hours,
+      teaching_categories || null,
+      role || null,
+      activity_type || null,
+      medium || null,
+      host_country || null,
+      honorarium || null,
+      activity_id,
+    ];
+
+    return new Promise((resolve, reject) => {
+      db.query(query, values, (err, result) => {
+        if (err) {
+          console.error("Error updating activity:", err);
+          return reject(err);
+        }
+        resolve(result);
+      });
+    });
+  });
+
+  // Execute all update queries
+  Promise.all(updatePromises)
+    .then(() => {
+      res.status(200).json({
+        message: "Non-institutional activities updated successfully.",
+      });
+    })
+    .catch((error) => {
+      console.error("Error updating activities:", error);
+      res.status(500).json({ message: "Failed to update activities." });
+    });
 });
 
 // -------------------------------------------------------------------------------------------------------------//

@@ -8,6 +8,7 @@ import SignUpPage from "./pages_login/SignUpPage";
 import StaffDetailPage from "./components/StaffDetailPage";
 import Entry from "./components/Entry";
 import HomePage from "./pages_login/HomePage";
+import AboutUs from "./components/AboutUs";
 function App() {
   return (
     <Router>
@@ -29,6 +30,7 @@ function App() {
           />
           <Route exact path="/entry" element={<Entry />} />
           <Route exact path="/home" element={<HomePage />} />
+          <Route exact path="/about-us" element={<AboutUs />} />
         </Routes>
       </div>
     </Router>

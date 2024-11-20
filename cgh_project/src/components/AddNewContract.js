@@ -5,26 +5,20 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FaPlus, FaTimes, FaPaperPlane } from "react-icons/fa";
+import { confirmAlert } from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 
 const AddNewContract = () => {
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Generic Constants
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const { mcr_number } = useParams();
   const [isContractFormOpen, setContractFormOpen] = useState(false);
   const [contracts, setContracts] = useState([]);
-  const [userRole, setUserRole] = useState(""); // Track user role
-
-  // Fetch user role from token on initial load
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
-      setUserRole(role);
-    }
-  }, []);
-  const handleRestrictedAction = () => {
-    toast.error("Access Denied: Please contact management to make changes.");
-  };
+  const [userRole, setUserRole] = useState("");
+  // useState to hold new contract details
   const [newContract, setNewContract] = useState({
     school_name: "",
     start_date: "",
@@ -39,7 +33,24 @@ const AddNewContract = () => {
     new_title: "",
   });
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // HR Read-only mode check - Fetch user role from token on initial load
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
+      setUserRole(role);
+    }
+  }, []);
+
+  const handleRestrictedAction = () => {
+    toast.error("Access Denied: Please contact management to make changes.");
+  };
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Fetch contracts to display the existing contracts
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const fetchContracts = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -56,7 +67,10 @@ const AddNewContract = () => {
     }
   };
 
-  // Calculate total training hours
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Contract Form - Submitting New Contract
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to Calculate total training hours
   const calculateTotalTrainingHours = (contract) => {
     const {
       training_hours,
@@ -72,7 +86,7 @@ const AddNewContract = () => {
     );
   };
 
-  // Handle change in new contract fields
+  // Function to handle new contract form input changes
   const handleNewContractInputChange = async (e) => {
     const { name, value } = e.target;
     const updatedContract = { ...newContract, [name]: value };
@@ -124,7 +138,7 @@ const AddNewContract = () => {
     setNewContract(updatedContract);
   };
 
-  // Submit new contract
+  // Function to handle submitting new contract
   const handleNewContract = async () => {
     if (
       !newContract.school_name ||
@@ -182,6 +196,44 @@ const AddNewContract = () => {
     }
   };
 
+  // Function to handle confirmation of submitting new contract
+  const handleSubmitConfirmation = () => {
+    if (
+      !newContract.school_name ||
+      !newContract.start_date ||
+      !newContract.end_date ||
+      !newContract.status ||
+      !newContract.prev_title ||
+      !newContract.new_title
+    ) {
+      toast.error("Please fill all contract fields before submitting");
+      return;
+    }
+
+    confirmAlert({
+      title: "Confirm Submission",
+      message: (
+        <div>
+          ⚠️Are you sure you want to submit this contract?⚠️
+          <br />
+          This will override the existing contract
+        </div>
+      ),
+      buttons: [
+        {
+          label: "Yes",
+          onClick: handleNewContract,
+        },
+        {
+          label: "No",
+          onClick: () => {},
+        },
+      ],
+    });
+  };
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   return (
     <div>
       <ToastContainer />
@@ -191,6 +243,8 @@ const AddNewContract = () => {
         className="toggle-add-contract-button"
         onClick={() => setContractFormOpen((prev) => !prev)}
       >
+        {" "}
+        {isContractFormOpen ? <FaTimes /> : <FaPlus />}
         {isContractFormOpen ? "Close" : "Add New Contract"}
       </motion.button>
       {isContractFormOpen && (
@@ -287,9 +341,12 @@ const AddNewContract = () => {
             whileTap={{ scale: 0.9 }}
             className="add-contract-button"
             onClick={
-              userRole === "hr" ? handleRestrictedAction : handleNewContract
+              userRole === "hr"
+                ? handleRestrictedAction
+                : handleSubmitConfirmation
             }
           >
+            <FaPaperPlane />
             Submit
           </motion.button>
         </div>

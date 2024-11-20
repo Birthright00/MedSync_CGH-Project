@@ -7,29 +7,61 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { CSVLink } from "react-csv";
-import { FaEdit, FaTrash } from "react-icons/fa";
+import { FaRedo } from "react-icons/fa";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 import AddNewContract from "./AddNewContract";
 import AddNewPostings from "./AddNewPostings";
 import StaffDetails from "./StaffDetails";
+import AddNewNonInst from "./AddNewNonInst";
 
 const StaffDetailPage = () => {
   // ########################################## //
   // Generic Constants
   // ########################################## //
-  const { mcr_number } = useParams(); // Get the MCR number from route params
-  const navigate = useNavigate();
+  const { mcr_number } = useParams();
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [staffContractDetails, setStaffContractDetails] = useState([]);
   const [selectedYears, setSelectedYears] = useState([]);
   const [postings, setPostings] = useState([]); // State to hold postings data
   const [filteredContracts, setFilteredContracts] = useState([]);
-  const [postingStatus, setPostingStatus] = useState(""); // Status of posting number check
-  const [postingMessage, setPostingMessage] = useState(""); // Message for posting number check
+  const [totalNonInstTrainingHours, setTotalNonInstTrainingHours] = useState(0);
+
   const [nonInstitutional, setNonInstitutional] = useState([]); // State to hold non-institutional data
   const [userRole, setUserRole] = useState(""); // Track user role
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
+  const handleSort = (column, table) => {
+    let direction = "asc";
+    if (sortConfig.key === column && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key: column, direction });
+
+    if (table === "contracts") {
+      const sortedContracts = [...filteredContracts].sort((a, b) => {
+        return direction === "asc"
+          ? a[column] > b[column]
+            ? 1
+            : -1
+          : a[column] < b[column]
+          ? 1
+          : -1;
+      });
+      setFilteredContracts(sortedContracts);
+    } else if (table === "postings") {
+      const sortedPostings = [...filteredPostings].sort((a, b) => {
+        return direction === "asc"
+          ? a[column] > b[column]
+            ? 1
+            : -1
+          : a[column] < b[column]
+          ? 1
+          : -1;
+      });
+      setPostings(sortedPostings);
+    }
+  };
 
   // Fetch user role from token on initial load
   useEffect(() => {
@@ -39,13 +71,15 @@ const StaffDetailPage = () => {
       setUserRole(role);
     }
   }, []);
-  const filteredPostings =
-    selectedYears.length > 0
-      ? postings.filter((posting) =>
-          selectedYears.includes(posting.academic_year.toString())
-        )
-      : [];
+  // Filter Postings by Selected Years
+  const filteredPostings = postings.filter((posting) =>
+    selectedYears.includes(posting.academic_year.toString())
+  );
 
+  // Filter Non-Institutional Activities by Selected Years
+  const filteredNonInstitutional = nonInstitutional.filter((activity) =>
+    selectedYears.includes(activity.academic_year.toString())
+  );
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -55,6 +89,30 @@ const StaffDetailPage = () => {
     const hours = ("0" + date.getHours()).slice(-2);
     const minutes = ("0" + date.getMinutes()).slice(-2);
     return `${year}-${month}-${day} @ ${hours}${minutes}H`;
+  };
+  const handleUpdatePostings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const updatedPostings = filteredPostings.filter(
+        (posting) => posting.total_training_hour !== "" && posting.rating !== ""
+      );
+
+      await axios.put(
+        "http://localhost:3001/postings/update",
+        {
+          postings: updatedPostings,
+          recalculateTrainingHours: true, // Flag to trigger recalculation
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      toast.success("Postings updated successfully.");
+    } catch (error) {
+      console.error("Error updating postings:", error);
+      toast.error("Failed to update postings.");
+    }
   };
 
   // ########################################## //
@@ -69,16 +127,15 @@ const StaffDetailPage = () => {
   // ########################################## //
   // Filter Functions
   // ########################################## //
+  // Filter Contracts by Selected Years
   useEffect(() => {
     const updatedFilteredContracts = contracts.filter((contract) => {
-      // Convert contract start and end dates to year numbers
       const startYear = new Date(contract.contract_start_date).getFullYear();
       const endYear = new Date(contract.contract_end_date).getFullYear();
 
-      // Check if any selected year falls within the contract period
+      // Check if any selected year is within the contract period
       return selectedYears.some((year) => year >= startYear && year <= endYear);
     });
-
     setFilteredContracts(updatedFilteredContracts);
   }, [selectedYears, contracts]);
 
@@ -227,18 +284,34 @@ const StaffDetailPage = () => {
       toast.error("Access Denied: Please contact management to make changes.");
     }
   };
-  const filteredNonInstitutional =
-    selectedYears.length > 0
-      ? nonInstitutional.filter((activity) => {
-          console.log(
-            "Activity academic year:",
-            activity.academic_year,
-            "Selected years:",
-            selectedYears
-          );
-          return selectedYears.includes(activity.academic_year?.toString());
-        })
-      : nonInstitutional;
+
+  const handleFTEUpdate = async () => {
+    const fteUpdates = [];
+
+    filteredContracts.forEach((contract) => {
+      selectedYears.forEach((year) => {
+        const fteValue = contract[`fte_${year}`];
+        if (fteValue) {
+          fteUpdates.push({
+            mcrNumber: contract.mcr_number,
+            school_name: contract.school_name,
+            year: year, // Selected year from the button
+            fteValue: parseFloat(fteValue).toFixed(2),
+          });
+        }
+      });
+    });
+
+    try {
+      await axios.put("http://localhost:3001/contracts/update-fte", {
+        fteUpdates,
+      });
+      toast.success("FTE values updated successfully.");
+    } catch (error) {
+      console.error("Error updating FTE values:", error);
+      toast.error("Failed to update FTE values.");
+    }
+  };
 
   return (
     <>
@@ -253,14 +326,14 @@ const StaffDetailPage = () => {
         <StaffDetails />
         <motion.div
           className="staff-info-container-right"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          {" "}
           <h2>Select Year(s)</h2>
           <div className="year-buttons-container">
             {[
+              "2014",
               "2015",
               "2016",
               "2017",
@@ -285,26 +358,63 @@ const StaffDetailPage = () => {
                 {year}
               </motion.button>
             ))}
-          </div>
-          <h2>Contracts</h2>
+          </div>{" "}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="toggle-add-contract-button"
+            onClick={handleReset}
+          >
+            <FaRedo /> Reset
+          </motion.button>
+          <AddNewPostings />
+          <AddNewContract />
+          <AddNewNonInst />
+          {/* ⚠️CONTRACT TABLE⚠️ */}
+          <h2>Contract(s)</h2>
           <div className="contracts-table-container">
-            <table className="staff-detail-table">
-              <thead>
-                <tr>
-                  <th>Contract Detail</th>
-                  {filteredContracts && filteredContracts.length > 0 ? (
-                    filteredContracts.map((contract, index) => (
-                      <th key={index}>{contract?.school_name || "N/A"}</th>
-                    ))
-                  ) : (
-                    <th>No Contract Found</th>
-                  )}
-                </tr>
-              </thead>
-              {filteredContracts && filteredContracts.length > 0 ? (
+            {selectedYears.length === 0 ? (
+              <table className="posting-detail-table">
                 <tbody>
                   <tr>
-                    <th>Start Date</th>
+                    <td colSpan="5" style={{ textAlign: "center" }}>
+                      Please select a year to view Contracts.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : filteredContracts.length === 0 ? (
+              <table className="posting-detail-table">
+                <tbody>
+                  <tr>
+                    <td
+                      colSpan="5"
+                      style={{ textAlign: "center", color: "red" }}
+                    >
+                      No contracts found for the selected year(s).
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              <table className="staff-detail-table">
+                <thead>
+                  <tr>
+                    <th>Contract Detail</th>
+                    {filteredContracts.map((contract, index) => (
+                      <th key={index}>{contract?.school_name || "N/A"}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th
+                      onClick={() =>
+                        handleSort("contract_start_date", "contracts")
+                      }
+                    >
+                      Start Date
+                    </th>
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {contract?.contract_start_date
@@ -316,7 +426,13 @@ const StaffDetailPage = () => {
                     ))}
                   </tr>
                   <tr>
-                    <th>End Date</th>
+                    <th
+                      onClick={() =>
+                        handleSort("contract_end_date", "contracts")
+                      }
+                    >
+                      End Date
+                    </th>
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {new Date(
@@ -326,13 +442,15 @@ const StaffDetailPage = () => {
                     ))}
                   </tr>
                   <tr>
-                    <th>Status</th>
-                    {filteredContracts?.map((contract, index) => (
+                    <th onClick={() => handleSort("status", "contracts")}>
+                      Status
+                    </th>
+                    {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {contract?.status || "No Contract Found"}
                       </td>
                     ))}
-                  </tr>
+                  </tr>{" "}
                   <tr>
                     <th>Previous Title</th>
                     {filteredContracts.map((contract, index) => (
@@ -345,10 +463,10 @@ const StaffDetailPage = () => {
                       <td key={index}>{contract.new_title}</td>
                     ))}
                   </tr>
-
+                  {/* Training Hours Rows for Selected Years */}
                   {selectedYears.includes("2022") && (
                     <tr>
-                      <th>Total Training Hours in 2022</th>
+                      <th>Training Hours in 2022</th>
                       {filteredContracts.map((contract, index) => (
                         <td key={index}>
                           {contract.training_hours_2022 || "0"}
@@ -358,7 +476,7 @@ const StaffDetailPage = () => {
                   )}
                   {selectedYears.includes("2023") && (
                     <tr>
-                      <th>Total Training Hours in 2023</th>
+                      <th>Training Hours in 2023</th>
                       {filteredContracts.map((contract, index) => (
                         <td key={index}>
                           {contract.training_hours_2023 || "0"}
@@ -368,7 +486,7 @@ const StaffDetailPage = () => {
                   )}
                   {selectedYears.includes("2024") && (
                     <tr>
-                      <th>Total Training Hours in 2024</th>
+                      <th>Training Hours in 2024</th>
                       {filteredContracts.map((contract, index) => (
                         <td key={index}>
                           {contract.training_hours_2024 || "0"}
@@ -376,6 +494,7 @@ const StaffDetailPage = () => {
                       ))}
                     </tr>
                   )}
+                  {/* Total Training Hours */}
                   <tr>
                     <th>Total Training Hours for Selected Year(s)</th>
                     {filteredContracts.map((contract, index) => (
@@ -396,16 +515,8 @@ const StaffDetailPage = () => {
                     </td>
                   </tr>
                 </tbody>
-              ) : (
-                <tbody>
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: "center" }}>
-                      Please select a year to view Contracts.
-                    </td>
-                  </tr>
-                </tbody>
-              )}
-            </table>
+              </table>
+            )}
           </div>
           {/* <CSVLink
             filename={`staff_details_${mcr_number}.csv`}
@@ -419,37 +530,93 @@ const StaffDetailPage = () => {
               Download
             </motion.button>
           </CSVLink> */}
-          {/* Add New Contract Form */}
-          <AddNewContract />
-          {/* Add New Contract Form */}
-          <h2>Postings</h2>
-          <div className="postings-table-container">
-            {filteredPostings && filteredPostings.length > 0 ? (
+        </motion.div>
+        <motion.div
+          className="staff-info-container-right"
+          initial={{ x: 100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          {/* ⚠️FTE Table⚠️ */}
+          <h2>FTE per Academic Year</h2>
+          <div className="contracts-table-container">
+            {selectedYears.length === 0 ? (
               <table className="posting-detail-table">
+                <tbody>
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: "center" }}>
+                      Please select a year to view FTE.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : filteredContracts.length === 0 ? (
+              <table className="posting-detail-table">
+                <tbody>
+                  <tr>
+                    <td
+                      colSpan="5"
+                      style={{ textAlign: "center", color: "red" }}
+                    >
+                      No FTE data found for the selected year(s).
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              <table className="staff-detail-table">
                 <thead>
                   <tr>
-                    <th>Academic Year</th>
-                    <th>Posting Number</th>
-                    <th>Training Hours</th>
-                    <th>School</th>
-                    <th>Rating</th>
+                    <th>FTE</th>
+                    {filteredContracts.map((contract, index) => (
+                      <th key={index}>{contract.school_name || "N/A"}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPostings.map((posting) => (
-                    <tr
-                      key={`${posting.academic_year}-${posting.posting_number}`}
-                    >
-                      <td>{posting.academic_year || "N/A"}</td>
-                      <td>{posting.posting_number || "N/A"}</td>
-                      <td>{posting.total_training_hour || "N/A"}</td>
-                      <td>{posting.school_name || "N/A"}</td>
-                      <td>{posting.rating || "N/A"}</td>
+                  {selectedYears.map((year) => (
+                    <tr key={year}>
+                      <th>FTE in {year}</th>
+                      {filteredContracts.map((contract, index) => (
+                        <td key={index}>
+                          <input
+                            type="text"
+                            placeholder={contract[`fte_${year}`] || "0.00"}
+                            value={contract[`fte_${year}`] || ""}
+                            onChange={(e) => {
+                              const updatedFTE = e.target.value;
+                              setFilteredContracts((prevContracts) =>
+                                prevContracts.map((c, i) =>
+                                  i === index
+                                    ? { ...c, [`fte_${year}`]: updatedFTE }
+                                    : c
+                                )
+                              );
+                            }}
+                          />
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
-            ) : (
+            )}
+          </div>
+          {selectedYears.length > 0 && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.9 }}
+              className="update-fte-button"
+              onClick={handleFTEUpdate}
+            >
+              Update FTE
+            </motion.button>
+          )}
+
+          {/* ⚠️Postings Table⚠️ */}
+          <h2>Postings</h2>
+          <div className="postings-table-container">
+            {selectedYears.length === 0 ? (
               <table className="posting-detail-table">
                 <tbody>
                   <tr>
@@ -459,11 +626,90 @@ const StaffDetailPage = () => {
                   </tr>
                 </tbody>
               </table>
+            ) : filteredPostings.length === 0 ? (
+              <table className="posting-detail-table">
+                <tbody>
+                  <tr>
+                    <td
+                      colSpan="5"
+                      style={{ textAlign: "center", color: "red" }}
+                    >
+                      No postings found for the selected year(s).
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              <table className="posting-detail-table">
+                <thead>
+                  <tr>
+                    <th>Academic Year</th>
+                    <th>School</th>
+                    <th>Training Hours</th>
+                    <th>Posting Number</th>
+                    <th>Rating</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPostings.map((posting, index) => (
+                    <tr
+                      key={`${posting.academic_year}-${posting.posting_number}-${index}`}
+                    >
+                      <td>{posting.academic_year || "N/A"}</td>
+                      <td>{posting.school_name || "N/A"}</td>
+                      <td>
+                        <input
+                          type="number"
+                          value={posting.total_training_hour || ""}
+                          onChange={(e) => {
+                            const updatedHours = e.target.value;
+                            setPostings((prevPostings) =>
+                              prevPostings.map((p, i) =>
+                                i === index
+                                  ? { ...p, total_training_hour: updatedHours }
+                                  : p
+                              )
+                            );
+                          }}
+                        />
+                      </td>
+                      <td>{posting.posting_number || "N/A"}</td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={posting.rating || ""}
+                          onChange={(e) => {
+                            const updatedRating = e.target.value;
+                            setPostings((prevPostings) =>
+                              prevPostings.map((p, i) =>
+                                i === index
+                                  ? { ...p, rating: updatedRating }
+                                  : p
+                              )
+                            );
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
-          <AddNewPostings />{" "}
+          {selectedYears.length > 0 && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.9 }}
+              className="update-fte-button"
+              onClick={handleUpdatePostings}
+            >
+              Update Postings
+            </motion.button>
+          )}
+
+          {/* ⚠️Non-Institutional Activities⚠️ */}
           <div>
-            {" "}
             <h2>Non-Institutional Activities</h2>
             <div className="non-institutional-table-container">
               {selectedYears.length > 0 ? (
@@ -479,11 +725,12 @@ const StaffDetailPage = () => {
                         <th>Medium</th>
                         <th>Host Country</th>
                         <th>Honorarium</th>
+                        <th>Training Hours</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredNonInstitutional.map((activity, index) => (
-                        <tr key={index}>
+                        <tr key={`${activity.academic_year}-${index}`}>
                           <td>{activity.academic_year || "N/A"}</td>
                           <td>{activity.teaching_categories || "N/A"}</td>
                           <td>{activity.role || "N/A"}</td>
@@ -491,16 +738,40 @@ const StaffDetailPage = () => {
                           <td>{activity.medium || "N/A"}</td>
                           <td>{activity.host_country || "N/A"}</td>
                           <td>{activity.honorarium || "N/A"}</td>
+                          <td>{activity.training_hours || "0"}</td>
                         </tr>
                       ))}
+                      <tr>
+                        <th colSpan={4}>
+                          Total Non-Institutional Training Hours for Selected
+                          Year(s)
+                        </th>
+                        <td colSpan={4}>
+                          {filteredNonInstitutional
+                            .reduce((sum, activity) => {
+                              return (
+                                sum +
+                                (selectedYears.includes(
+                                  activity.academic_year?.toString()
+                                )
+                                  ? parseFloat(activity.training_hours) || 0
+                                  : 0)
+                              );
+                            }, 0)
+                            .toFixed(2)}
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
                 ) : (
                   <table className="posting-detail-table">
                     <tbody>
                       <tr>
-                        <td colSpan="5" style={{ textAlign: "center" }}>
-                          No non-institutional activities found for the selected
+                        <td
+                          colSpan="5"
+                          style={{ textAlign: "center", color: "red" }}
+                        >
+                          No Non-Institutional activities found for the selected
                           year(s).
                         </td>
                       </tr>
@@ -512,7 +783,7 @@ const StaffDetailPage = () => {
                   <tbody>
                     <tr>
                       <td colSpan="5" style={{ textAlign: "center" }}>
-                        Please select a year to view non-institutional
+                        Please select a year to view Non-Institutional
                         activities.
                       </td>
                     </tr>
@@ -521,14 +792,6 @@ const StaffDetailPage = () => {
               )}
             </div>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            className="toggle-add-contract-button"
-            onClick={handleReset}
-          >
-            Reset
-          </motion.button>
         </motion.div>{" "}
       </motion.div>{" "}
     </>

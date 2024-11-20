@@ -312,9 +312,39 @@ const StaffDetailPage = () => {
       toast.error("Failed to update FTE values.");
     }
   };
+  useEffect(() => {
+    const handleGlobalError = (message, source, lineno, colno, error) => {
+      console.error("Global error caught:", {
+        message,
+        source,
+        lineno,
+        colno,
+        error,
+      });
+      toast.error(
+        "An unexpected error has occurred. Please refresh or re-login."
+      );
+    };
+
+    const handlePromiseRejection = (event) => {
+      console.error("Unhandled promise rejection:", event.reason);
+      toast.error(
+        "An unexpected error has occurred. Please refresh or re-login."
+      );
+    };
+
+    window.onerror = handleGlobalError;
+    window.onunhandledrejection = handlePromiseRejection;
+
+    return () => {
+      window.onerror = null;
+      window.onunhandledrejection = null;
+    };
+  }, []);
 
   return (
     <>
+      {" "}
       <ToastContainer />
       <Navbar homeRoute="/management-home" />
       <motion.div
@@ -651,23 +681,27 @@ const StaffDetailPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPostings.map((posting, index) => (
-                    <tr
-                      key={`${posting.academic_year}-${posting.posting_number}-${index}`}
-                    >
+                  {filteredPostings.map((posting) => (
+                    <tr key={posting.id}>
                       <td>{posting.academic_year || "N/A"}</td>
                       <td>{posting.school_name || "N/A"}</td>
                       <td>
                         <input
                           type="number"
-                          value={posting.total_training_hour || ""}
+                          value={posting.total_training_hour || ""} // Ensure this is bound to the posting's unique value
                           onChange={(e) => {
-                            const updatedHours = e.target.value;
+                            const updatedValue = e.target.value;
+
+                            // Update only the specific posting with the matching id
                             setPostings((prevPostings) =>
-                              prevPostings.map((p, i) =>
-                                i === index
-                                  ? { ...p, total_training_hour: updatedHours }
-                                  : p
+                              prevPostings.map(
+                                (p) =>
+                                  p.id === posting.id
+                                    ? {
+                                        ...p,
+                                        total_training_hour: updatedValue,
+                                      } // Update only the matching posting
+                                    : p // Leave others unchanged
                               )
                             );
                           }}
@@ -681,9 +715,11 @@ const StaffDetailPage = () => {
                           value={posting.rating || ""}
                           onChange={(e) => {
                             const updatedRating = e.target.value;
+
+                            // Update only the specific posting with the matching id
                             setPostings((prevPostings) =>
-                              prevPostings.map((p, i) =>
-                                i === index
+                              prevPostings.map((p) =>
+                                p.id === posting.id
                                   ? { ...p, rating: updatedRating }
                                   : p
                               )

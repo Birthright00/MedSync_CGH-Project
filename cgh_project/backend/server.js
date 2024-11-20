@@ -733,6 +733,100 @@ app.post("/postings", verifyToken, async (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// PUT REQUEST FOR POSTINGS
+// -------------------------------------------------------------------------------------------------------------//
+app.put("/postings/update", verifyToken, async (req, res) => {
+  const { postings, recalculateTrainingHours } = req.body;
+
+  console.log("Received postings for update:", postings);
+
+  if (!Array.isArray(postings) || postings.length === 0) {
+    return res
+      .status(400)
+      .json({ message: "No postings provided for update." });
+  }
+
+  try {
+    const updatePromises = postings.map((posting) => {
+      const {
+        mcr_number,
+        academic_year,
+        school_name,
+        posting_number,
+        total_training_hour,
+        rating,
+      } = posting;
+
+      // Validate each posting
+      if (
+        !mcr_number ||
+        !academic_year ||
+        !school_name ||
+        !posting_number ||
+        total_training_hour === undefined ||
+        rating === undefined
+      ) {
+        console.error("Skipping invalid posting:", posting);
+        return Promise.resolve(); // Skip invalid postings without stopping the process
+      }
+
+      // Update query
+      return db.promise().query(
+        `UPDATE postings 
+         SET total_training_hour = ?, rating = ? 
+         WHERE mcr_number = ? AND academic_year = ? AND school_name = ? AND posting_number = ?`,
+        [
+          total_training_hour,
+          rating,
+          mcr_number,
+          academic_year,
+          school_name,
+          posting_number,
+        ]
+      );
+    });
+
+    // Wait for all updates to complete
+    await Promise.all(updatePromises);
+
+    if (recalculateTrainingHours) {
+      const contractsToUpdate = {};
+
+      postings.forEach(
+        ({ mcr_number, academic_year, school_name, total_training_hour }) => {
+          const key = `${mcr_number}-${school_name}-${academic_year}`;
+          if (!contractsToUpdate[key]) contractsToUpdate[key] = 0;
+          contractsToUpdate[key] += Number(total_training_hour);
+        }
+      );
+
+      for (const key in contractsToUpdate) {
+        const [mcr_number, school_name, academic_year] = key.split("-");
+        const totalHours = contractsToUpdate[key];
+
+        await db.promise().query(
+          `UPDATE contracts
+           SET training_hours_${academic_year} = ?
+           WHERE mcr_number = ? AND school_name = ?`,
+          [totalHours, mcr_number, school_name]
+        );
+      }
+    }
+
+    res
+      .status(200)
+      .json({
+        message: "Postings and total training hours updated successfully.",
+      });
+  } catch (error) {
+    console.error("Error updating postings:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to update postings and training hours." });
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FOR POSTINGS
 // -------------------------------------------------------------------------------------------------------------//
 // Get all postings for a specific doctor, academic year, or school
@@ -745,7 +839,12 @@ app.get("/postings", async (req, res) => {
 
   try {
     // Build the base query
-    let query = `SELECT mcr_number, academic_year, school_name, posting_number, total_training_hour, rating FROM postings WHERE 1=1`;
+    let query = `
+    SELECT id, mcr_number, academic_year, school_name, posting_number, total_training_hour, rating 
+    FROM postings 
+    WHERE 1=1
+  `;
+
     const params = [];
 
     // Add filtering conditions based on query parameters
@@ -777,41 +876,6 @@ app.get("/postings", async (req, res) => {
   } catch (error) {
     console.error("Unexpected error in /postings route:", error);
     res.status(500).json({ error: "Unexpected error", details: error.message });
-  }
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// Backend endpoint to check if a posting number is available based on mcr_number, school_name, and academic_year
-// -------------------------------------------------------------------------------------------------------------//
-// Posting Number Check Endpoint
-app.get("/postings/check", async (req, res) => {
-  const { mcr_number, school_name, academic_year, posting_number } = req.query;
-
-  try {
-    const query =
-      "SELECT * FROM postings WHERE mcr_number = ? AND school_name = ? AND academic_year = ? AND posting_number = ?";
-    const results = await new Promise((resolve, reject) => {
-      db.query(
-        query,
-        [mcr_number, school_name, academic_year, posting_number],
-        (error, rows) => {
-          if (error) {
-            console.error("Database query error:", error);
-            return reject(error);
-          }
-          resolve(rows);
-        }
-      );
-    });
-
-    if (results.length > 0) {
-      return res.status(200).json({ message: "Posting number already exists" });
-    } else {
-      return res.status(404).json({ message: "Posting number is available" });
-    }
-  } catch (error) {
-    console.error("Error checking posting number:", error);
-    res.status(500).json({ error: "Error checking posting number" });
   }
 });
 

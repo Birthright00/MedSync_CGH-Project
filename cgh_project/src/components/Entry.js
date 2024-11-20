@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import "../styles/staffdetailpage.css";
+import "../styles/entry.css";
 import Navbar from "../components/Navbar";
-import Footer from "../components/footer";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
@@ -215,9 +214,9 @@ const Entry = () => {
     <>
       <ToastContainer />
       <Navbar homeRoute="/management-home" />
-      <div className="staff-detail-page">
-        <div className="staff-info-container">
-          <h2>Staff Details</h2>
+      <div className="entry-page">
+        <div className="entry-form-container">
+          <h2>Add New Doctor</h2>
           <table className="staff-detail-table">
             <tbody>
               <tr>

@@ -109,6 +109,9 @@ const StaffDetailPage = () => {
       );
 
       toast.success("Postings updated successfully.");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error("Error updating postings:", error);
       toast.error("Failed to update postings.");
@@ -307,6 +310,9 @@ const StaffDetailPage = () => {
         fteUpdates,
       });
       toast.success("FTE values updated successfully.");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error("Error updating FTE values:", error);
       toast.error("Failed to update FTE values.");
@@ -637,7 +643,9 @@ const StaffDetailPage = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.9 }}
               className="update-fte-button"
-              onClick={handleFTEUpdate}
+              onClick={
+                userRole === "hr" ? handleRestrictedAction : handleFTEUpdate
+              }
             >
               Update FTE
             </motion.button>
@@ -738,7 +746,11 @@ const StaffDetailPage = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.9 }}
               className="update-fte-button"
-              onClick={handleUpdatePostings}
+              onClick={
+                userRole === "hr"
+                  ? handleRestrictedAction
+                  : handleUpdatePostings
+              }
             >
               Update Postings
             </motion.button>

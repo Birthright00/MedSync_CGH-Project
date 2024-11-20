@@ -100,7 +100,7 @@
   border-radius: 10px;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
   width: 100%;
-  max-width: 480px;
+  max-width: 540px;
   margin: 10px;
   z-index: 1; /* Ensure content is on top of the background */
 }

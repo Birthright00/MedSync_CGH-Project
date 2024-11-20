@@ -11,6 +11,18 @@ import React from "react";
 const AddNewNonInstitutionalActivity = () => {
   const { mcr_number } = useParams();
   const [isActivityFormOpen, setActivityFormOpen] = useState(false);
+  const [userRole, setUserRole] = useState("");
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
+      setUserRole(role);
+    }
+  }, []);
+
+  const handleRestrictedAction = () => {
+    toast.error("Access Denied: Please contact management to make changes.");
+  };
   const [newActivity, setNewActivity] = useState({
     mcr_number: mcr_number,
     teaching_categories: "",
@@ -20,6 +32,7 @@ const AddNewNonInstitutionalActivity = () => {
     host_country: "",
     honorarium: "",
     academic_year: "",
+    training_hours: "", // Add this field
   });
 
   const teachingCategoriesOptions = [
@@ -74,7 +87,8 @@ const AddNewNonInstitutionalActivity = () => {
       !newActivity.medium ||
       !newActivity.host_country ||
       !newActivity.honorarium ||
-      !newActivity.academic_year
+      !newActivity.academic_year ||
+      !newActivity.training_hours // Include training_hours in validation
     ) {
       toast.error("Please fill all required fields.");
       return;
@@ -102,6 +116,7 @@ const AddNewNonInstitutionalActivity = () => {
           honorarium: "",
           academic_year: "",
         });
+        window.location.reload();
       }
     } catch (error) {
       console.error("Error adding new activity:", error);
@@ -124,6 +139,24 @@ const AddNewNonInstitutionalActivity = () => {
       {isActivityFormOpen && (
         <div>
           <div className="contract-input-container">
+            {" "}
+            <div className="input-group">
+              <label>Academic Year:</label>
+              <select
+                name="academic_year"
+                value={newActivity.academic_year}
+                onChange={handleInputChange}
+              >
+                <option value="">Select Academic Year</option>
+                {Array.from({ length: 5 }, (_, index) => 2020 + index).map(
+                  (year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
             <div className="input-group">
               <label>Teaching Categories:</label>
               <select
@@ -209,18 +242,23 @@ const AddNewNonInstitutionalActivity = () => {
               />
             </div>
             <div className="input-group">
-              <label>Academic Year:</label>
+              <label>Training Hours:</label>
               <input
-                type="text"
-                name="academic_year"
-                value={newActivity.academic_year}
+                type="number"
+                name="training_hours"
+                value={newActivity.training_hours || ""}
                 onChange={handleInputChange}
+                min="0"
               />
             </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.9 }}
-              onClick={handleNewActivitySubmit}
+              onClick={
+                userRole === "hr"
+                  ? handleRestrictedAction
+                  : handleNewActivitySubmit
+              }
               className="add-contract-button"
             >
               <FaPaperPlane /> Submit

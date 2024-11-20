@@ -948,11 +948,9 @@ app.put("/postings/update", verifyToken, async (req, res) => {
       }
     }
 
-    res
-      .status(200)
-      .json({
-        message: "Postings and total training hours updated successfully.",
-      });
+    res.status(200).json({
+      message: "Postings and total training hours updated successfully.",
+    });
   } catch (error) {
     console.error(
       "Error updating postings and recalculating training hours:",
@@ -977,6 +975,7 @@ app.post("/non_institutional", verifyToken, (req, res) => {
     host_country,
     honorarium,
     academic_year,
+    training_hours,
   } = req.body;
 
   // Input validation
@@ -988,15 +987,16 @@ app.post("/non_institutional", verifyToken, (req, res) => {
     !medium ||
     !host_country ||
     honorarium === undefined ||
-    !academic_year
+    !academic_year ||
+    training_hours === undefined
   ) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
   const insertQuery = `
     INSERT INTO non_institutional 
-    (mcr_number, teaching_categories, role, activity_type, medium, host_country, honorarium, academic_year) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    (mcr_number, teaching_categories, role, activity_type, medium, host_country, honorarium, academic_year, training_hours) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const values = [
     mcr_number,
@@ -1007,6 +1007,7 @@ app.post("/non_institutional", verifyToken, (req, res) => {
     host_country,
     honorarium,
     academic_year,
+    training_hours,
   ];
 
   db.query(insertQuery, values, (err, result) => {
@@ -1014,8 +1015,88 @@ app.post("/non_institutional", verifyToken, (req, res) => {
       console.error("Error adding non-institutional activity:", err);
       return res.status(500).json({ error: "Failed to add activity" });
     }
-    res.status(201).json({ message: "Non-institutional activity added successfully" });
+    res
+      .status(201)
+      .json({ message: "Non-institutional activity added successfully" });
   });
+});
+// -------------------------------------------------------------------------------------------------------------//
+// PUT REQUEST FOR UPDATING NON-INSTITUTIONAL ACTIVITIES
+// -------------------------------------------------------------------------------------------------------------//
+app.put("/non_institutional/update", verifyToken, (req, res) => {
+  const { activities } = req.body;
+
+  // Validate input
+  if (!Array.isArray(activities) || activities.length === 0) {
+    return res
+      .status(400)
+      .json({ message: "No activities provided for update." });
+  }
+
+  const updatePromises = activities.map((activity) => {
+    const {
+      activity_id,
+      training_hours,
+      teaching_categories,
+      role,
+      activity_type,
+      medium,
+      host_country,
+      honorarium,
+    } = activity;
+
+    // Ensure activity_id and training_hours are provided
+    if (!activity_id || training_hours === undefined) {
+      return Promise.reject(new Error("Invalid activity data provided."));
+    }
+
+    // Construct the update query
+    const query = `
+      UPDATE non_institutional
+      SET 
+        training_hours = ?, 
+        teaching_categories = ?, 
+        role = ?, 
+        activity_type = ?, 
+        medium = ?, 
+        host_country = ?, 
+        honorarium = ?
+      WHERE activity_id = ?
+    `;
+
+    const values = [
+      training_hours,
+      teaching_categories || null,
+      role || null,
+      activity_type || null,
+      medium || null,
+      host_country || null,
+      honorarium || null,
+      activity_id,
+    ];
+
+    return new Promise((resolve, reject) => {
+      db.query(query, values, (err, result) => {
+        if (err) {
+          console.error("Error updating activity:", err);
+          return reject(err);
+        }
+        resolve(result);
+      });
+    });
+  });
+
+  // Execute all update queries
+  Promise.all(updatePromises)
+    .then(() => {
+      res.status(200).json({
+        message: "Non-institutional activities updated successfully.",
+      });
+    })
+    .catch((error) => {
+      console.error("Error updating activities:", error);
+      res.status(500).json({ message: "Failed to update activities." });
+    });
 });
 
 // -------------------------------------------------------------------------------------------------------------//

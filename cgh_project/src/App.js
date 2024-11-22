@@ -11,29 +11,19 @@ import HomePage from "./pages_login/HomePage";
 import AboutUs from "./components/AboutUs";
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <ScrollToTop />
-        <Routes>
-          <Route exact path="/" element={<LoginPage />} />
-          <Route
-            exact
-            path="/management-home"
-            element={<ManagementHomePage />}
-          />
-          <Route exact path="/staff-home" element={<StaffHomePage />} />
-          <Route exact path="/signup-page" element={<SignUpPage />} />
-          <Route
-            exact
-            path="/staff/:mcr_number"
-            element={<StaffDetailPage />}
-          />
-          <Route exact path="/entry" element={<Entry />} />
-          <Route exact path="/home" element={<HomePage />} />
-          <Route exact path="/about-us" element={<AboutUs />} />
-        </Routes>
-      </div>
-    </Router>
+    <div className="App">
+      <ScrollToTop />
+      <Routes>
+        <Route exact path="/" element={<LoginPage />} />
+        <Route exact path="/management-home" element={<ManagementHomePage />} />
+        <Route exact path="/staff-home" element={<StaffHomePage />} />
+        <Route exact path="/signup-page" element={<SignUpPage />} />
+        <Route exact path="/staff/:mcr_number" element={<StaffDetailPage />} />
+        <Route exact path="/entry" element={<Entry />} />
+        <Route exact path="/home" element={<HomePage />} />
+        <Route exact path="/about-us" element={<AboutUs />} />
+      </Routes>
+    </div>
   );
 }
 

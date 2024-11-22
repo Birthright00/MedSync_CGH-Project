@@ -1,0 +1,31 @@
+/* Center the form on the page */
+.entry-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center; /* Horizontally center */
+  align-items: center; /* Vertically center */
+  background-color: #d8e6ff; /* Match background color */
+  overflow: hidden;
+  padding: 20px; /* Add padding to avoid edges on small screens */
+  width: 100%;
+}
+
+.entry-form-container h2 {
+  color: #0083ca;
+  margin-bottom: 20px;
+  font-size: 16px;
+  text-align: center;
+  justify-content: center;
+  margin-top: 20px;
+}
+/* Ensure the form container does not stretch */
+.entry-form-container {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  width: 100%;
+  max-width: 500px; /* Restrict the max width */
+  box-sizing: border-box; /* Ensure padding doesn’t add to width */
+  margin: 0; /* No margin to maintain centering */
+}

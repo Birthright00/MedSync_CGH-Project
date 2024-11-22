@@ -116,13 +116,6 @@ const verifyToken = (req, res, next) => {
 };
 
 // -------------------------------------------------------------------------------------------------------------//
-// ACCESSIBLE ROUTES //
-// localhost:3001 --> Backend Server
-// localhost:3001/main_data --> GET Request for main_data
-// localhost:3001/database --> GET Request for combined_doctor_data views
-// -------------------------------------------------------------------------------------------------------------//
-
-// -------------------------------------------------------------------------------------------------------------//
 // BACKEND SERVER
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/", (req, res) => {
@@ -216,7 +209,7 @@ app.post("/register", (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR main_data table
+// GET REQUEST FROM main_data TABLE
 // -------------------------------------------------------------------------------------------------------------//
 
 // No Need Token Verification
@@ -229,12 +222,9 @@ app.get("/main_data", (req, res) => {
   });
 });
 
-// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
-// ⚠️MANAGEMENT HOME PAGE⚠️
 // -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR MANAGEMENT HOME PAGE TABLE DISPLAY
+// GET REQUEST FROM doctor_data_contracts_non_inst VIEW FOR MANAGEMENT HOME PAGE TABLE DISPLAY
 // -------------------------------------------------------------------------------------------------------------//
-
 app.get("/database", verifyToken, (req, res) => {
   const includeDeleted = req.query.includeDeleted === "true";
   const query = includeDeleted
@@ -250,7 +240,7 @@ app.get("/database", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR STAFF DETAILS BY 'mcr_number' FROM MAIN_DATA TABLE
+// GET REQUEST BY 'mcr_number' FROM main_data TABLE for StaffDetailsPage
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/staff/:mcr_number", verifyToken, (req, res) => {
   const { mcr_number } = req.params;
@@ -272,10 +262,8 @@ app.get("/staff/:mcr_number", verifyToken, (req, res) => {
   });
 });
 
-// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
-// ⚠️STAFF DETAILS PAGE⚠️
 // -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR STAFF DETAILS BY 'mcr_number' FROM CONTRACTS
+// GET REQUEST BY 'mcr_number' FROM contracts TABLE for StaffDetailsPage
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
   const { mcr_number } = req.params;
@@ -298,7 +286,7 @@ app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// PUT REQUEST FOR UPDATING EXISTING STAFF DETAILS TO MAIN_DATA TABLE
+// PUT REQUEST INTO main_data TABLE FOR UPDATING EXISTING STAFF DETAILS
 // -------------------------------------------------------------------------------------------------------------//
 // Why PUT instead of POST?
 // PUT Requests is idempotent --> i.e. if you make the same PUT request multiple times,
@@ -360,7 +348,7 @@ app.put(
 );
 
 // -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST FOR ADDING NEW CONTRACTS TO CONTRACTS TABLE
+// POST REQUEST INTO contracts TABLE FOR ADDING NEW CONTRACTS
 // -------------------------------------------------------------------------------------------------------------//
 
 app.post("/contracts/:mcr_number", verifyToken, (req, res) => {
@@ -421,7 +409,7 @@ app.post("/contracts/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR CONTRACT DETAILS BY 'mcr_number' AND 'school_name'
+// GET REQUEST FROM contracts TABLE BY 'mcr_number' AND 'school_name' FOR StaffDetailsPage
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/contracts/:mcr_number/:school_name", verifyToken, (req, res) => {
   const { mcr_number, school_name } = req.params;
@@ -447,7 +435,7 @@ app.get("/contracts/:mcr_number/:school_name", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST FOR ADDING NEW STAFF DETAILS TO MAIN_DATA TABLE
+// POST REQUEST INTO main_data TABLE FOR ADDING NEW STAFF
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/entry", verifyToken, (req, res) => {
   const { mcr_number, first_name, last_name, department, designation, email } =
@@ -568,7 +556,7 @@ app.post("/entry", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// DELETE REQUEST FOR DELETING STAFF DETAILS FROM MAIN_DATA TABLE
+// DELETE REQUEST FROM main_data TABLE FOR DELETING STAFF DETAILS
 // -------------------------------------------------------------------------------------------------------------//
 app.delete("/staff/:mcr_number", verifyToken, (req, res) => {
   const { mcr_number } = req.params;
@@ -600,7 +588,7 @@ app.delete("/staff/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// RESTORE REQUEST FOR RESTORING DELETED STAFF DETAILS IN MAIN_DATA TABLE
+// RESTORE REQUEST FOR main_data TABLE FOR RESTORING DELETED STAFF
 // -------------------------------------------------------------------------------------------------------------//
 app.put("/restore/:mcr_number", verifyToken, (req, res) => {
   const { mcr_number } = req.params;
@@ -632,7 +620,55 @@ app.put("/restore/:mcr_number", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST FOR POSTINGS --> will automatically update the total training hours
+// GET REQUEST from postings TABLE
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/postings", async (req, res) => {
+  const { mcr_number, academic_year, school_name } = req.query;
+
+  try {
+    // Build the base query
+    let query = `
+    SELECT id, mcr_number, academic_year, school_name, posting_number, total_training_hour, rating 
+    FROM postings 
+    WHERE 1=1
+  `;
+
+    const params = [];
+
+    // Add filtering conditions based on query parameters
+    if (mcr_number) {
+      query += ` AND mcr_number = ?`;
+      params.push(mcr_number);
+    }
+    if (academic_year) {
+      query += ` AND academic_year = ?`;
+      params.push(academic_year);
+    }
+    if (school_name) {
+      query += ` AND school_name = ?`;
+      params.push(school_name);
+    }
+
+    // Execute the query
+    db.query(query, params, (err, results) => {
+      if (err) {
+        console.error("Database query error:", err);
+        return res
+          .status(500)
+          .json({ error: "Database query error", details: err.message });
+      }
+
+      // Return the postings, even if empty
+      res.status(200).json(results);
+    });
+  } catch (error) {
+    console.error("Unexpected error in /postings route:", error);
+    res.status(500).json({ error: "Unexpected error", details: error.message });
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// POST REQUEST into postings TABLE FOR ADDING NEW POSTING --> will automatically update the total training hours
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/postings", verifyToken, async (req, res) => {
   const {
@@ -733,108 +769,155 @@ app.post("/postings", verifyToken, async (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR POSTINGS
+// PUT REQUEST into postings TABLE FOR UPDATING EXISTING POSTING
+// and automatically update the total training hours
 // -------------------------------------------------------------------------------------------------------------//
-// Get all postings for a specific doctor, academic year, or school
-// GET REQUEST FOR POSTINGS
-// Get all postings for a specific doctor, academic year, or school
-// GET REQUEST FOR POSTINGS
-// Get all postings for a specific doctor, academic year, or school
-app.get("/postings", async (req, res) => {
-  const { mcr_number, academic_year, school_name } = req.query;
+app.put("/postings/update", verifyToken, async (req, res) => {
+  //If the client does not pass recalculateTrainingHours in the body of the request,
+  // it will default to undefined, meaning the following block will be skipped:
+  const { postings, recalculateTrainingHours } = req.body;
+
+  if (!Array.isArray(postings) || postings.length === 0) {
+    return res
+      .status(400)
+      .json({ message: "No postings provided for update." });
+  }
 
   try {
-    // Build the base query
-    let query = `SELECT mcr_number, academic_year, school_name, posting_number, total_training_hour, rating FROM postings WHERE 1=1`;
-    const params = [];
+    // maps through each posting in the array to create an array of promises for database updates
+    // and then destructures the data from the postings array
+    const updatePromises = postings.map((posting) => {
+      const {
+        mcr_number,
+        academic_year,
+        school_name,
+        posting_number,
+        total_training_hour,
+        rating,
+      } = posting;
 
-    // Add filtering conditions based on query parameters
-    if (mcr_number) {
-      query += ` AND mcr_number = ?`;
-      params.push(mcr_number);
-    }
-    if (academic_year) {
-      query += ` AND academic_year = ?`;
-      params.push(academic_year);
-    }
-    if (school_name) {
-      query += ` AND school_name = ?`;
-      params.push(school_name);
-    }
-
-    // Execute the query
-    db.query(query, params, (err, results) => {
-      if (err) {
-        console.error("Database query error:", err);
-        return res
-          .status(500)
-          .json({ error: "Database query error", details: err.message });
+      // Validate each posting
+      // ensure ALL field present
+      // if validation fails, logs the invalid posting and resolves the promise to continue with the next
+      // posting without halting the process
+      if (
+        !mcr_number ||
+        !academic_year ||
+        !school_name ||
+        !posting_number ||
+        total_training_hour === undefined ||
+        rating === undefined
+      ) {
+        console.error("Skipping invalid posting:", posting);
+        return Promise.resolve(); // Skip invalid postings without stopping the process
       }
 
-      // Return the postings, even if empty
-      res.status(200).json(results);
-    });
-  } catch (error) {
-    console.error("Unexpected error in /postings route:", error);
-    res.status(500).json({ error: "Unexpected error", details: error.message });
-  }
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// Backend endpoint to check if a posting number is available based on mcr_number, school_name, and academic_year
-// -------------------------------------------------------------------------------------------------------------//
-// Posting Number Check Endpoint
-app.get("/postings/check", async (req, res) => {
-  const { mcr_number, school_name, academic_year, posting_number } = req.query;
-
-  try {
-    const query =
-      "SELECT * FROM postings WHERE mcr_number = ? AND school_name = ? AND academic_year = ? AND posting_number = ?";
-    const results = await new Promise((resolve, reject) => {
-      db.query(
-        query,
-        [mcr_number, school_name, academic_year, posting_number],
-        (error, rows) => {
-          if (error) {
-            console.error("Database query error:", error);
-            return reject(error);
-          }
-          resolve(rows);
-        }
+      // The usual sql query
+      return db.promise().query(
+        `UPDATE postings 
+         SET total_training_hour = ?, rating = ? 
+         WHERE mcr_number = ? AND academic_year = ? AND school_name = ? AND posting_number = ?`,
+        [
+          total_training_hour,
+          rating,
+          mcr_number,
+          academic_year,
+          school_name,
+          posting_number,
+        ]
       );
     });
 
-    if (results.length > 0) {
-      return res.status(200).json({ message: "Posting number already exists" });
-    } else {
-      return res.status(404).json({ message: "Posting number is available" });
+    // Wait for all updates to complete
+    await Promise.all(updatePromises);
+
+    if (recalculateTrainingHours) {
+      const contractsToUpdate = {};
+
+      postings.forEach(
+        ({ mcr_number, academic_year, school_name, total_training_hour }) => {
+          const key = `${mcr_number}-${school_name}-${academic_year}`;
+          if (!contractsToUpdate[key]) contractsToUpdate[key] = 0;
+          contractsToUpdate[key] += Number(total_training_hour);
+        }
+      );
+
+      // ⬆️EXPLANATION FOR THE CODE ABOVE ⬆️
+      // Now that posting have been inserted into postings table,
+      // next step will check the TRIGGER CONDITION
+      // Trigger Condition: This logic runs only if recalculateTrainingHours is true.
+      // It ensures that training hours in the contracts table are recalculated and
+      // updated dynamically when new postings are added or updated.
+
+      // For example, let's say we have the following postings:
+      //   [
+      //   {
+      //     "mcr_number": "M12345",
+      //     "academic_year": 2023,
+      //     "school_name": "NUS",
+      //     "total_training_hour": 5
+      //   },
+      //   {
+      //     "mcr_number": "M12345",
+      //     "academic_year": 2023,
+      //     "school_name": "NUS",
+      //     "total_training_hour": 3
+      //   },
+      //   {
+      //     "mcr_number": "M67890",
+      //     "academic_year": 2024,
+      //     "school_name": "NTU",
+      //     "total_training_hour": 4
+      //   }
+      //   ]
+
+      // STEP 1 : Groups all postings by their related contract (mcr_number, school_name, academic_year)
+      // STEP 2 : Calculates the total training hours for each contract
+      // contractsToUpdate acts as a temporary storage to aggregate the total training hours for each unique contract
+      // STEP 3 : Generate a unique key using "mcr_number-school_name-academic_year" like "M12345A-DukeNUS-2022"
+      // STEP 4 : For each posting, its total training hour is added to the running total
+
+      // {
+      //   "M12345-NUS-2023": 8,
+      //   "M67890-NTU-2024": 4
+      // }
+
+      for (const key in contractsToUpdate) {
+        const [mcr_number, school_name, academic_year] = key.split("-");
+        const totalHours = contractsToUpdate[key];
+
+        await db.promise().query(
+          `UPDATE contracts
+           SET training_hours_${academic_year} = ?
+           WHERE mcr_number = ? AND school_name = ?`,
+          [totalHours, mcr_number, school_name]
+        );
+      }
     }
+    
+    // ⬆️Explaination for the code above⬆️
+    // Once the grouped totals are calculated, 
+    // the contracts table is updated with the new values for the training_hours_<academic_year> column:
+
+    // STEP 1 : Iterate through the Groups (the unique key act as index)
+    // STEP 2 : key.split("-") returns an array of [mcr_number, school_name, academic_year]
+    // STEP 3 : training_hours_<academic_year> column is updated 
+    // ⚠️NEED PRE-EXISTING COLUMNS FOR THE YEAR IN CONTRACTS TABLE⚠️
+    // STEP 4 : For each posting, its total training hour is added to the running total
+
+    res.status(200).json({
+      message: "Postings and total training hours updated successfully.",
+    });
   } catch (error) {
-    console.error("Error checking posting number:", error);
-    res.status(500).json({ error: "Error checking posting number" });
+    console.error("Error updating postings:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to update postings and training hours." });
   }
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FOR NON_INSTITUTIONAL
-// -------------------------------------------------------------------------------------------------------------//
-app.get("/non_institutional/:mcr_number", verifyToken, (req, res) => {
-  const { mcr_number } = req.params;
-
-  const query = "SELECT * FROM non_institutional WHERE mcr_number = ?";
-  db.query(query, [mcr_number], (err, results) => {
-    if (err) {
-      console.error("Error fetching non-institutional data:", err);
-      return res
-        .status(500)
-        .json({ error: "Failed to fetch non-institutional data" });
-    }
-    res.status(200).json(results);
-  });
-});
-
-// -------------------------------------------------------------------------------------------------------------//
-// PUT REQUEST FOR FTE UPDATES
+// PUT REQUEST into contracts TABLE FOR FTE UPDATES
 // -------------------------------------------------------------------------------------------------------------//
 app.put("/contracts/update-fte", async (req, res) => {
   const { fteUpdates } = req.body;
@@ -868,102 +951,25 @@ app.put("/contracts/update-fte", async (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// PUT REQUEST FOR POSTING UPDATES
+// GET REQUEST FROM non_institutional TABLE
 // -------------------------------------------------------------------------------------------------------------//
-app.put("/postings/update", verifyToken, async (req, res) => {
-  const { postings, recalculateTrainingHours } = req.body;
+app.get("/non_institutional/:mcr_number", verifyToken, (req, res) => {
+  const { mcr_number } = req.params;
 
-  // Log the incoming request payload for debugging
-  console.log("Received postings for update:", postings);
-
-  if (!Array.isArray(postings) || postings.length === 0) {
-    return res
-      .status(400)
-      .json({ message: "No postings provided for update." });
-  }
-
-  try {
-    for (const posting of postings) {
-      const {
-        mcr_number,
-        academic_year,
-        school_name,
-        posting_number,
-        total_training_hour,
-        rating,
-      } = posting;
-
-      // Ensure each field is provided; log if any are missing
-      if (
-        !mcr_number ||
-        !academic_year ||
-        !school_name ||
-        !posting_number ||
-        total_training_hour === undefined ||
-        rating === undefined
-      ) {
-        console.error("Missing fields in posting:", posting);
-        return res
-          .status(400)
-          .json({ message: "Invalid posting data provided." });
-      }
-
-      // Attempt to update the posting in the database
-      await db.promise().query(
-        `UPDATE postings 
-         SET total_training_hour = ?, rating = ? 
-         WHERE mcr_number = ? AND academic_year = ? AND school_name = ? AND posting_number = ?`,
-        [
-          total_training_hour,
-          rating,
-          mcr_number,
-          academic_year,
-          school_name,
-          posting_number,
-        ]
-      );
+  const query = "SELECT * FROM non_institutional WHERE mcr_number = ?";
+  db.query(query, [mcr_number], (err, results) => {
+    if (err) {
+      console.error("Error fetching non-institutional data:", err);
+      return res
+        .status(500)
+        .json({ error: "Failed to fetch non-institutional data" });
     }
-
-    if (recalculateTrainingHours) {
-      const contractsToUpdate = {};
-
-      postings.forEach(
-        ({ mcr_number, academic_year, school_name, total_training_hour }) => {
-          const key = `${mcr_number}-${school_name}-${academic_year}`;
-          if (!contractsToUpdate[key]) contractsToUpdate[key] = 0;
-          contractsToUpdate[key] += Number(total_training_hour);
-        }
-      );
-
-      for (const key in contractsToUpdate) {
-        const [mcr_number, school_name, academic_year] = key.split("-");
-        const totalHours = contractsToUpdate[key];
-
-        await db.promise().query(
-          `UPDATE contracts
-           SET training_hours_${academic_year} = ?
-           WHERE mcr_number = ? AND school_name = ?`,
-          [totalHours, mcr_number, school_name]
-        );
-      }
-    }
-
-    res.status(200).json({
-      message: "Postings and total training hours updated successfully.",
-    });
-  } catch (error) {
-    console.error(
-      "Error updating postings and recalculating training hours:",
-      error
-    );
-    res
-      .status(500)
-      .json({ message: "Failed to update postings and training hours." });
-  }
+    res.status(200).json(results);
+  });
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST FOR ADDING NEW NON-INSTITUTIONAL ACTIVITY
+// POST REQUEST into non_institutional TABLE FOR ADDING NEW NON-INSTITUTIONAL ACTIVITY
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/non_institutional", verifyToken, (req, res) => {
   const {
@@ -1020,8 +1026,9 @@ app.post("/non_institutional", verifyToken, (req, res) => {
       .json({ message: "Non-institutional activity added successfully" });
   });
 });
+
 // -------------------------------------------------------------------------------------------------------------//
-// PUT REQUEST FOR UPDATING NON-INSTITUTIONAL ACTIVITIES
+// PUT REQUEST into non_institutional TABLE FOR UPDATING NON-INSTITUTIONAL ACTIVITIES
 // -------------------------------------------------------------------------------------------------------------//
 app.put("/non_institutional/update", verifyToken, (req, res) => {
   const { activities } = req.body;

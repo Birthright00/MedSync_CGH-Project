@@ -20,6 +20,7 @@ const StaffDetails = () => {
   const [selectedYears, setSelectedYears] = useState([]);
   const [postings, setPostings] = useState([]);
   const [userRole, setUserRole] = useState("");
+
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -30,7 +31,8 @@ const StaffDetails = () => {
     const minutes = ("0" + date.getMinutes()).slice(-2);
     return `${year}-${month}-${day} @ ${hours}${minutes}H`;
   };
-  // useState to hold staff details
+
+  // useState to hold new staff details
   const [staffDetails, setStaffDetails] = useState({
     mcr_number: "",
     first_name: "",
@@ -80,7 +82,7 @@ const StaffDetails = () => {
   }, [mcr_number]); // Add mcr_number as a dependency to avoid re-fetching on every render
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // Function to handle Update Staff
+  // Function to handle form submission
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleSubmit = async () => {
     try {
@@ -240,8 +242,10 @@ const StaffDetails = () => {
   if (!staffDetails) {
     return <div>No staff data found</div>;
   }
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Render
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   return (
     <>
       <ToastContainer />

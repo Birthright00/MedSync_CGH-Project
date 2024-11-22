@@ -7,7 +7,14 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const Entry = () => {
-  // State to manage staff details for the form inputs
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Generic Constants
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  const [mcrStatus, setMcrStatus] = useState(""); // "available" or "taken"
+  const [mcrMessage, setMcrMessage] = useState("");
+  const [userRole, setUserRole] = useState("");
+
+  // useState to hold new staff details
   const [staffDetails, setStaffDetails] = useState({
     mcr_number: "",
     first_name: "",
@@ -16,25 +23,10 @@ const Entry = () => {
     designation: "",
     email: "",
   });
-  const [mcrStatus, setMcrStatus] = useState(""); // "available" or "taken"
-  const [mcrMessage, setMcrMessage] = useState("");
-  // Function to validate input fields before submission// Function to format date values for display in datetime-local input fields
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return ""; // Return empty string if date is null or undefined
-    const date = new Date(dateStr);
-    const year = date.getFullYear();
-    const month = ("0" + (date.getMonth() + 1)).slice(-2); // Ensure two digits for month
-    const day = ("0" + date.getDate()).slice(-2); // Ensure two digits for day
-    const hours = ("0" + date.getHours()).slice(-2); // Ensure two digits for hours
-    const minutes = ("0" + date.getMinutes()).slice(-2); // Ensure two digits for minutes
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-  const [userRole, setUserRole] = useState(""); // Track user role
 
-  const handleRestrictedAction = () => {
-    toast.error("Access Denied: Please contact management to make changes.");
-  }; // Fetch user role from token on initial load
-
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // HR Read-only mode check - Fetch user role from token on initial load
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -43,6 +35,13 @@ const Entry = () => {
     }
   }, []);
 
+  const handleRestrictedAction = () => {
+    toast.error("Access Denied: Please contact management to make changes.");
+  };
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // MCR Live Field Validation Availability Check
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const validateFields = () => {
     const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/;
     const nameMaxLength = 50;
@@ -92,7 +91,9 @@ const Entry = () => {
     return true;
   };
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Function to handle form submission
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleSubmit = async () => {
     if (!validateFields()) return; // Stop submission if validation fails
 
@@ -145,6 +146,9 @@ const Entry = () => {
     }
   };
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to handle form reset
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleReset = () => {
     setStaffDetails({
       mcr_number: "",
@@ -155,7 +159,10 @@ const Entry = () => {
       email: "",
     });
   };
-  // Function to handle input changes and update the state
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to handle input changes
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
     const mcrRegex = /^[Mm]\d{5}[A-Za-z]$/;
@@ -210,6 +217,9 @@ const Entry = () => {
     }));
   };
 
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Render
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   return (
     <>
       <ToastContainer />

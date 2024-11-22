@@ -21,6 +21,7 @@ const AddNewPostings = () => {
   const [userRole, setUserRole] = useState("");
   const [contractErrorMessage, setContractErrorMessage] = useState(""); // Error message for academic year validation
   const [academicYearOptions, setAcademicYearOptions] = useState([]);
+
   // useState to hold new posting details
   const [newPosting, setNewPosting] = useState({
     mcr_number: mcr_number, // Set from URL params
@@ -47,7 +48,7 @@ const AddNewPostings = () => {
   };
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // Fetch contracts to display the existing contracts
+  // Fetch contracts to display the existing schools to add new postings
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const fetchContracts = async () => {
     try {
@@ -76,9 +77,8 @@ const AddNewPostings = () => {
   }, []);
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // Postings Form - Submitting New Postings
+  // Function to handle input changes
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // Function to handle input changes in the new posting form
   const handleNewPostingInputChange = async (event) => {
     const { name, value } = event.target;
     setNewPosting({
@@ -134,33 +134,9 @@ const AddNewPostings = () => {
     }
   };
 
-  // Function to validate if the selected academic year falls within the contract period
-  const validateContractForAcademicYear = (selectedSchool, selectedYear) => {
-    if (!selectedSchool || !selectedYear) return;
-
-    const contract = contracts.find(
-      (contract) => contract.school_name === selectedSchool
-    );
-
-    if (contract) {
-      const startYear = new Date(contract.contract_start_date).getFullYear();
-      const endYear = new Date(contract.contract_end_date).getFullYear();
-      const academicYear = parseInt(selectedYear, 10);
-
-      if (academicYear < startYear || academicYear > endYear) {
-        toast.error(
-          "This user does not have a contract with this school in the selected academic year."
-        );
-        setContractErrorMessage(
-          "This user does not have a contract with this school in the selected academic year."
-        );
-      } else {
-        setContractErrorMessage(""); // Clear error message if valid
-      }
-    }
-  };
-
-  // Function to handle submission of new posting
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to handle form submission
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleNewPosting = async () => {
     if (
       !newPosting.academic_year ||
@@ -203,7 +179,9 @@ const AddNewPostings = () => {
     }
   };
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Function to handle confirmation of submitssion of new posting
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleSubmitConfirmation = () => {
     if (
       !newPosting.academic_year ||
@@ -214,15 +192,15 @@ const AddNewPostings = () => {
       toast.error("All fields except Rating are required.");
       return;
     }
-
-    // Create a conditional message based on whether rating is provided
-    const confirmationMessage = newPosting.rating
-      ? "⚠️Are you sure you want to submit this posting?⚠️"
-      : <div>
+    const confirmationMessage = newPosting.rating ? (
+      "⚠️Are you sure you want to submit this posting?⚠️"
+    ) : (
+      <div>
         ⚠️Are you sure you want to submit this posting?⚠️
         <br />
         Note : You did not input any ratings for this posting.
-      </div>;
+      </div>
+    );
 
     // Show confirmation dialog with the appropriate message
     confirmAlert({
@@ -244,7 +222,8 @@ const AddNewPostings = () => {
   };
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+  // Render
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   return (
     <div>
       <ToastContainer />

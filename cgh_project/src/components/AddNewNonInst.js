@@ -6,23 +6,19 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FaPlus, FaTimes, FaPaperPlane } from "react-icons/fa";
+import { confirmAlert } from "react-confirm-alert";
+import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 
 const AddNewNonInstitutionalActivity = () => {
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Generic Constants
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const { mcr_number } = useParams();
   const [isActivityFormOpen, setActivityFormOpen] = useState(false);
   const [userRole, setUserRole] = useState("");
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
-      setUserRole(role);
-    }
-  }, []);
 
-  const handleRestrictedAction = () => {
-    toast.error("Access Denied: Please contact management to make changes.");
-  };
+  // useState to hold new activity details
   const [newActivity, setNewActivity] = useState({
     mcr_number: mcr_number,
     teaching_categories: "",
@@ -35,6 +31,24 @@ const AddNewNonInstitutionalActivity = () => {
     training_hours: "", // Add this field
   });
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // HR Read-only mode check - Fetch user role from token on initial load
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const { role } = JSON.parse(atob(token.split(".")[1])); // Decode JWT to get role
+      setUserRole(role);
+    }
+  }, []);
+
+  const handleRestrictedAction = () => {
+    toast.error("Access Denied: Please contact management to make changes.");
+  };
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Options for each dropdown
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const teachingCategoriesOptions = [
     "Postgraduate Teaching",
     "Undergraduate Teaching",
@@ -71,6 +85,9 @@ const AddNewNonInstitutionalActivity = () => {
 
   const hostCountryOptions = ["Singapore", "Overseas"];
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to handle input changes
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setNewActivity({
@@ -79,6 +96,9 @@ const AddNewNonInstitutionalActivity = () => {
     });
   };
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to handle form submission
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleNewActivitySubmit = async () => {
     if (
       !newActivity.teaching_categories ||
@@ -88,7 +108,7 @@ const AddNewNonInstitutionalActivity = () => {
       !newActivity.host_country ||
       !newActivity.honorarium ||
       !newActivity.academic_year ||
-      !newActivity.training_hours // Include training_hours in validation
+      !newActivity.training_hours
     ) {
       toast.error("Please fill all required fields.");
       return;
@@ -116,7 +136,9 @@ const AddNewNonInstitutionalActivity = () => {
           honorarium: "",
           academic_year: "",
         });
-        window.location.reload();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       }
     } catch (error) {
       console.error("Error adding new activity:", error);
@@ -124,6 +146,48 @@ const AddNewNonInstitutionalActivity = () => {
     }
   };
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to handle confirmation of submitting new contract
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  const handleSubmitConfirmation = () => {
+    if (
+      !newActivity.academic_year ||
+      !newActivity.teaching_categories ||
+      !newActivity.role ||
+      !newActivity.activity_type ||
+      !newActivity.medium ||
+      !newActivity.host_country ||
+      !newActivity.honorarium ||
+      !newActivity.training_hours
+    ) {
+      toast.error("Please fill all activity fields before submitting");
+      return;
+    }
+
+    confirmAlert({
+      title: "Confirm Submission",
+      message: (
+        <div>
+          ⚠️Are you sure you want to submit this new activity?⚠️
+          <br />
+        </div>
+      ),
+      buttons: [
+        {
+          label: "Yes",
+          onClick: handleNewActivitySubmit,
+        },
+        {
+          label: "No",
+          onClick: () => {},
+        },
+      ],
+    });
+  };
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Render
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   return (
     <div>
       <ToastContainer />
@@ -257,7 +321,7 @@ const AddNewNonInstitutionalActivity = () => {
               onClick={
                 userRole === "hr"
                   ? handleRestrictedAction
-                  : handleNewActivitySubmit
+                  : handleSubmitConfirmation
               }
               className="add-contract-button"
             >

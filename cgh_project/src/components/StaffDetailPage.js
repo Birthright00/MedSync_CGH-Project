@@ -16,54 +16,36 @@ import StaffDetails from "./StaffDetails";
 import AddNewNonInst from "./AddNewNonInst";
 
 const StaffDetailPage = () => {
-  // ########################################## //
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Generic Constants
-  // ########################################## //
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const { mcr_number } = useParams();
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [staffContractDetails, setStaffContractDetails] = useState([]);
   const [selectedYears, setSelectedYears] = useState([]);
-  const [postings, setPostings] = useState([]); // State to hold postings data
+  const [postings, setPostings] = useState([]);
   const [filteredContracts, setFilteredContracts] = useState([]);
-  const [totalNonInstTrainingHours, setTotalNonInstTrainingHours] = useState(0);
+  const [nonInstitutional, setNonInstitutional] = useState([]);
+  const [totalTrainingHours, setTotalTrainingHours] = useState(0);
 
-  const [nonInstitutional, setNonInstitutional] = useState([]); // State to hold non-institutional data
-  const [userRole, setUserRole] = useState(""); // Track user role
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
-  const handleSort = (column, table) => {
-    let direction = "asc";
-    if (sortConfig.key === column && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key: column, direction });
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Reset Button Functions
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  const handleReset = () => {
+    setSelectedYears([]);
+  };
 
-    if (table === "contracts") {
-      const sortedContracts = [...filteredContracts].sort((a, b) => {
-        return direction === "asc"
-          ? a[column] > b[column]
-            ? 1
-            : -1
-          : a[column] < b[column]
-          ? 1
-          : -1;
-      });
-      setFilteredContracts(sortedContracts);
-    } else if (table === "postings") {
-      const sortedPostings = [...filteredPostings].sort((a, b) => {
-        return direction === "asc"
-          ? a[column] > b[column]
-            ? 1
-            : -1
-          : a[column] < b[column]
-          ? 1
-          : -1;
-      });
-      setPostings(sortedPostings);
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // HR Read-only mode check - Fetch user role from token on initial load
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  const [userRole, setUserRole] = useState("");
+  const handleRestrictedAction = () => {
+    if (userRole === "hr") {
+      toast.error("Access Denied: Please contact management to make changes.");
     }
   };
 
-  // Fetch user role from token on initial load
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -71,66 +53,24 @@ const StaffDetailPage = () => {
       setUserRole(role);
     }
   }, []);
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Filter Postings by Selected Years
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const filteredPostings = postings.filter((posting) =>
     selectedYears.includes(posting.academic_year.toString())
   );
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Filter Non-Institutional Activities by Selected Years
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const filteredNonInstitutional = nonInstitutional.filter((activity) =>
     selectedYears.includes(activity.academic_year.toString())
   );
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    const year = date.getFullYear();
-    const month = ("0" + (date.getMonth() + 1)).slice(-2);
-    const day = ("0" + date.getDate()).slice(-2);
-    const hours = ("0" + date.getHours()).slice(-2);
-    const minutes = ("0" + date.getMinutes()).slice(-2);
-    return `${year}-${month}-${day} @ ${hours}${minutes}H`;
-  };
-  const handleUpdatePostings = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const updatedPostings = filteredPostings.filter(
-        (posting) => posting.total_training_hour !== "" && posting.rating !== ""
-      );
 
-      await axios.put(
-        "http://localhost:3001/postings/update",
-        {
-          postings: updatedPostings,
-          recalculateTrainingHours: true, // Flag to trigger recalculation
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.success("Postings updated successfully.");
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error) {
-      console.error("Error updating postings:", error);
-      toast.error("Failed to update postings.");
-    }
-  };
-
-  // ########################################## //
-  // Generic Button Functions
-  // ########################################## //
-
-  const handleReset = () => {
-    setSelectedYears([]);
-    // setFilteredPostings([]); // Clear postings when reset
-  };
-
-  // ########################################## //
-  // Filter Functions
-  // ########################################## //
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Filter Contracts by Selected Years
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const updatedFilteredContracts = contracts.filter((contract) => {
       const startYear = new Date(contract.contract_start_date).getFullYear();
@@ -142,6 +82,9 @@ const StaffDetailPage = () => {
     setFilteredContracts(updatedFilteredContracts);
   }, [selectedYears, contracts]);
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Fetch Contracts Data using mcr_number
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const fetchContracts = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -182,6 +125,9 @@ const StaffDetailPage = () => {
     }
   };
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Fetch Postings Data using mcr_number
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const fetchPostings = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -193,15 +139,19 @@ const StaffDetailPage = () => {
       );
       if (response.data.length === 0) {
         toast.info("No postings found");
-        setPostings([]); // Set postings to an empty array
+        setPostings([]);
       } else {
-        setPostings(response.data); // Set the postings data
+        setPostings(response.data);
       }
     } catch (error) {
       console.error("Error fetching postings:", error);
       toast.error("Failed to fetch postings");
     }
   };
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Fetch Non-Institutional Data using mcr_number
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const fetchNonInstitutional = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -217,17 +167,18 @@ const StaffDetailPage = () => {
     }
   };
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // useEffect to REFETCH contracts, postings, and non-institutional data when mcr_number changes
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     fetchContracts();
     fetchPostings();
     fetchNonInstitutional(); // Fetch non-institutional data
   }, [mcr_number]);
 
-  // ########################################## //
-  // Filter by year total training hours
-  // ########################################## //
-
-  // Function to handle year selection and deselection
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to toggle years using buttons
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleYearToggle = (year) => {
     setSelectedYears((prevSelectedYears) => {
       if (prevSelectedYears.includes(year)) {
@@ -240,10 +191,10 @@ const StaffDetailPage = () => {
     });
   };
 
-  const [totalTrainingHours, setTotalTrainingHours] = useState(0);
-
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // useEffect to calculate total training hours based on selected years
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
-    // Calculate the total training hours based on selected years
     const total = filteredContracts.reduce((acc, contract) => {
       return (
         acc +
@@ -254,12 +205,12 @@ const StaffDetailPage = () => {
       );
     }, 0);
 
-    setTotalTrainingHours(total); // Update the total training hours in state
+    setTotalTrainingHours(total);
   }, [selectedYears, filteredContracts]);
 
-  // ############################################
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // useEffect to retrieve data from contracts
-  // ############################################
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
     const fetchStaffContracts = async () => {
       try {
@@ -282,12 +233,40 @@ const StaffDetailPage = () => {
     fetchStaffContracts();
   }, [mcr_number]);
 
-  const handleRestrictedAction = () => {
-    if (userRole === "hr") {
-      toast.error("Access Denied: Please contact management to make changes.");
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to update postings
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  const handleUpdatePostings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const updatedPostings = filteredPostings.filter(
+        (posting) => posting.total_training_hour !== "" && posting.rating !== ""
+      );
+
+      await axios.put(
+        "http://localhost:3001/postings/update",
+        {
+          postings: updatedPostings,
+          recalculateTrainingHours: true, // Flag to trigger recalculation
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      toast.success("Postings updated successfully.");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error("Error updating postings:", error);
+      toast.error("Failed to update postings.");
     }
   };
 
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to update FTE
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleFTEUpdate = async () => {
     const fteUpdates = [];
 
@@ -318,36 +297,10 @@ const StaffDetailPage = () => {
       toast.error("Failed to update FTE values.");
     }
   };
-  useEffect(() => {
-    const handleGlobalError = (message, source, lineno, colno, error) => {
-      console.error("Global error caught:", {
-        message,
-        source,
-        lineno,
-        colno,
-        error,
-      });
-      toast.error(
-        "An unexpected error has occurred. Please refresh or re-login."
-      );
-    };
 
-    const handlePromiseRejection = (event) => {
-      console.error("Unhandled promise rejection:", event.reason);
-      toast.error(
-        "An unexpected error has occurred. Please refresh or re-login."
-      );
-    };
-
-    window.onerror = handleGlobalError;
-    window.onunhandledrejection = handlePromiseRejection;
-
-    return () => {
-      window.onerror = null;
-      window.onunhandledrejection = null;
-    };
-  }, []);
-
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Render
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   return (
     <>
       {" "}
@@ -444,13 +397,7 @@ const StaffDetailPage = () => {
                 </thead>
                 <tbody>
                   <tr>
-                    <th
-                      onClick={() =>
-                        handleSort("contract_start_date", "contracts")
-                      }
-                    >
-                      Start Date
-                    </th>
+                    <th>Start Date</th>
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {contract?.contract_start_date
@@ -462,13 +409,7 @@ const StaffDetailPage = () => {
                     ))}
                   </tr>
                   <tr>
-                    <th
-                      onClick={() =>
-                        handleSort("contract_end_date", "contracts")
-                      }
-                    >
-                      End Date
-                    </th>
+                    <th>End Date</th>
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {new Date(
@@ -478,9 +419,7 @@ const StaffDetailPage = () => {
                     ))}
                   </tr>
                   <tr>
-                    <th onClick={() => handleSort("status", "contracts")}>
-                      Status
-                    </th>
+                    <th>Status</th>
                     {filteredContracts.map((contract, index) => (
                       <td key={index}>
                         {contract?.status || "No Contract Found"}
@@ -554,18 +493,6 @@ const StaffDetailPage = () => {
               </table>
             )}
           </div>
-          {/* <CSVLink
-            filename={`staff_details_${mcr_number}.csv`}
-            className="csv-link"
-          >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.9 }}
-              className="download-button"
-            >
-              Download
-            </motion.button>
-          </CSVLink> */}
         </motion.div>
         <motion.div
           className="staff-info-container-right"

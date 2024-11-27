@@ -20,6 +20,7 @@ const StaffDetails = () => {
   const [selectedYears, setSelectedYears] = useState([]);
   const [postings, setPostings] = useState([]);
   const [userRole, setUserRole] = useState("");
+  const [editHistory, setEditHistory] = useState([]); // Add a state to store the edit history
 
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "";
@@ -42,6 +43,15 @@ const StaffDetails = () => {
     fte: "",
     email: "",
   });
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // State and Functions for Edit History
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  const [isEditHistoryOpen, setIsEditHistoryOpen] = useState(false);
+
+  const toggleEditHistory = () => {
+    setIsEditHistoryOpen(!isEditHistoryOpen);
+  };
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // HR Read-only mode check - Fetch user role from token on initial load
@@ -70,7 +80,26 @@ const StaffDetails = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        setStaffDetails(response.data);
+
+        const data = response.data;
+
+        setStaffDetails(data);
+
+        // Check if update_history is already an array or needs to be parsed
+        if (typeof data.update_history === "string") {
+          console.log("Parsing update_history as JSON...");
+          const parsedHistory = JSON.parse(data.update_history);
+          setEditHistory(Array.isArray(parsedHistory) ? parsedHistory : []);
+        } else if (Array.isArray(data.update_history)) {
+          setEditHistory(data.update_history);
+        } else {
+          console.warn(
+            "Unexpected format for update_history:",
+            data.update_history
+          );
+          setEditHistory([]);
+        }
+
         setLoading(false);
       } catch (error) {
         console.error("Error fetching staff details:", error);
@@ -79,7 +108,7 @@ const StaffDetails = () => {
     };
 
     fetchStaffDetails();
-  }, [mcr_number]); // Add mcr_number as a dependency to avoid re-fetching on every render
+  }, [mcr_number]);
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Function to handle form submission
@@ -87,6 +116,10 @@ const StaffDetails = () => {
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("No authentication token found. Please log in.");
+        return;
+      }
 
       const dataToSubmit = {
         ...staffDetails,
@@ -109,7 +142,12 @@ const StaffDetails = () => {
         "Error updating staff details:",
         error.response ? error.response.data : error
       );
-      toast.error("Failed to update staff details");
+      if (error.response?.status === 401) {
+        toast.error("Unauthorized. Please log in again.");
+        navigate("/login"); // Redirect to login page
+      } else {
+        toast.error("Failed to update staff details");
+      }
     }
   };
 
@@ -327,26 +365,8 @@ const StaffDetails = () => {
                 />
               </td>
             </tr>
-
-            <tr>
-              <th>Created At</th>
-              <td>{formatDateTime(staffDetails.created_at)}</td>
-            </tr>
-            <tr>
-              <th>Last Updated At</th>
-              <td>{formatDateTime(staffDetails.updated_at)}</td>
-            </tr>
-            <tr>
-              <th>Created By</th>
-              <td>{staffDetails.created_by}</td>
-            </tr>
-            <tr>
-              <th>Last Updated By</th>
-              <td>{staffDetails.updated_by}</td>
-            </tr>
           </tbody>
-        </table>
-
+        </table>{" "}
         {/* Update Details Button */}
         <motion.button
           whileHover={{ scale: 1.1 }}
@@ -356,6 +376,51 @@ const StaffDetails = () => {
         >
           <FaEdit /> Update Details
         </motion.button>
+        {/* Edit History Section */}
+        <button onClick={toggleEditHistory} className="view-edit-button">
+          {isEditHistoryOpen ? "Hide Edit History" : "View Edit History"}
+        </button>
+        {isEditHistoryOpen && (
+          <div className="view-edit-container">
+            <h2>Edit History</h2>
+            <table className="posting-detail-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Updated By</th>
+                  <th>Updated At</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.isArray(editHistory) && editHistory.length > 0 ? (
+                  editHistory.map((entry, index) => (
+                    <tr key={index}>
+                      <td>{index + 1}</td>
+                      <td>{entry.updated_by || "N/A"}</td>
+                      <td>{new Date(entry.updated_at).toLocaleString()}</td>
+                      <td>
+                        {entry.details
+                          ? Object.entries(entry.details).map(
+                              ([key, value]) => (
+                                <div key={key}>
+                                  <strong>{key}:</strong> {value}
+                                </div>
+                              )
+                            )
+                          : "No details available"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4">No edit history found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
         {staffDetails.deleted === 1 ? (
           <motion.button
             whileHover={{ scale: 1.05 }}

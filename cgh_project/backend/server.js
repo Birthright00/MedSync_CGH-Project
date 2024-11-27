@@ -294,58 +294,77 @@ app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
 // for example, making a PUT request will just overwrite the exisiting user data regardless
 // of how many times you sent, it wont create multiple entries
 
-app.put(
-  "/staff/:mcr_number",
-  verifyToken,
-  restrictToReadOnlyforHR,
-  (req, res) => {
-    const { mcr_number } = req.params;
-    const { first_name, last_name, department, designation, email, fte } =
-      req.body;
-    const userMcrNumber = req.user.id; // Assuming this is the logged-in user
+app.put("/staff/:mcr_number", verifyToken, restrictToReadOnlyforHR, (req, res) => {
+  const { mcr_number } = req.params;
+  const { first_name, last_name, department, designation, email, fte } = req.body;
+  const userMcrNumber = req.user.id;
 
-    console.log("Updating staff details for MCR:", mcr_number); // Debug
-    console.log("Request body:", req.body); // Debug
+  const selectQuery = `SELECT update_history FROM main_data WHERE mcr_number = ?`;
 
-    const q = `
-    UPDATE main_data 
-    SET first_name = ?, last_name = ?, department = ?, designation = ?, 
-        email = ?, fte = ?, updated_by = ?, updated_at = NOW()
-    WHERE mcr_number = ?
-  `;
+  db.query(selectQuery, [mcr_number], (selectErr, selectResult) => {
+    if (selectErr) {
+      console.error("Error fetching update history:", selectErr.message);
+      return res.status(500).json({ error: "Failed to fetch update history" });
+    }
 
-    const values = [
-      first_name,
-      last_name,
-      department,
-      designation,
-      email,
-      fte,
-      userMcrNumber, // Log who updated the record
-      mcr_number, // For the WHERE clause
-    ];
+    if (selectResult.length === 0) {
+      return res.status(404).json({ error: "Staff not found" });
+    }
 
-    db.query(q, values, (err, data) => {
-      if (err) {
-        console.error("Error updating staff details:", err);
-        return res
-          .status(500)
-          .json({ error: "Failed to update staff details" });
+    let updateHistory = [];
+    try {
+      updateHistory = selectResult[0].update_history
+        ? JSON.parse(selectResult[0].update_history)
+        : [];
+    } catch (err) {
+      console.error("Error parsing update history:", err.message);
+      updateHistory = [];
+    }
+
+    const newUpdate = {
+      updated_by: userMcrNumber,
+      updated_at: new Date().toISOString(),
+      details: { first_name, last_name, department, designation, email, fte },
+    };
+
+    updateHistory.unshift(newUpdate);
+
+    const updateQuery = `
+      UPDATE main_data 
+      SET first_name = ?, last_name = ?, department = ?, designation = ?, 
+          email = ?, fte = ?, updated_by = ?, updated_at = NOW(),
+          update_history = ?
+      WHERE mcr_number = ?
+    `;
+
+    db.query(
+      updateQuery,
+      [
+        first_name,
+        last_name,
+        department,
+        designation,
+        email,
+        fte,
+        userMcrNumber,
+        JSON.stringify(updateHistory), // Always save valid JSON
+        mcr_number,
+      ],
+      (updateErr, updateData) => {
+        if (updateErr) {
+          console.error("Error updating staff details:", updateErr.message);
+          return res.status(500).json({ error: "Failed to update staff details" });
+        }
+
+        if (updateData.affectedRows === 0) {
+          return res.status(404).json({ error: "Staff not found" });
+        }
+
+        res.status(200).json({ message: "Staff details updated successfully" });
       }
-
-      if (data.affectedRows === 0) {
-        // No rows affected means the mcr_number might not exist
-        console.log("No rows updated, check if MCR number exists");
-        return res.status(404).json({ error: "Staff not found" });
-      }
-
-      console.log("Staff details updated successfully"); // Success message
-      return res
-        .status(200)
-        .json({ message: "Staff details updated successfully" });
-    });
-  }
-);
+    );
+  });
+});
 
 // -------------------------------------------------------------------------------------------------------------//
 // POST REQUEST INTO contracts TABLE FOR ADDING NEW CONTRACTS
@@ -894,14 +913,14 @@ app.put("/postings/update", verifyToken, async (req, res) => {
         );
       }
     }
-    
+
     // ⬆️Explaination for the code above⬆️
-    // Once the grouped totals are calculated, 
+    // Once the grouped totals are calculated,
     // the contracts table is updated with the new values for the training_hours_<academic_year> column:
 
     // STEP 1 : Iterate through the Groups (the unique key act as index)
     // STEP 2 : key.split("-") returns an array of [mcr_number, school_name, academic_year]
-    // STEP 3 : training_hours_<academic_year> column is updated 
+    // STEP 3 : training_hours_<academic_year> column is updated
     // ⚠️NEED PRE-EXISTING COLUMNS FOR THE YEAR IN CONTRACTS TABLE⚠️
     // STEP 4 : For each posting, its total training hour is added to the running total
 

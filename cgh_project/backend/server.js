@@ -1142,7 +1142,7 @@ app.put("/non_institutional/update", verifyToken, (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 
 // -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST FROM main_data_nurses TABLE
+// GET REQUEST FROM main_data_nurses TABLE FOR NurseManagementPage
 // -------------------------------------------------------------------------------------------------------------//
 
 app.get("/main_data_nurses", verifyToken, (req, res) => {
@@ -1159,6 +1159,25 @@ app.get("/main_data_nurses", verifyToken, (req, res) => {
     return res.status(200).json(data); // Return the retrieved data as a JSON response
   });
 });
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST FROM main_data_nurses TABLE FOR NurseDetails table in NurseDetailsPage
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/nurse/:snb_number", verifyToken, (req, res) => {
+  const { snb_number } = req.params;
+  const query = "SELECT * FROM main_data_nurses WHERE snb_number = ?";
+  db.query(query, [snb_number], (err, data) => {
+      if (err) {
+          console.error("Error retrieving nurse details:", err);
+          return res.status(500).json({ message: "Error retrieving staff details" });
+      }
+      if (data.length === 0) {
+          return res.status(404).json({ message: "Staff not found" });
+      }
+      res.json(data[0]);
+  });
+});
+
 
 // -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start

@@ -105,6 +105,10 @@ const ManagementHomePage = () => {
     setFilteredData(sortedData);
   };
 
+  const handleRowClick = (snb_number) => {
+    nav(`/nurse/${snb_number}`);
+  };
+  
   // ########################################## //
   // Pagination Constants and Functions
   // ########################################## //
@@ -257,6 +261,9 @@ const ManagementHomePage = () => {
   return (
     <>
       <Navbar homeRoute={"/management-home"} />
+      <div className="page-title">
+        <h2>Nurses Data</h2>
+      </div>
       <div className="management-home-page">
         <motion.div
           className="filter-section"
@@ -388,7 +395,11 @@ const ManagementHomePage = () => {
               </thead>
               <tbody>
                 {currentEntries.map((nurse, index) => (
-                  <tr key={index}>
+                  <tr
+                    key={index}
+                    onClick={() => handleRowClick(nurse.snb_number)}
+                    className={nurse.deleted ? "greyed-out" : ""}
+                  >
                     <td>{indexOfFirstEntry + index + 1}</td>
                     <td>{nurse.snb_number}</td>
                     <td>{nurse.first_name}</td>

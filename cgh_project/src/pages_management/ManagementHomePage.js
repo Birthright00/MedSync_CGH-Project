@@ -356,6 +356,7 @@ const ManagementHomePage = () => {
   return (
     <>
       <Navbar homeRoute={"/management-home"} />
+      <h2 className="page-title">Doctor Data</h2>
       <div className="management-home-page">
         <motion.div
           className="filter-section"

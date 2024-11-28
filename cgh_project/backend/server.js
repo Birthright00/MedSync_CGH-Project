@@ -294,42 +294,49 @@ app.get("/contracts/:mcr_number", verifyToken, (req, res) => {
 // for example, making a PUT request will just overwrite the exisiting user data regardless
 // of how many times you sent, it wont create multiple entries
 
-app.put("/staff/:mcr_number", verifyToken, restrictToReadOnlyforHR, (req, res) => {
-  const { mcr_number } = req.params;
-  const { first_name, last_name, department, designation, email, fte } = req.body;
-  const userMcrNumber = req.user.id;
+app.put(
+  "/staff/:mcr_number",
+  verifyToken,
+  restrictToReadOnlyforHR,
+  (req, res) => {
+    const { mcr_number } = req.params;
+    const { first_name, last_name, department, designation, email, fte } =
+      req.body;
+    const userMcrNumber = req.user.id;
 
-  const selectQuery = `SELECT update_history FROM main_data WHERE mcr_number = ?`;
+    const selectQuery = `SELECT update_history FROM main_data WHERE mcr_number = ?`;
 
-  db.query(selectQuery, [mcr_number], (selectErr, selectResult) => {
-    if (selectErr) {
-      console.error("Error fetching update history:", selectErr.message);
-      return res.status(500).json({ error: "Failed to fetch update history" });
-    }
+    db.query(selectQuery, [mcr_number], (selectErr, selectResult) => {
+      if (selectErr) {
+        console.error("Error fetching update history:", selectErr.message);
+        return res
+          .status(500)
+          .json({ error: "Failed to fetch update history" });
+      }
 
-    if (selectResult.length === 0) {
-      return res.status(404).json({ error: "Staff not found" });
-    }
+      if (selectResult.length === 0) {
+        return res.status(404).json({ error: "Staff not found" });
+      }
 
-    let updateHistory = [];
-    try {
-      updateHistory = selectResult[0].update_history
-        ? JSON.parse(selectResult[0].update_history)
-        : [];
-    } catch (err) {
-      console.error("Error parsing update history:", err.message);
-      updateHistory = [];
-    }
+      let updateHistory = [];
+      try {
+        updateHistory = selectResult[0].update_history
+          ? JSON.parse(selectResult[0].update_history)
+          : [];
+      } catch (err) {
+        console.error("Error parsing update history:", err.message);
+        updateHistory = [];
+      }
 
-    const newUpdate = {
-      updated_by: userMcrNumber,
-      updated_at: new Date().toISOString(),
-      details: { first_name, last_name, department, designation, email, fte },
-    };
+      const newUpdate = {
+        updated_by: userMcrNumber,
+        updated_at: new Date().toISOString(),
+        details: { first_name, last_name, department, designation, email, fte },
+      };
 
-    updateHistory.unshift(newUpdate);
+      updateHistory.unshift(newUpdate);
 
-    const updateQuery = `
+      const updateQuery = `
       UPDATE main_data 
       SET first_name = ?, last_name = ?, department = ?, designation = ?, 
           email = ?, fte = ?, updated_by = ?, updated_at = NOW(),
@@ -337,34 +344,39 @@ app.put("/staff/:mcr_number", verifyToken, restrictToReadOnlyforHR, (req, res) =
       WHERE mcr_number = ?
     `;
 
-    db.query(
-      updateQuery,
-      [
-        first_name,
-        last_name,
-        department,
-        designation,
-        email,
-        fte,
-        userMcrNumber,
-        JSON.stringify(updateHistory), // Always save valid JSON
-        mcr_number,
-      ],
-      (updateErr, updateData) => {
-        if (updateErr) {
-          console.error("Error updating staff details:", updateErr.message);
-          return res.status(500).json({ error: "Failed to update staff details" });
-        }
+      db.query(
+        updateQuery,
+        [
+          first_name,
+          last_name,
+          department,
+          designation,
+          email,
+          fte,
+          userMcrNumber,
+          JSON.stringify(updateHistory), // Always save valid JSON
+          mcr_number,
+        ],
+        (updateErr, updateData) => {
+          if (updateErr) {
+            console.error("Error updating staff details:", updateErr.message);
+            return res
+              .status(500)
+              .json({ error: "Failed to update staff details" });
+          }
 
-        if (updateData.affectedRows === 0) {
-          return res.status(404).json({ error: "Staff not found" });
-        }
+          if (updateData.affectedRows === 0) {
+            return res.status(404).json({ error: "Staff not found" });
+          }
 
-        res.status(200).json({ message: "Staff details updated successfully" });
-      }
-    );
-  });
-});
+          res
+            .status(200)
+            .json({ message: "Staff details updated successfully" });
+        }
+      );
+    });
+  }
+);
 
 // -------------------------------------------------------------------------------------------------------------//
 // POST REQUEST INTO contracts TABLE FOR ADDING NEW CONTRACTS
@@ -1123,6 +1135,29 @@ app.put("/non_institutional/update", verifyToken, (req, res) => {
       console.error("Error updating activities:", error);
       res.status(500).json({ message: "Failed to update activities." });
     });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️NURSES DATA BEGIN HERE⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+// -------------------------------------------------------------------------------------------------------------//
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST FROM main_data_nurses TABLE
+// -------------------------------------------------------------------------------------------------------------//
+
+app.get("/main_data_nurses", verifyToken, (req, res) => {
+  // Query the database to retrieve all records from the main_data_nurses table
+  const query = "SELECT * FROM nurse_contracts_view";
+
+  db.query(query, (err, data) => {
+    if (err) {
+      console.error("Error retrieving data from main_data_nurses:", err);
+      console.log("Institution Data:", nurse.institution);
+      return res.status(500).json({ error: "Failed to retrieve data" });
+    }
+
+    return res.status(200).json(data); // Return the retrieved data as a JSON response
+  });
 });
 
 // -------------------------------------------------------------------------------------------------------------//

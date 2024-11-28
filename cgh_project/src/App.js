@@ -9,6 +9,7 @@ import StaffDetailPage from "./components/StaffDetailPage";
 import Entry from "./components/Entry";
 import HomePage from "./pages_login/HomePage";
 import AboutUs from "./components/AboutUs";
+import NurseManagementHomePage from "./pages_management/NurseManagementHomePage";
 function App() {
   return (
     <div className="App">
@@ -22,6 +23,7 @@ function App() {
         <Route exact path="/entry" element={<Entry />} />
         <Route exact path="/home" element={<HomePage />} />
         <Route exact path="/about-us" element={<AboutUs />} />
+        <Route exact path = "/nurse-homepage" element={<NurseManagementHomePage />} />
       </Routes>
     </div>
   );

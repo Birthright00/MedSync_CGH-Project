@@ -197,7 +197,8 @@
 
 /* Scrollable Contract Table Container */
 .contracts-table-container,
-.non-institutional-table-container {
+.non-institutional-table-container,
+.view-edit-container {
   max-height: 500px; /* Set maximum height */
   overflow-y: auto; /* Enable vertical scrolling */
   overflow-x: auto;
@@ -207,6 +208,9 @@
   box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px; /* Subtle shadow */
 }
 
+.view-edit-container {
+  max-height: 200px; /* Set maximum height */
+}
 /* Table Styling for Contracts */
 .contracts-table {
   width: 100%;
@@ -262,7 +266,8 @@
 .restore-button,
 .delete-button,
 .update-contract-button,
-.update-fte-button {
+.update-fte-button,
+.view-edit-button {
   margin-top: 20px;
   font-family: "Montserrat", sans-serif;
   text-align: center;
@@ -297,7 +302,8 @@
   background-color: #f0f0f0; /* Regular button color */
   color: #333;
 }
-.restore-button {
+.restore-button,
+.update-button {
   border-color: #72bf78;
   background-color: #72bf78;
   color: white;
@@ -309,9 +315,9 @@
   color: white;
 }
 
-.update-button,
 .year-button.selected,
-.toggle-add-contract-button {
+.toggle-add-contract-button,
+.view-edit-button {
   background-color: #0083ca;
   color: white;
 }

@@ -302,47 +302,78 @@ app.put(
     const { mcr_number } = req.params;
     const { first_name, last_name, department, designation, email, fte } =
       req.body;
-    const userMcrNumber = req.user.id; // Assuming this is the logged-in user
+    const userMcrNumber = req.user.id;
 
-    console.log("Updating staff details for MCR:", mcr_number); // Debug
-    console.log("Request body:", req.body); // Debug
+    const selectQuery = `SELECT update_history FROM main_data WHERE mcr_number = ?`;
 
-    const q = `
-    UPDATE main_data 
-    SET first_name = ?, last_name = ?, department = ?, designation = ?, 
-        email = ?, fte = ?, updated_by = ?, updated_at = NOW()
-    WHERE mcr_number = ?
-  `;
-
-    const values = [
-      first_name,
-      last_name,
-      department,
-      designation,
-      email,
-      fte,
-      userMcrNumber, // Log who updated the record
-      mcr_number, // For the WHERE clause
-    ];
-
-    db.query(q, values, (err, data) => {
-      if (err) {
-        console.error("Error updating staff details:", err);
+    db.query(selectQuery, [mcr_number], (selectErr, selectResult) => {
+      if (selectErr) {
+        console.error("Error fetching update history:", selectErr.message);
         return res
           .status(500)
-          .json({ error: "Failed to update staff details" });
+          .json({ error: "Failed to fetch update history" });
       }
 
-      if (data.affectedRows === 0) {
-        // No rows affected means the mcr_number might not exist
-        console.log("No rows updated, check if MCR number exists");
+      if (selectResult.length === 0) {
         return res.status(404).json({ error: "Staff not found" });
       }
 
-      console.log("Staff details updated successfully"); // Success message
-      return res
-        .status(200)
-        .json({ message: "Staff details updated successfully" });
+      let updateHistory = [];
+      try {
+        updateHistory = selectResult[0].update_history
+          ? JSON.parse(selectResult[0].update_history)
+          : [];
+      } catch (err) {
+        console.error("Error parsing update history:", err.message);
+        updateHistory = [];
+      }
+
+      const newUpdate = {
+        updated_by: userMcrNumber,
+        updated_at: new Date().toISOString(),
+        details: { first_name, last_name, department, designation, email, fte },
+      };
+
+      updateHistory.unshift(newUpdate);
+
+      const updateQuery = `
+      UPDATE main_data 
+      SET first_name = ?, last_name = ?, department = ?, designation = ?, 
+          email = ?, fte = ?, updated_by = ?, updated_at = NOW(),
+          update_history = ?
+      WHERE mcr_number = ?
+    `;
+
+      db.query(
+        updateQuery,
+        [
+          first_name,
+          last_name,
+          department,
+          designation,
+          email,
+          fte,
+          userMcrNumber,
+          JSON.stringify(updateHistory), // Always save valid JSON
+          mcr_number,
+        ],
+        (updateErr, updateData) => {
+          if (updateErr) {
+            console.error("Error updating staff details:", updateErr.message);
+            return res
+              .status(500)
+              .json({ error: "Failed to update staff details" });
+          }
+
+          if (updateData.affectedRows === 0) {
+            return res.status(404).json({ error: "Staff not found" });
+          }
+
+          res
+            .status(200)
+            .json({ message: "Staff details updated successfully" });
+        }
+      );
     });
   }
 );
@@ -894,14 +925,14 @@ app.put("/postings/update", verifyToken, async (req, res) => {
         );
       }
     }
-    
+
     // ⬆️Explaination for the code above⬆️
-    // Once the grouped totals are calculated, 
+    // Once the grouped totals are calculated,
     // the contracts table is updated with the new values for the training_hours_<academic_year> column:
 
     // STEP 1 : Iterate through the Groups (the unique key act as index)
     // STEP 2 : key.split("-") returns an array of [mcr_number, school_name, academic_year]
-    // STEP 3 : training_hours_<academic_year> column is updated 
+    // STEP 3 : training_hours_<academic_year> column is updated
     // ⚠️NEED PRE-EXISTING COLUMNS FOR THE YEAR IN CONTRACTS TABLE⚠️
     // STEP 4 : For each posting, its total training hour is added to the running total
 
@@ -1105,6 +1136,208 @@ app.put("/non_institutional/update", verifyToken, (req, res) => {
       res.status(500).json({ message: "Failed to update activities." });
     });
 });
+
+// -------------------------------------------------------------------------------------------------------------//
+// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️NURSES DATA BEGIN HERE⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+// -------------------------------------------------------------------------------------------------------------//
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST FROM main_data_nurses TABLE FOR NurseManagementPage
+// -------------------------------------------------------------------------------------------------------------//
+
+app.get("/main_data_nurses", verifyToken, (req, res) => {
+  // Query the database to retrieve all records from the main_data_nurses table
+  const query = "SELECT * FROM nurse_contracts_view";
+
+  db.query(query, (err, data) => {
+    if (err) {
+      console.error("Error retrieving data from main_data_nurses:", err);
+      console.log("Institution Data:", nurse.institution);
+      return res.status(500).json({ error: "Failed to retrieve data" });
+    }
+
+    return res.status(200).json(data); // Return the retrieved data as a JSON response
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST FROM main_data_nurses TABLE FOR NurseDetails table in NurseDetailsPage
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/nurse/:snb_number", verifyToken, (req, res) => {
+  const { snb_number } = req.params;
+  const query = "SELECT * FROM main_data_nurses WHERE snb_number = ?";
+  db.query(query, [snb_number], (err, data) => {
+    if (err) {
+      console.error("Error retrieving nurse details:", err);
+      return res
+        .status(500)
+        .json({ message: "Error retrieving staff details" });
+    }
+    if (data.length === 0) {
+      return res.status(404).json({ message: "Staff not found" });
+    }
+    res.json(data[0]);
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// PUT REQUEST INTO main_data_nurses TABLE FOR UPDATING EXISTING NURSE DETAILS
+// -------------------------------------------------------------------------------------------------------------//
+app.put(
+  "/main_data_nurses/:snb_number",
+  verifyToken,
+  restrictToReadOnlyforHR,
+  (req, res) => {
+    const { snb_number } = req.params;
+    const { first_name, last_name, department, designation, email } = req.body;
+    const userId = req.user.id; // Assuming `id` is the identifier of the logged-in user.
+
+    // Step 1: Fetch the existing update history for the nurse
+    const selectQuery = `SELECT update_history FROM main_data_nurses WHERE snb_number = ?`;
+
+    db.query(selectQuery, [snb_number], (selectErr, selectResult) => {
+      if (selectErr) {
+        console.error("Error fetching update history:", selectErr.message);
+        return res
+          .status(500)
+          .json({ error: "Failed to fetch update history" });
+      }
+
+      if (selectResult.length === 0) {
+        return res.status(404).json({ error: "Nurse not found" });
+      }
+
+      let updateHistory = [];
+      try {
+        updateHistory = selectResult[0].update_history
+          ? JSON.parse(selectResult[0].update_history)
+          : [];
+      } catch (err) {
+        console.error("Error parsing update history:", err.message);
+        updateHistory = [];
+      }
+
+      // Step 2: Create a new update history entry
+      const newUpdate = {
+        updated_by: userId,
+        updated_at: new Date().toISOString(),
+        details: { first_name, last_name, department, designation, email },
+      };
+
+      updateHistory.unshift(newUpdate);
+
+      // Step 3: Update the nurse details and save the updated history
+      const updateQuery = `
+        UPDATE main_data_nurses 
+        SET first_name = ?, last_name = ?, department = ?, designation = ?, 
+            email = ?, updated_by = ?, updated_at = NOW(),
+            update_history = ?
+        WHERE snb_number = ?
+      `;
+
+      db.query(
+        updateQuery,
+        [
+          first_name,
+          last_name,
+          department,
+          designation,
+          email,
+          userId,
+          JSON.stringify(updateHistory), // Save update history as JSON
+          snb_number,
+        ],
+        (updateErr, updateData) => {
+          if (updateErr) {
+            console.error("Error updating nurse details:", updateErr.message);
+            return res
+              .status(500)
+              .json({ error: "Failed to update nurse details" });
+          }
+
+          if (updateData.affectedRows === 0) {
+            return res.status(404).json({ error: "Nurse not found" });
+          }
+
+          res
+            .status(200)
+            .json({ message: "Nurse details updated successfully" });
+        }
+      );
+    });
+  }
+);
+
+// -------------------------------------------------------------------------------------------------------------//
+// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️MASS FILE UPLOAD BEIGNS HERE⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+// -------------------------------------------------------------------------------------------------------------//
+
+app.post("/upload-main-data", upload.none(), async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || !Array.isArray(data)) {
+      return res.status(400).json({ error: "Invalid data format or empty file" });
+    }
+
+    // Validate and prepare data with default values
+    const validatedData = data.map((row) => {
+      const {
+        mcr_number = null, // Default to NULL if missing
+        first_name = null, // Default to NULL if missing
+        last_name = null,  // Default to NULL if missing
+        department = null, // Default to NULL if missing
+        designation = null, // Default to NULL if missing
+        email = null,      // Default to NULL if missing
+        fte = null,        // Default to NULL if missing
+      } = row;
+
+      // Ensure `mcr_number` (primary key) is not null
+      if (!mcr_number) {
+        throw new Error("MCR Number is required for each entry.");
+      }
+
+      return [
+        mcr_number,
+        first_name,
+        last_name,
+        department,
+        designation,
+        email,
+        fte,
+        new Date(), // Automatically set created_at
+      ];
+    });
+
+    const query = `
+      INSERT INTO main_data (
+        mcr_number, first_name, last_name, department, designation, email, fte, created_at
+      )
+      VALUES ?
+      ON DUPLICATE KEY UPDATE
+        first_name = VALUES(first_name),
+        last_name = VALUES(last_name),
+        department = VALUES(department),
+        designation = VALUES(designation),
+        email = VALUES(email),
+        fte = VALUES(fte),
+        updated_at = NOW()
+    `;
+
+    db.query(query, [validatedData], (err, result) => {
+      if (err) {
+        console.error("Database insertion error:", err);
+        return res.status(500).json({ error: "Failed to insert data into main_data." });
+      }
+
+      res.status(201).json({ message: "Data uploaded and processed successfully!", result });
+    });
+  } catch (error) {
+    console.error("Error processing file upload:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start

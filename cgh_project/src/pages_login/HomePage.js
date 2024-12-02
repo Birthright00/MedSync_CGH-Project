@@ -11,7 +11,6 @@ import doctor from "../images/doctor.png";
 import white_doctor from "../images/doctor_white.png";
 
 import { motion, AnimatePresence } from "framer-motion";
-import Footer from "../components/footer";
 
 // ########################################## //
 // Hardcoded Quotes
@@ -38,6 +37,10 @@ const HomePage = () => {
   const nav = useNavigate();
   const handleDoctor = () => {
     nav("/management-home");
+  };
+
+  const handleNurse = () => {
+    nav("/nurse-homepage");
   };
 
   const [quoteIndex, setQuoteIndex] = useState(0);
@@ -125,6 +128,7 @@ const HomePage = () => {
             transition={{ duration: 0.5, delay: 0.4 }}
             onMouseEnter={() => setIsNurseHovered(true)}
             onMouseLeave={() => setIsNurseHovered(false)}
+            onClick={handleNurse}
           >
             <img
               src={isNurseHovered ? white_nurse : nurse}

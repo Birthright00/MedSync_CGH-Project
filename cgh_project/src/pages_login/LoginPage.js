@@ -23,15 +23,15 @@ import hr from "../images/hr.png";
 import hr_white from "../images/hr_white.png";
 
 const LoginPage = () => {
-  const nav = useNavigate();
-  const [username, usernameupdate] = useState("");
-  const [password, passwordupdate] = useState("");
-  const [selectedRole, setSelectedRole] = useState(null);
+  const nav = useNavigate(); // For navigation after successful login
+  const [username, usernameupdate] = useState(""); // State for username input
+  const [password, passwordupdate] = useState(""); // State for password input
+  const [selectedRole, setSelectedRole] = useState(null); // State for role selection
   const isRoleSelected = (role) => selectedRole === role;
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [isMgmtHovered, setIsMgmtHovered] = useState(false);
-  const [isStaffHovered, setIsStaffHovered] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // Toggle for password visibility
+  const [isMgmtHovered, setIsMgmtHovered] = useState(false); // Hover state for management button
+  const [isStaffHovered, setIsStaffHovered] = useState(false); // Hover state for staff button
 
   // Quick Regex Revision
 
@@ -67,7 +67,7 @@ const LoginPage = () => {
     return false; // Invalid if no role is selected or pattern doesn't match
   };
 
-  //-----------------------------------------------------------------/
+  //-----------------------------------------------------------------/ 
   // For Dev only //
   const handleSignUp = () => {
     nav("/signup-page");
@@ -89,26 +89,6 @@ const LoginPage = () => {
       toast.warn("Please select a role (Management, Staff or HR)");
       return;
     }
-
-    // Function to validate usernames based on the selected role
-    const validateUsername = (username, role) => {
-      // For Management and HR (ADID): Only lowercase alphabets, no spaces, numbers, or uppercase letters
-      const adidPattern = /^[a-z]+$/;
-
-      // For Staff (MCR or SNB):
-      // MCR number: M or m followed by 5 digits and 1 letter
-      // SNB number: N or n followed by 5 digits and 1 letter
-      const mcrOrSnbPattern = /^[Mm]\d{5}[A-Za-z]$|^[Nn]\d{5}[A-Za-z]$/;
-
-      // Check the pattern based on the selected role
-      if (role === "management" || role === "hr") {
-        return adidPattern.test(username); // Validate ADID for management and HR
-      } else if (role === "staff") {
-        return mcrOrSnbPattern.test(username); // Validate MCR or SNB for staff
-      }
-
-      return false; // Invalid if no role is selected or pattern doesn't match
-    };
 
     // API Call to Backend for Login
     try {
@@ -134,11 +114,16 @@ const LoginPage = () => {
         // Successful login
         toast.success("Login successful! Welcome Back!");
         setTimeout(() => {
-          nav(
-            data.role === "management" || data.role === "hr"
-              ? "/home"
-              : "/staff-home"
-          );
+          // Decode the token to get the mcr_number for staff
+          const decodedToken = JSON.parse(atob(data.token.split(".")[1])); // Decode JWT payload
+          const mcr_number = decodedToken.id; // Extract mcr_number from token payload
+
+          // Redirect logic:
+          if (selectedRole === "management" || selectedRole === "hr") {
+            nav("/home"); // For management or HR, go to the home page
+          } else if (selectedRole === "staff") {
+            nav(`/staff/${mcr_number}`); // For staff (doctor/nurse), go to their specific staff details page
+          }
         }, 1000); // Small delay for toast visibility
       } else {
         // Handle specific status codes and show custom toast messages
@@ -280,25 +265,6 @@ const LoginPage = () => {
                   />
                 </button>
               </div>
-
-              {/* <div className="toggle-password">
-                <button
-                  type="button"
-                  onClick={togglePasswordVisibility}
-                  style={{
-                    marginTop: "10px",
-                    cursor: "pointer",
-                    border: "none",
-                    background: "none",
-                  }}
-                >
-                  <img
-                    className="toggle-password-img"
-                    src={showPassword ? hide_pw : show_pw} // Toggle between the show and hide images
-                    alt={showPassword ? "Hide Password" : "Show Password"}
-                  />
-                </button>
-              </div> */}
             </div>
             <motion.button
               whileHover={{ scale: 1.1 }}

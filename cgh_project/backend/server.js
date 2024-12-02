@@ -1269,6 +1269,77 @@ app.put(
 );
 
 // -------------------------------------------------------------------------------------------------------------//
+// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️MASS FILE UPLOAD BEIGNS HERE⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+// -------------------------------------------------------------------------------------------------------------//
+
+app.post("/upload-main-data", upload.none(), async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || !Array.isArray(data)) {
+      return res.status(400).json({ error: "Invalid data format or empty file" });
+    }
+
+    // Validate and prepare data with default values
+    const validatedData = data.map((row) => {
+      const {
+        mcr_number = null, // Default to NULL if missing
+        first_name = null, // Default to NULL if missing
+        last_name = null,  // Default to NULL if missing
+        department = null, // Default to NULL if missing
+        designation = null, // Default to NULL if missing
+        email = null,      // Default to NULL if missing
+        fte = null,        // Default to NULL if missing
+      } = row;
+
+      // Ensure `mcr_number` (primary key) is not null
+      if (!mcr_number) {
+        throw new Error("MCR Number is required for each entry.");
+      }
+
+      return [
+        mcr_number,
+        first_name,
+        last_name,
+        department,
+        designation,
+        email,
+        fte,
+        new Date(), // Automatically set created_at
+      ];
+    });
+
+    const query = `
+      INSERT INTO main_data (
+        mcr_number, first_name, last_name, department, designation, email, fte, created_at
+      )
+      VALUES ?
+      ON DUPLICATE KEY UPDATE
+        first_name = VALUES(first_name),
+        last_name = VALUES(last_name),
+        department = VALUES(department),
+        designation = VALUES(designation),
+        email = VALUES(email),
+        fte = VALUES(fte),
+        updated_at = NOW()
+    `;
+
+    db.query(query, [validatedData], (err, result) => {
+      if (err) {
+        console.error("Database insertion error:", err);
+        return res.status(500).json({ error: "Failed to insert data into main_data." });
+      }
+
+      res.status(201).json({ message: "Data uploaded and processed successfully!", result });
+    });
+  } catch (error) {
+    console.error("Error processing file upload:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start
 // -------------------------------------------------------------------------------------------------------------//
 db.connect((err) => {

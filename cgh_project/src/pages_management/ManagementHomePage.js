@@ -6,6 +6,7 @@ import axios from "axios";
 import { CSVLink } from "react-csv";
 import * as XLSX from "xlsx";
 import { motion } from "framer-motion";
+import MainDataTemplateDownload from "../components/csv_upload_templates/MainDataTemplateDownload";
 const ManagementHomePage = () => {
   // ########################################## //
   // Generic Constants
@@ -25,6 +26,7 @@ const ManagementHomePage = () => {
   const [activeButton, setActiveButton] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [schoolFilter, setSchoolFilter] = useState("");
+  const templateData = []; // Empty data for the template
   const [selectedSchools, setSelectedSchools] = useState({
     duke_nus: false,
     singhealth_residency: false,
@@ -119,6 +121,55 @@ const ManagementHomePage = () => {
   // ########################################## //
   // File Upload
   // ########################################## //
+
+  // ###################const handleFileUpload = (event) => {
+  const [fileData, setFileData] = useState(null);
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const binaryStr = e.target.result;
+      const workbook = XLSX.read(new Uint8Array(binaryStr), { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+      console.log("Parsed Data:", sheetData); // Debug parsed data
+      setFileData(sheetData); // Store parsed data
+    };
+
+    if (file) {
+      reader.readAsArrayBuffer(file);
+    }
+  };
+
+  const handleFileUploadSubmit = async () => {
+    if (!fileData || fileData.length === 0) {
+      alert("Please upload a file with valid data!");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:3001/upload-main-data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ data: fileData }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert("Data uploaded successfully!");
+      } else {
+        console.error("Upload failed:", result);
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("Error uploading data:", error);
+      alert("An unexpected error occurred. Please try again.");
+    }
+  };
 
   // ########################################## //
   // Table Functions
@@ -765,28 +816,16 @@ const ManagementHomePage = () => {
                 <button className="add-dr-button" onClick={handleAddDoctor}>
                   New Doctor
                 </button>
+                <MainDataTemplateDownload />
               </div>
-
-              {/* Label and input for choosing file */}
-              {/* <label htmlFor="file-upload" className="file-upload-label">
-                  Choose File:
-                </label>
-                <input
-                  type="file"
-                  id="file-upload"
-                  className="file-upload-input"
-                  accept=".xlsx, .xls, .csv"
-                  onChange={(e) => setSelectedFile(e.target.files[0])} // Store selected file
-                /> */}
-
-              {/* Separate button for submitting the file */}
-              {/* <button
-                  className="submit-file-button"
-                  disabled={!selectedFile} // Disable until a file is selected
-                >
-                  Submit File
-                </button> */}
-            </motion.div>
+            </motion.div>{" "}
+            <h2>Upload Excel File</h2>
+            <input
+              type="file"
+              accept=".csv, .xlsx, .xls"
+              onChange={handleFileUpload}
+            />
+            <button onClick={handleFileUploadSubmit}>Upload</button>
           </div>
         </div>
       </div>

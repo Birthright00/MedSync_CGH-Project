@@ -18,6 +18,12 @@ const NurseDetails = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState("");
+  const [editHistory, setEditHistory] = useState([]); // Add a state to store the edit history
+  const [isEditHistoryOpen, setIsEditHistoryOpen] = useState(false);
+
+  const toggleEditHistory = () => {
+    setIsEditHistoryOpen(!isEditHistoryOpen);
+  };
 
   // useState to hold nurse details
   const [nurseDetails, setNurseDetails] = useState({
@@ -52,23 +58,40 @@ const NurseDetails = () => {
         const token = localStorage.getItem("token");
         const response = await axios.get(
           `http://localhost:3001/nurse/${snb_number}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
         );
-
-        console.log("API Response:", response.data); // Log response here
-        setNurseDetails(response.data); // Update state
+  
+        const data = response.data;
+  
+        setNurseDetails(data);
+  
+        // Check if update_history is already an array or needs to be parsed
+        if (typeof data.update_history === "string") {
+          console.log("Parsing update_history as JSON...");
+          const parsedHistory = JSON.parse(data.update_history);
+          setEditHistory(Array.isArray(parsedHistory) ? parsedHistory : []);
+        } else if (Array.isArray(data.update_history)) {
+          setEditHistory(data.update_history);
+        } else {
+          console.warn(
+            "Unexpected format for update_history:",
+            data.update_history
+          );
+          setEditHistory([]);
+        }
+  
         setLoading(false);
       } catch (error) {
         console.error("Error fetching nurse details:", error);
         setLoading(false);
       }
     };
-
+  
     fetchNurseDetails();
   }, [snb_number]);
-  useEffect(() => {
-    console.log("Nurse Details State:", nurseDetails);
-  }, [nurseDetails]);
+  
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Function to handle form submission
@@ -262,6 +285,50 @@ const NurseDetails = () => {
         >
           <FaEdit /> Update Details
         </motion.button>
+        <button onClick={toggleEditHistory} className="view-edit-button">
+          {isEditHistoryOpen ? "Hide Edit History" : "View Edit History"}
+        </button>
+        {isEditHistoryOpen && (
+          <div className="view-edit-container">
+            <h2>Edit History</h2>
+            <table className="posting-detail-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Updated By</th>
+                  <th>Updated At</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.isArray(editHistory) && editHistory.length > 0 ? (
+                  editHistory.map((entry, index) => (
+                    <tr key={index}>
+                      <td>{index + 1}</td>
+                      <td>{entry.updated_by || "N/A"}</td>
+                      <td>{new Date(entry.updated_at).toLocaleString()}</td>
+                      <td>
+                        {entry.details
+                          ? Object.entries(entry.details).map(
+                              ([key, value]) => (
+                                <div key={key}>
+                                  <strong>{key}:</strong> {value}
+                                </div>
+                              )
+                            )
+                          : "No details available"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4">No edit history found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}

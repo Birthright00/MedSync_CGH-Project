@@ -1167,17 +1167,106 @@ app.get("/nurse/:snb_number", verifyToken, (req, res) => {
   const { snb_number } = req.params;
   const query = "SELECT * FROM main_data_nurses WHERE snb_number = ?";
   db.query(query, [snb_number], (err, data) => {
-      if (err) {
-          console.error("Error retrieving nurse details:", err);
-          return res.status(500).json({ message: "Error retrieving staff details" });
-      }
-      if (data.length === 0) {
-          return res.status(404).json({ message: "Staff not found" });
-      }
-      res.json(data[0]);
+    if (err) {
+      console.error("Error retrieving nurse details:", err);
+      return res
+        .status(500)
+        .json({ message: "Error retrieving staff details" });
+    }
+    if (data.length === 0) {
+      return res.status(404).json({ message: "Staff not found" });
+    }
+    res.json(data[0]);
   });
 });
 
+// -------------------------------------------------------------------------------------------------------------//
+// PUT REQUEST INTO main_data_nurses TABLE FOR UPDATING EXISTING NURSE DETAILS
+// -------------------------------------------------------------------------------------------------------------//
+app.put(
+  "/main_data_nurses/:snb_number",
+  verifyToken,
+  restrictToReadOnlyforHR,
+  (req, res) => {
+    const { snb_number } = req.params;
+    const { first_name, last_name, department, designation, email } = req.body;
+    const userId = req.user.id; // Assuming `id` is the identifier of the logged-in user.
+
+    // Step 1: Fetch the existing update history for the nurse
+    const selectQuery = `SELECT update_history FROM main_data_nurses WHERE snb_number = ?`;
+
+    db.query(selectQuery, [snb_number], (selectErr, selectResult) => {
+      if (selectErr) {
+        console.error("Error fetching update history:", selectErr.message);
+        return res
+          .status(500)
+          .json({ error: "Failed to fetch update history" });
+      }
+
+      if (selectResult.length === 0) {
+        return res.status(404).json({ error: "Nurse not found" });
+      }
+
+      let updateHistory = [];
+      try {
+        updateHistory = selectResult[0].update_history
+          ? JSON.parse(selectResult[0].update_history)
+          : [];
+      } catch (err) {
+        console.error("Error parsing update history:", err.message);
+        updateHistory = [];
+      }
+
+      // Step 2: Create a new update history entry
+      const newUpdate = {
+        updated_by: userId,
+        updated_at: new Date().toISOString(),
+        details: { first_name, last_name, department, designation, email },
+      };
+
+      updateHistory.unshift(newUpdate);
+
+      // Step 3: Update the nurse details and save the updated history
+      const updateQuery = `
+        UPDATE main_data_nurses 
+        SET first_name = ?, last_name = ?, department = ?, designation = ?, 
+            email = ?, updated_by = ?, updated_at = NOW(),
+            update_history = ?
+        WHERE snb_number = ?
+      `;
+
+      db.query(
+        updateQuery,
+        [
+          first_name,
+          last_name,
+          department,
+          designation,
+          email,
+          userId,
+          JSON.stringify(updateHistory), // Save update history as JSON
+          snb_number,
+        ],
+        (updateErr, updateData) => {
+          if (updateErr) {
+            console.error("Error updating nurse details:", updateErr.message);
+            return res
+              .status(500)
+              .json({ error: "Failed to update nurse details" });
+          }
+
+          if (updateData.affectedRows === 0) {
+            return res.status(404).json({ error: "Nurse not found" });
+          }
+
+          res
+            .status(200)
+            .json({ message: "Nurse details updated successfully" });
+        }
+      );
+    });
+  }
+);
 
 // -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start

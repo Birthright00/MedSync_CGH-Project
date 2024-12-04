@@ -1353,3 +1353,7 @@ db.connect((err) => {
 app.listen(3001, () => {
   console.log("Connection Successful. Backend server is running!");
 });
+
+app.listen(process.env.PORT || 3001, () => {
+  console.log("Connection Successful. Backend server is running!");
+});

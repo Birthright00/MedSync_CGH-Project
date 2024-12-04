@@ -1,4 +1,5 @@
 {
+  "homepage": "http://CoderJae777.github.io/CGH_Project",
   "name": "cgh_project",
   "version": "0.1.0",
   "private": true,
@@ -29,6 +30,8 @@
   },
   "scripts": {
     "start": "concurrently \"npm run frontend\" \"npm run backend\"",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build",
     "frontend": "react-scripts start",
     "backend": "cd backend && nodemon server.js",
     "build": "react-scripts build",
@@ -54,6 +57,7 @@
     ]
   },
   "devDependencies": {
-    "concurrently": "^9.0.1"
+    "concurrently": "^9.0.1",
+    "gh-pages": "^6.2.0"
   }
 }

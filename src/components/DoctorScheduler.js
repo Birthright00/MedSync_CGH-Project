@@ -1,5 +1,5 @@
 import "../styles/scheduler.css";
-import Navbar from "../components/Navbar";
+import Navbar from "./Navbar";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useState, useEffect } from "react";

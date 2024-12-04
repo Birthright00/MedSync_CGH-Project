@@ -1,28 +1,28 @@
 {
   "files": {
-    "main.css": "/CGH_Project/static/css/main.fc0f2fd2.css",
-    "main.js": "/CGH_Project/static/js/main.09430c24.js",
-    "static/media/handsome3.png": "/CGH_Project/static/media/handsome3.8737a64fec10a510e0e8.png",
-    "static/media/handsome.png": "/CGH_Project/static/media/handsome.926673b21a97e47b4c61.png",
-    "static/media/handsome4.png": "/CGH_Project/static/media/handsome4.33726c40fb3cb969b831.png",
-    "static/media/handsome2.png": "/CGH_Project/static/media/handsome2.e9ec0e18c7bf9239730d.png",
-    "static/media/login-background-img.jpg": "/CGH_Project/static/media/login-background-img.af589e42a026ffd8fc73.jpg",
-    "static/media/staff.png": "/CGH_Project/static/media/staff.7bc3190287b7fd0beff2.png",
-    "static/media/staff_white.png": "/CGH_Project/static/media/staff_white.535abc7e8ffdc0cbc13f.png",
-    "static/media/management_white.png": "/CGH_Project/static/media/management_white.68f65f13c1c72b13ca8c.png",
-    "static/media/doctor_white.png": "/CGH_Project/static/media/doctor_white.89df2c40af0a415118e0.png",
-    "static/media/management.png": "/CGH_Project/static/media/management.0e649dbb476ad67a3027.png",
-    "static/media/doctor.png": "/CGH_Project/static/media/doctor.a33f62a2cc5fbc7bf79b.png",
-    "static/media/hr_white.png": "/CGH_Project/static/media/hr_white.978630423bff439ca6a7.png",
-    "static/media/nurse_white.png": "/CGH_Project/static/media/nurse_white.2b23b67447736975a769.png",
-    "static/media/hr.png": "/CGH_Project/static/media/hr.d718a8587f99b6ac3f0e.png",
-    "static/media/nurse.png": "/CGH_Project/static/media/nurse.6fe85d6f06b7179f3fd2.png",
-    "index.html": "/CGH_Project/index.html",
-    "main.fc0f2fd2.css.map": "/CGH_Project/static/css/main.fc0f2fd2.css.map",
-    "main.09430c24.js.map": "/CGH_Project/static/js/main.09430c24.js.map"
+    "main.css": "/static/css/main.bf428dd9.css",
+    "main.js": "/static/js/main.1c5aa586.js",
+    "static/media/handsome3.png": "/static/media/handsome3.8737a64fec10a510e0e8.png",
+    "static/media/handsome.png": "/static/media/handsome.926673b21a97e47b4c61.png",
+    "static/media/handsome4.png": "/static/media/handsome4.33726c40fb3cb969b831.png",
+    "static/media/handsome2.png": "/static/media/handsome2.e9ec0e18c7bf9239730d.png",
+    "static/media/login-background-img.jpg": "/static/media/login-background-img.af589e42a026ffd8fc73.jpg",
+    "static/media/staff.png": "/static/media/staff.7bc3190287b7fd0beff2.png",
+    "static/media/staff_white.png": "/static/media/staff_white.535abc7e8ffdc0cbc13f.png",
+    "static/media/management_white.png": "/static/media/management_white.68f65f13c1c72b13ca8c.png",
+    "static/media/doctor_white.png": "/static/media/doctor_white.89df2c40af0a415118e0.png",
+    "static/media/management.png": "/static/media/management.0e649dbb476ad67a3027.png",
+    "static/media/doctor.png": "/static/media/doctor.a33f62a2cc5fbc7bf79b.png",
+    "static/media/hr_white.png": "/static/media/hr_white.978630423bff439ca6a7.png",
+    "static/media/nurse_white.png": "/static/media/nurse_white.2b23b67447736975a769.png",
+    "static/media/hr.png": "/static/media/hr.d718a8587f99b6ac3f0e.png",
+    "static/media/nurse.png": "/static/media/nurse.6fe85d6f06b7179f3fd2.png",
+    "index.html": "/index.html",
+    "main.bf428dd9.css.map": "/static/css/main.bf428dd9.css.map",
+    "main.1c5aa586.js.map": "/static/js/main.1c5aa586.js.map"
   },
   "entrypoints": [
-    "static/css/main.fc0f2fd2.css",
-    "static/js/main.09430c24.js"
+    "static/css/main.bf428dd9.css",
+    "static/js/main.1c5aa586.js"
   ]
 }

@@ -1,25 +1,19 @@
-## Introduction
+# Introduction
 
 ---
 
 Welcome to the installation and set up guide for _CGH's Data Management Web Application._
 
-The instructions for the installation may get rather complicated but feel free to read through the setup guide and/or reach out to the repo's owner for help.
+The instructions for the installation may get rather complicated but please read through the setup guide and/or reach out to the repo's owner for help.
 
-First of all
+First of all :
 
-- **_NO_**, your work laptops issued by CGH will **_NOT_** be able to run this and
+- **_NO_**, the intranet laptops issued by CGH will **_NOT_** be able to run this and
 - **_NO_** your phones will not be able to run this (for now).
 
-If you do not have a personal laptop, go and borrow someone else's, or wait till CGH decides to deploy this into the intranet or internet .
+If you do not have a laptop **_WITH INTERNET ACCESS_**, this is the end of the installation guide for you, thank you for reading.
 
-_Fun fact : What you are reading right now is called a "README" file_
-
-_Programmers/ Developers typically use, as a way of good practice, following the industry standard to document everything important and information about the project for the users and/or client._
-
-_If you find this file in the folders, it may look really confusing and different but do not worry about it because it is written in markdown format._
-
-## Table of Contents
+# Table of Contents
 
 ---
 
@@ -35,7 +29,7 @@ _If you find this file in the folders, it may look really confusing and differen
 
 <a id="requirements"></a>
 
-## Getting Started:
+# Getting Started:
 
 ---
 
@@ -43,7 +37,7 @@ _If you find this file in the folders, it may look really confusing and differen
 
 - A "Can Do" Attitude!
 - Not afraid of new challenges!
-- A personal laptop with Internet access
+- A laptop with Internet access
 - Experience with a mouse and keyboard
 - Entry level knowledge of command lines (will be taught to you in the next portion don't worry!)
 
@@ -85,15 +79,11 @@ You would move out of "Documents" and back to the folder where "Documents" is lo
 
 <a id="gettingstarted"></a>
 
-## Installation Guide
+# Installation Guide
 
 ---
 
 ### Downloading an IDE
-
-_Fun Fact: What’s an IDE?_
-
-_An IDE (Integrated Development Environment) is like a supercharged word processor for coding. Just as a writer uses a notebook, developers use an IDE to write, test, and fix their code—all in one handy tool. It’s where the magic of software creation happens!_
 
 Recommended : **Visual Studio Code** or any preferred IDEs of your choice
 
@@ -105,8 +95,6 @@ Launch it when download is completed!
 <a id="clonefrontend"></a>
 
 ### Cloning the repository
-
-WHAT DOES CLONING MEAN -
 
 Don't worry about the terminologies, just follow the instructions below!
 
@@ -137,15 +125,42 @@ PS C:\SUTD\Internship\CGH_Project git clone https://github.com/CoderJae777/CGH_P
 Once done, press enter and let it download! You are 80% done!
 <a id="installdep"></a>
 
+### Installing NodeJS
+
+---
+
+Node.js is essential for running the Doctor Data Management Web Application. Follow the steps below to install Node.js on your system.
+
+1. Visit the official [Node.js download page](https://nodejs.org/).
+2. Choose the **LTS (Long Term Support)** version for a stable release, or the **Current** version for the latest features.
+3. Download the installer for your operating system (Windows, macOS, or Linux).
+
+### On Windows
+
+1. Run the downloaded `.msi` installer.
+2. Follow the installation wizard:
+   - Accept the license agreement.
+   - Select the default settings unless customization is required.
+   - Ensure the option to install Node.js and `npm` is selected.
+3. Click **Install** to begin the process.
+4. Once completed, click **Finish** to exit the installer.
+
+### On macOS
+
+1. Open the downloaded `.pkg` file.
+2. Follow the installation wizard:
+   - Agree to the license terms.
+   - Select the installation location and click **Install**.
+3. Enter your macOS password when prompted.
+4. Once the installation is complete, click **Close**.
+
 ### Installing dependencies
 
-WHAT DOES DEPENDENCIES MEAN -
-
-Again, do not worry, it is just a fancy terminology we use to sound smart, its just things the web app will need to function normally, like how coffee is my dependencies haha...
+---
 
 Assuming you have no issues with the above step,
 
-In the same terminal, cd into cgh_project, copy and paste or type the following code (this may take awhile) :
+In the same terminal, copy and paste or type the following code (this may take awhile) :
 
 ```shell
 npm install
@@ -165,7 +180,7 @@ Else, contact developers if you still run into issuess
 
 <a id="running"></a>
 
-## Running the web application
+### Running the web application
 
 ---
 
@@ -177,7 +192,7 @@ npm start
 
 <a id="outcome"></a>
 
-## What to expect
+### What to expect
 
 ---
 
@@ -186,24 +201,79 @@ Your chrome will automatically launch and the web application will start.
 If your web browser did not start automatically, click this link :
 [http://localhost:3000](http://localhost:3000)
 
-## Features
+# Features
 
 ---
 
-### Management
+### Role-Based Access
 
-#### Home Page
+- **Management Role:** Full access to view and edit all data.
+- **Staff Role:** View-only access limited to their own data.
+- **HR Role:** Read-only access to all data without editing privileges.
 
-- Filter
-- Sorting
-- Quick Summary
-- Pages (Not sure if this a ft yet)
+### Login Features
 
-#### Data Entry
+- **Validation:** Ensures MCR numbers follow the correct format (starts with 'M' or 'm', followed by 5 digits and an alphabet).
+- **Role-Based Redirect:** Navigates users to the appropriate dashboard based on their role.
+- **Error Messages:** Provides detailed feedback for login issues like incorrect username/password or unauthorized access.
 
-- Edit Doctor Data
-- Add new Doctor data
-- Download button
+### **Development Credentials**
+
+The following credentials are for development purposes only. _Note: These are case-sensitive._
+
+| **Role**       | **Username** | **Password** |
+| -------------- | ------------ | ------------ |
+| **Management** | `abcde`      | `test`       |
+| **Staff**      | `m12345a`    | `test`       |
+| **HR**         | `bcdef`      | `test`       |
+
+### **Important Notes:**
+
+---
+
+- Ensure that all credentials are kept secure and only shared with authorized personnel.
+- Passwords for all roles are set to `test` by default for development purposes and must be updated in a production environment.
+
+### Home Page
+
+---
+
+- **Filter:** Search and filter through data based on specific fields like name, department, or MCR number.
+- **Sorting:** Sort data by columns such as start date, end date, or department.
+- **Quick Summary:** Provides an overview of critical data metrics like active contracts, total postings, or training hours.
+
+### Data Entry and Management
+
+---
+
+- **Edit Doctor Data:** Modify existing doctor details, including personal and professional information.
+- **Add New Doctor Data:** Add new doctors to the database with fields like MCR number, department, and appointment details.
+- **Download Button:** Export data to an Excel file for offline use or reporting.
+
+### Contract Management
+
+---
+
+- **View Contracts:** Display all contracts associated with a doctor, including school names and contract dates.
+- **Add Contracts:** Create new contracts for doctors with start and end dates, ensuring no overlaps.
+- **Edit Contracts:** Update existing contract details such as duration and associated schools.
+- **Delete Contracts:** Remove outdated or invalid contracts.
+- **Auto-check Contract Validity:** Prevents overlapping contracts or invalid dates during data entry.
+
+### Posting Management
+
+---
+
+- **View Postings:** List all postings related to a doctor and their corresponding contracts.
+- **Add Postings:** Insert postings within valid academic years aligned with contract periods.
+- **Edit Postings:** Modify details like training hours or ratings.
+- **Delete Postings:** Remove invalid or outdated postings.
+
+## User Manual and Demonstration
+
+---
+
+As it is quite straight forward to use this webapp, there will no be written documentation for this, however, please refer to the demonstration video for a better idea and visualisation of the webapplication
 
 ## Potential Errors/FAQs
 
@@ -211,7 +281,7 @@ If your web browser did not start automatically, click this link :
 
 Note if you are a mac user, good luck, whatever problems you have is beyond me.
 
-If you are a windows user, you are in good hands.
+If you are a windows user, good job, stay relevant.
 
 Here are some potential errors you may encounter during installation, along with solutions based on user feedback:
 

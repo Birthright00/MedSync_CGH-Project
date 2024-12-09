@@ -1,5 +1,5 @@
 import "../styles/staffdetailpage.css";
-import Navbar from "../components/Navbar";
+import Navbar from "./Navbar";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";

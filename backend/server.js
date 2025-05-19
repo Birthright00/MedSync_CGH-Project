@@ -77,7 +77,7 @@ app.use(cors()); //Enables CORS, allowing cross-origin requests from browsers e.
 const db = mysql2.createConnection({
   user: "root",
   host: "localhost",
-  password: "Password", // Password of the database you created
+  password: "Raintail0!", // Password of the database you created
   database: "main_db", // Name of the database you created
 });
 // Check mySql workbench if you forgot

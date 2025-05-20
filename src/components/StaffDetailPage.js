@@ -27,8 +27,9 @@ const StaffDetailPage = () => {
   const [postings, setPostings] = useState([]);
   const [filteredContracts, setFilteredContracts] = useState([]);
   const [nonInstitutional, setNonInstitutional] = useState([]);
-  const [totalTrainingHours, setTotalTrainingHours] = useState(0);
-
+  const [totalTrainingHours, setTotalTrainingHours] = useState(0)
+  const [viewMode, setViewMode] = useState("academic_year");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Reset Button Functions
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -693,7 +694,23 @@ const StaffDetailPage = () => {
                   <table className="staff-detail-table">
                     <thead>
                       <tr>
-                        <th>Academic Year</th>
+                        <th style={{ position: "relative" }}>
+  <div className="dropdown">
+    <button
+      className="dropbtn"
+      onClick={() => setDropdownOpen((prev) => !prev)}
+    >
+      {viewMode === "academic_year" ? "Academic Year" : "Academic Semester"} ▼
+    </button>
+    {dropdownOpen && (
+      <div className="dropdown-content">
+        <a onClick={() => { setViewMode("academic_year"); setDropdownOpen(false); }}>Academic Year</a>
+        <a onClick={() => { setViewMode("academic_semester"); setDropdownOpen(false); }}>Academic Semester</a>
+      </div>
+    )}
+  </div>
+</th>
+
                         <th>Teaching Categories</th>
                         <th>Role</th>
                         <th>Activity Type</th>
@@ -706,7 +723,11 @@ const StaffDetailPage = () => {
                     <tbody>
                       {filteredNonInstitutional.map((activity, index) => (
                         <tr key={`${activity.academic_year}-${index}`}>
-                          <td>{activity.academic_year || "N/A"}</td>
+                          <td>
+                            {viewMode === "academic_year"
+                            ? activity.academic_year || "N/A"
+                            : activity.academic_semester || "N/A"}
+                          </td>
                           <td>{activity.teaching_categories || "N/A"}</td>
                           <td>{activity.role || "N/A"}</td>
                           <td>{activity.activity_type || "N/A"}</td>

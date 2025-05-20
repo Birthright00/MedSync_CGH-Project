@@ -377,3 +377,37 @@
 .mcr-message.taken {
   color: red;
 }
+
+/* Container for the label + select/input */
+.input-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem; /* Spacing between label and field */
+}
+
+/* Dropdown selector for choosing academic year/semester label */
+.input-group label select {
+  padding: 6px 10px;
+  font-size: 14px;
+  font-weight: bold;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* The actual dropdown or input for year/semester entry */
+.input-group select,
+.input-group input {
+  padding: 6px 12px;
+  font-size: 14px;
+  width: 200px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Optional: make both select and input same height */
+.input-group select,
+.input-group input,
+.input-group label select {
+  height: 36px;
+}

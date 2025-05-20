@@ -17,6 +17,7 @@ const AddNewNonInstitutionalActivity = () => {
   const { mcr_number } = useParams();
   const [isActivityFormOpen, setActivityFormOpen] = useState(false);
   const [userRole, setUserRole] = useState("");
+  const [dateType, setDateType] = useState("academic_year");
 
   // useState to hold new activity details
   const [newActivity, setNewActivity] = useState({
@@ -28,6 +29,7 @@ const AddNewNonInstitutionalActivity = () => {
     host_country: "",
     honorarium: "",
     academic_year: "",
+    academic_semester: "",
     training_hours: "", // Add this field
   });
 
@@ -107,7 +109,9 @@ const AddNewNonInstitutionalActivity = () => {
       !newActivity.medium ||
       !newActivity.host_country ||
       !newActivity.honorarium ||
-      !newActivity.academic_year ||
+      (dateType === "academic_year" && !newActivity.academic_year) ||
+      (dateType === "academic_semester" && !newActivity.academic_semester) ||
+
       !newActivity.training_hours
     ) {
       toast.error("Please fill all required fields.");
@@ -205,22 +209,48 @@ const AddNewNonInstitutionalActivity = () => {
           <div className="contract-input-container">
             {" "}
             <div className="input-group">
-              <label>Academic Year:</label>
-              <select
-                name="academic_year"
-                value={newActivity.academic_year}
-                onChange={handleInputChange}
-              >
-                <option value="">Select Academic Year</option>
-                {Array.from({ length: 5 }, (_, index) => 2020 + index).map(
-                  (year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
+              <label>
+                <select
+                value={dateType}
+                onChange={(e) => {
+                  setDateType(e.target.value);
+                  setNewActivity({
+                    ...newActivity,
+                    academic_year: "",
+                    academic_semester: "",
+                  });
+                }}
+                style={{ fontWeight: "bold" }}
+                >
+                  <option value="academic_year">Academic Year</option>
+                  <option value="academic_semester">Academic Semester</option>
+                  </select>
+                  :
+                  </label>
+
+  {dateType === "academic_year" ? (
+    <select
+      name="academic_year"
+      value={newActivity.academic_year}
+      onChange={handleInputChange}
+    >
+      <option value="">Select Academic Year</option>
+      {Array.from({ length: 5 }, (_, index) => 2020 + index).map((year) => (
+        <option key={year} value={year}>
+          {year}
+        </option>
+      ))}
+    </select>
+  ) : (
+    <input
+      type="text"
+      name="academic_semester"
+      value={newActivity.academic_semester || ""}
+      onChange={handleInputChange}
+      placeholder="e.g. AY23/24 Sem 1"
+    />
+  )}
+</div>
             <div className="input-group">
               <label>Teaching Categories:</label>
               <select

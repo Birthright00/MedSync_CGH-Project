@@ -77,7 +77,7 @@ app.use(cors()); //Enables CORS, allowing cross-origin requests from browsers e.
 const db = mysql2.createConnection({
   user: "root",
   host: "localhost",
-  password: "Password", // Password of the database you created
+  password: "Raintail0!", // Password of the database you created
   database: "main_db", // Name of the database you created
 });
 // Check mySql workbench if you forgot
@@ -1136,6 +1136,82 @@ app.put("/non_institutional/update", verifyToken, (req, res) => {
       res.status(500).json({ message: "Failed to update activities." });
     });
 });
+
+// -------------------------------------------------------------------------------------------------------------//
+// POST REQUEST to upload Non-Institutional CSV data and match with logged-in user
+// -------------------------------------------------------------------------------------------------------------//
+app.post("/upload-non-institutional", verifyToken, upload.single("file"), (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: "No file uploaded." });
+
+    const workbook = XLSX.read(file.buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[0];
+    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    const loggedInUserId = req.user.id;
+
+    // Fetch the user’s name and department from main_data
+    db.query(
+      "SELECT first_name, last_name, department FROM main_data WHERE mcr_number = ?",
+      [loggedInUserId],
+      (err, results) => {
+        if (err || results.length === 0) {
+          return res.status(400).json({ error: "Invalid user identity." });
+        }
+
+        const { first_name, last_name, department } = results[0];
+        const fullName = `${last_name} ${first_name}`.toLowerCase().trim();
+
+
+
+        // Filter rows based on matching First Name, Last Name, and Department
+        const validRows = jsonData.filter(
+          (row) =>
+            row["Educator's Name"]?.toLowerCase().trim() === fullName &&
+            row["Department"]?.toLowerCase().trim() === department.toLowerCase().trim()
+        );
+
+        const insertValues = validRows.map((row) => [
+          loggedInUserId,
+          row["Teaching Categories"],
+          row["Role"],
+          row["Activity Type"],
+          row["Medium"],
+          row["Host Country"],
+          row["Honorarium"],
+          row["Academic Year"],
+          row["Training Hours"],
+        ]);
+
+        if (insertValues.length === 0) {
+          return res.status(200).json({ message: "No valid rows matched your account details." });
+        }
+
+        const query = `
+          INSERT INTO non_institutional 
+          (mcr_number, teaching_categories, role, activity_type, medium, host_country, honorarium, academic_year, training_hours)
+          VALUES ?
+        `;
+
+        db.query(query, [insertValues], (insertErr) => {
+          if (insertErr) {
+            console.error("Error inserting CSV data:", insertErr);
+            return res.status(500).json({ error: "Failed to insert data." });
+          }
+
+          res.status(201).json({ message: `${insertValues.length} activity(s) uploaded successfully.` });
+        });
+      }
+    );
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+
+
 
 // -------------------------------------------------------------------------------------------------------------//
 // ⚠️⚠️⚠️⚠️⚠️⚠️⚠️NURSES DATA BEGIN HERE⚠️⚠️⚠️⚠️⚠️⚠️⚠️

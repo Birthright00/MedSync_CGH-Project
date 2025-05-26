@@ -9,6 +9,9 @@ import { FaPlus, FaTimes, FaPaperPlane } from "react-icons/fa";
 import { confirmAlert } from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
+import handleExcelUpload from "./handleExcelUpload";
+import * as XLSX from "xlsx";
+
 
 const AddNewNonInstitutionalActivity = () => {
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -18,6 +21,9 @@ const AddNewNonInstitutionalActivity = () => {
   const [isActivityFormOpen, setActivityFormOpen] = useState(false);
   const [userRole, setUserRole] = useState("");
   const [dateType, setDateType] = useState("academic_year");
+  const [csvFile, setCsvFile] = useState(null);
+  const [userDetails, setUserDetails] = useState({}); // ADD THIS at top with other state
+
 
   // useState to hold new activity details
   const [newActivity, setNewActivity] = useState({
@@ -47,6 +53,25 @@ const AddNewNonInstitutionalActivity = () => {
   const handleRestrictedAction = () => {
     toast.error("Access Denied: Please contact management to make changes.");
   };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // For Fetching UserDetails like Full name etc
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  useEffect(() => {
+  const fetchUserDetails = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`http://localhost:3001/staff/${mcr_number}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUserDetails(response.data); // Contains first_name, last_name, department
+    } catch (error) {
+      console.error("Failed to fetch user details:", error);
+    }
+  };
+
+  fetchUserDetails();
+}, [mcr_number]);
+
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Options for each dropdown
@@ -150,6 +175,57 @@ const AddNewNonInstitutionalActivity = () => {
     }
   };
 
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Function to handle uploading of CSV for New NonInst
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  const handleXlsxUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+      const fullName = `${userDetails.last_name} ${userDetails.first_name}`.toLowerCase().trim();
+
+      const validRows = jsonData.filter((row) => {
+        const nameFromCsv = row["Educator's Name"]?.toLowerCase().trim();
+        const deptFromCsv = row["Department"]?.trim();
+        return nameFromCsv === fullName && deptFromCsv === userDetails.department;
+      });
+
+      if (validRows.length === 0) {
+        toast.error("No valid rows matched your account details.");
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        await axios.post("http://localhost:3001/upload-non-institutional", formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        toast.success("CSV uploaded successfully");
+        setTimeout(() => window.location.reload(), 1000);
+      } catch (err) {
+        console.error("Upload failed:", err);
+        toast.error("Upload failed. Please try again.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Function to handle confirmation of submitting new contract
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -208,6 +284,20 @@ const AddNewNonInstitutionalActivity = () => {
         <div>
           <div className="contract-input-container">
             {" "}
+                  {/* ✅ Upload CSV Section */}
+      <div className="input-group">
+        <label htmlFor="csv-upload">Upload CSV:</label>
+        <input
+          type="file"
+          accept=".csv,.xlsx,.xls"
+          onChange={(e) => {
+            const file = e.target.files[0];
+            if (file) {
+              handleExcelUpload(file, { mcr_number, ...userDetails });
+            }
+          }}
+        />
+      </div>
             <div className="input-group">
               <label>
                 <select

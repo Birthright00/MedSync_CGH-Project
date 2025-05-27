@@ -1138,19 +1138,26 @@ app.put("/non_institutional/update", verifyToken, (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST to upload Non-Institutional CSV data and match with logged-in user
+// POST REQUEST to upload Non-Institutional CSV data and match with logged-in user (For Staff)
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/upload-non-institutional", verifyToken, upload.single("file"), (req, res) => {
   try {
+    const loggedInUserId = req.user.id;
+    const userRole = req.user.role;
+
+    // Ensure this route is only accessible to staff
+    if (!userRole || userRole.toLowerCase() !== "staff") {
+      console.warn("Unauthorized role attempted ownself staff upload.");
+      return res.json({ error: "Access Denied." });
+    }
+
     const file = req.file;
     if (!file) return res.status(400).json({ error: "No file uploaded." });
 
     const workbook = XLSX.read(file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-    const loggedInUserId = req.user.id;
-
+    
     // Fetch the user’s name and department from main_data
     db.query(
       "SELECT first_name, last_name, department FROM main_data WHERE mcr_number = ?",
@@ -1209,7 +1216,6 @@ app.post("/upload-non-institutional", verifyToken, upload.single("file"), (req, 
     res.status(500).json({ error: "Internal server error." });
   }
 });
-
 
 
 
@@ -1400,19 +1406,70 @@ app.post("/upload-main-data", upload.none(), async (req, res) => {
         updated_at = NOW()
     `;
 
-    db.query(query, [validatedData], (err, result) => {
+    db.query(query, [validatedData], async (err, result) => {
       if (err) {
         console.error("Database insertion error:", err);
         return res.status(500).json({ error: "Failed to insert data into main_data." });
       }
 
-      res.status(201).json({ message: "Data uploaded and processed successfully!", result });
+      // ------------------ ⚡️ ADD-ON LOGIC STARTS HERE ⚡️ ------------------ //
+      try {
+        const mcrNumbers = validatedData.map(row => row[0]); // Get mcr_number from each row
+
+        // Use mcr_number as the identifier
+        const contractInserts = [];
+        const postingInserts = [];
+
+        mcrNumbers.forEach(mcr => {
+          contractInserts.push([
+            mcr, 'Default School', null, null, 'inactive',
+            null, null, '0', '0', '0', null, null, null, null
+          ]);
+
+          postingInserts.push([
+            mcr, '1990', 'Default School', '1', '0', null
+          ]);
+        });
+
+        if (contractInserts.length > 0) {
+          await db.promise().query(
+            `INSERT IGNORE INTO Contracts (
+          mcr_number, school_name, contract_start_date, contract_end_date, status, prev_title, new_title,
+          training_hours_2022, training_hours_2023, training_hours_2024, fte_2022, fte_2023, fte_2024, fte_2025
+        ) VALUES ?`,
+            [contractInserts]
+          );
+        }
+
+        if (postingInserts.length > 0) {
+          await db.promise().query(
+            `INSERT IGNORE INTO Postings (
+          mcr_number, academic_year, school_name, posting_number, total_training_hour, rating
+        ) VALUES ?`,
+            [postingInserts]
+          );
+        }
+
+        // ✅ Send response after all inserts
+        res.status(201).json({
+          message: "Data uploaded and processed successfully!",
+          result
+        });
+
+      } catch (addOnError) {
+        console.error("Error inserting Contracts or Postings:", addOnError);
+        return res.status(500).json({
+          error: "main_data inserted, but failed to insert Contracts/Postings.",
+        });
+      }
+      // ------------------ ⚡️ ADD-ON LOGIC ENDS HERE ⚡️ ------------------ // 
     });
   } catch (error) {
-    console.error("Error processing file upload:", error);
-    res.status(500).json({ error: error.message });
+    console.error("General error:", error);
+    res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
+
 
 
 // -------------------------------------------------------------------------------------------------------------//

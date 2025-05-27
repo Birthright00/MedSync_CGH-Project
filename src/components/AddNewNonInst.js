@@ -57,20 +57,20 @@ const AddNewNonInstitutionalActivity = () => {
   // For Fetching UserDetails like Full name etc
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   useEffect(() => {
-  const fetchUserDetails = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`http://localhost:3001/staff/${mcr_number}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUserDetails(response.data); // Contains first_name, last_name, department
-    } catch (error) {
-      console.error("Failed to fetch user details:", error);
-    }
-  };
+    const fetchUserDetails = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(`http://localhost:3001/staff/${mcr_number}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUserDetails(response.data); // Contains first_name, last_name, department
+      } catch (error) {
+        console.error("Failed to fetch user details:", error);
+      }
+    };
 
-  fetchUserDetails();
-}, [mcr_number]);
+    fetchUserDetails();
+  }, [mcr_number]);
 
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -177,56 +177,6 @@ const AddNewNonInstitutionalActivity = () => {
 
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // Function to handle uploading of CSV for New NonInst
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  const handleXlsxUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(sheet);
-
-      const fullName = `${userDetails.last_name} ${userDetails.first_name}`.toLowerCase().trim();
-
-      const validRows = jsonData.filter((row) => {
-        const nameFromCsv = row["Educator's Name"]?.toLowerCase().trim();
-        const deptFromCsv = row["Department"]?.trim();
-        return nameFromCsv === fullName && deptFromCsv === userDetails.department;
-      });
-
-      if (validRows.length === 0) {
-        toast.error("No valid rows matched your account details.");
-        return;
-      }
-
-      const token = localStorage.getItem("token");
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        await axios.post("http://localhost:3001/upload-non-institutional", formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        });
-        toast.success("CSV uploaded successfully");
-        setTimeout(() => window.location.reload(), 1000);
-      } catch (err) {
-        console.error("Upload failed:", err);
-        toast.error("Upload failed. Please try again.");
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
-
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Function to handle confirmation of submitting new contract
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const handleSubmitConfirmation = () => {
@@ -259,7 +209,7 @@ const AddNewNonInstitutionalActivity = () => {
         },
         {
           label: "No",
-          onClick: () => {},
+          onClick: () => { },
         },
       ],
     });
@@ -284,63 +234,64 @@ const AddNewNonInstitutionalActivity = () => {
         <div>
           <div className="contract-input-container">
             {" "}
-                  {/* ✅ Upload CSV Section */}
-      <div className="input-group">
-        <label htmlFor="csv-upload">Upload CSV:</label>
-        <input
-          type="file"
-          accept=".csv,.xlsx,.xls"
-          onChange={(e) => {
-            const file = e.target.files[0];
-            if (file) {
-              handleExcelUpload(file, { mcr_number, ...userDetails });
-            }
-          }}
-        />
-      </div>
+            {/* ✅ Upload CSV Section */}
+            <div className="input-group">
+              <label htmlFor="csv-upload">Upload CSV:</label>
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onClick={(e) => (e.target.value = null)}
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    handleExcelUpload(file, { mcr_number, ...userDetails });
+                  }
+                }}
+              />
+            </div>
             <div className="input-group">
               <label>
                 <select
-                value={dateType}
-                onChange={(e) => {
-                  setDateType(e.target.value);
-                  setNewActivity({
-                    ...newActivity,
-                    academic_year: "",
-                    academic_semester: "",
-                  });
-                }}
-                style={{ fontWeight: "bold" }}
+                  value={dateType}
+                  onChange={(e) => {
+                    setDateType(e.target.value);
+                    setNewActivity({
+                      ...newActivity,
+                      academic_year: "",
+                      academic_semester: "",
+                    });
+                  }}
+                  style={{ fontWeight: "bold" }}
                 >
                   <option value="academic_year">Academic Year</option>
                   <option value="academic_semester">Academic Semester</option>
-                  </select>
-                  :
-                  </label>
+                </select>
+                :
+              </label>
 
-  {dateType === "academic_year" ? (
-    <select
-      name="academic_year"
-      value={newActivity.academic_year}
-      onChange={handleInputChange}
-    >
-      <option value="">Select Academic Year</option>
-      {Array.from({ length: 5 }, (_, index) => 2020 + index).map((year) => (
-        <option key={year} value={year}>
-          {year}
-        </option>
-      ))}
-    </select>
-  ) : (
-    <input
-      type="text"
-      name="academic_semester"
-      value={newActivity.academic_semester || ""}
-      onChange={handleInputChange}
-      placeholder="e.g. AY23/24 Sem 1"
-    />
-  )}
-</div>
+              {dateType === "academic_year" ? (
+                <select
+                  name="academic_year"
+                  value={newActivity.academic_year}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select Academic Year</option>
+                  {Array.from({ length: 5 }, (_, index) => 2020 + index).map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  name="academic_semester"
+                  value={newActivity.academic_semester || ""}
+                  onChange={handleInputChange}
+                  placeholder="e.g. AY23/24 Sem 1"
+                />
+              )}
+            </div>
             <div className="input-group">
               <label>Teaching Categories:</label>
               <select

@@ -11,6 +11,8 @@ import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 import handleExcelUpload from "./handleExcelUpload";
 import * as XLSX from "xlsx";
+import handleExcelUploadManager from "./handleExcelUploadManager";
+import StaffDetails from "./StaffDetails";
 
 
 const AddNewNonInstitutionalActivity = () => {
@@ -23,6 +25,7 @@ const AddNewNonInstitutionalActivity = () => {
   const [dateType, setDateType] = useState("academic_year");
   const [csvFile, setCsvFile] = useState(null);
   const [userDetails, setUserDetails] = useState({}); // ADD THIS at top with other state
+  const [staffDetails, setStaffDetails] = useState(null);
 
 
   // useState to hold new activity details
@@ -64,6 +67,7 @@ const AddNewNonInstitutionalActivity = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUserDetails(response.data); // Contains first_name, last_name, department
+        setStaffDetails(response.data);
       } catch (error) {
         console.error("Failed to fetch user details:", error);
       }
@@ -240,14 +244,36 @@ const AddNewNonInstitutionalActivity = () => {
               <input
                 type="file"
                 accept=".csv,.xlsx,.xls"
-                onClick={(e) => (e.target.value = null)}
+                onClick={(e) => (e.target.value = null)} // clear file to allow reupload of same file
                 onChange={(e) => {
                   const file = e.target.files[0];
-                  if (file) {
+                  if (!file) return;
+
+                  const token = localStorage.getItem("token");
+                  const decoded = JSON.parse(atob(token.split(".")[1]));
+                  const role = decoded.role?.toLowerCase();
+
+                  if (role === "hr") {
+                    handleRestrictedAction(); // ❌ prevent HR from uploading
+                    return;
+                  }
+
+                  // ✅ Allow staff or manager to upload
+                  else if (role === "staff") {
                     handleExcelUpload(file, { mcr_number, ...userDetails });
+                  } 
+                  
+                  else if (role === "management") {
+                    console.log("📦 Manager role detected — will call handleExcelUploadManager");
+                    handleExcelUploadManager(file, {
+                      first_name: staffDetails.first_name,
+                      last_name: staffDetails.last_name,
+                      department: staffDetails.department
+                    })
                   }
                 }}
               />
+
             </div>
             <div className="input-group">
               <label>

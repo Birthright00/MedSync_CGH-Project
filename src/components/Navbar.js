@@ -91,6 +91,16 @@ const Navbar = ({ homeRoute }) => {
         >
           Home
         </motion.button>
+
+        <motion.button
+          className="navbarbutton"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={handleScheduler}
+        >
+          Schedule
+        </motion.button>
+
         {/* <motion.button
           className="navbarbutton"
           whileHover={{ scale: 1.1 }}
@@ -115,14 +125,7 @@ const Navbar = ({ homeRoute }) => {
         >
           Back
         </motion.button>{" "}
-        <motion.button
-          className="navbarbutton"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={handleScheduler}
-        >
-          Schedule
-        </motion.button>
+
         <motion.button
           className="navbarbutton"
           whileHover={{ scale: 1.1 }}

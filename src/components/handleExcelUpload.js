@@ -73,6 +73,12 @@ const handleExcelUpload = (file, currentUser) => {
         );
 
         toast.success(`${validRows.length} row(s) matched and uploaded.`);
+
+        // ✅ Automatically refresh the page after successful upload
+        setTimeout(() => {
+          window.location.reload();
+        }, 5000);
+
         resolve(response);
       };
 

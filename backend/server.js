@@ -1182,7 +1182,7 @@ app.post("/upload-non-institutional", verifyToken, (req, res) => {
           row["Host Country"] || "",
           row["Honorarium"] === "" ? 0 : row["Honorarium"],
           row["Academic Year"] || "",
-          row["Training Hours"] || "",
+          row["Training Hours"] || 0,
         ]);
 
         const query = `

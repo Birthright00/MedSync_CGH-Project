@@ -1140,19 +1140,17 @@ app.put("/non_institutional/update", verifyToken, (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 // POST REQUEST to upload Non-Institutional CSV data and match with logged-in user (For Staff)
 // -------------------------------------------------------------------------------------------------------------//
-app.post("/upload-non-institutional", verifyToken, upload.single("file"), (req, res) => {
+app.post("/upload-non-institutional", verifyToken, (req, res) => {
   try {
-    const file = req.file;
-    if (!file) return res.status(400).json({ error: "No file uploaded." });
+    const jsonData = req.body.data;
 
-    const workbook = XLSX.read(file.buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    if (!Array.isArray(jsonData) || jsonData.length === 0) {
+      return res.status(400).json({ error: "Invalid or empty data." });
+    }
 
     const loggedInUserId = req.user.id;
-    
 
-    // Fetch the user’s name and department from main_data
+    // Get user name + department
     db.query(
       "SELECT first_name, last_name, department FROM main_data WHERE mcr_number = ?",
       [loggedInUserId],
@@ -1164,30 +1162,28 @@ app.post("/upload-non-institutional", verifyToken, upload.single("file"), (req, 
         const { first_name, last_name, department } = results[0];
         const fullName = `${last_name} ${first_name}`.toLowerCase().trim();
 
-
-
-        // Filter rows based on matching First Name, Last Name, and Department
+        // Filter only rows that match the user
         const validRows = jsonData.filter(
           (row) =>
             row["Educator's Name"]?.toLowerCase().trim() === fullName &&
             row["Department"]?.toLowerCase().trim() === department.toLowerCase().trim()
         );
 
-        const insertValues = validRows.map((row) => [
-          loggedInUserId,
-          row["Teaching Categories"],
-          row["Role"],
-          row["Activity Type"],
-          row["Medium"],
-          row["Host Country"],
-          row["Honorarium"],
-          row["Academic Year"],
-          row["Training Hours"],
-        ]);
-
-        if (insertValues.length === 0) {
+        if (validRows.length === 0) {
           return res.status(200).json({ message: "No valid rows matched your account details." });
         }
+
+        const insertValues = validRows.map((row) => [
+          loggedInUserId,
+          row["Teaching Categories"] || "",
+          row["Role"] || "",
+          row["Activity Type"] || "",
+          row["Medium"] || "",
+          row["Host Country"] || "",
+          row["Honorarium"] === "" ? 0 : row["Honorarium"],
+          row["Academic Year"] || "",
+          row["Training Hours"] || "",
+        ]);
 
         const query = `
           INSERT INTO non_institutional 
@@ -1210,6 +1206,7 @@ app.post("/upload-non-institutional", verifyToken, upload.single("file"), (req, 
     res.status(500).json({ error: "Internal server error." });
   }
 });
+
 
 // -------------------------------------------------------------------------------------------------------------//
 // POST REQUEST to upload Non-Institutional CSV data on behalf of a staff (For Manager Role)

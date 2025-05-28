@@ -12,56 +12,67 @@ const handleExcelUpload = (file, currentUser) => {
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(sheet, { range: 2 }); // Start from row 3
-
+        const jsonData = XLSX.utils.sheet_to_json(sheet, { range: 2 }); // Skip header row
 
         const fullName = `${currentUser.last_name} ${currentUser.first_name}`.toLowerCase().trim();
 
-        console.log("Current User →", currentUser);
-        console.log("Full Name →", fullName);
-        console.log("Excel Raw Headers →", Object.keys(jsonData[0]));
+        const extractYear = (value) => {
+          if (!value) return null;
 
-        const validRows = jsonData.filter((row) => {
-          const nameFromExcel = row["Educator's Name"]?.toLowerCase().trim();
-          const deptFromExcel = row["Department"]?.trim();
+          // Case 1: Excel serial number (pure numeric value)
+          if (!isNaN(value) && typeof value === "number") {
+            const baseDate = new Date(1899, 11, 30);
+            const date = new Date(baseDate.getTime() + value * 86400000);
+            return date.getFullYear();
+          }
 
-          console.log("Row Name →", nameFromExcel);
-          console.log("Row Dept →", deptFromExcel);
+          // Case 2: String with a 4-digit year, like "Mar 2022", "Apr 2023", etc.
+          const str = value.toString().trim();
+          const yearMatch = str.match(/\b(19|20)\d{2}\b/); // Match "2022", "2023", etc.
+          return yearMatch ? parseInt(yearMatch[0]) : null;
+        };
 
-          return (
-            nameFromExcel === fullName &&
-            deptFromExcel === currentUser.department
-          );
-        });
 
-        console.log("Valid Rows →", validRows);
-        console.log("=== RAW ROW DUMP ===");
-        jsonData.slice(0, 3).forEach((row, index) => {
-          console.log(`Row ${index + 1}:`, row);
-          console.log("Keys:", Object.keys(row));
-        });
+
+        const validRows = jsonData
+          .filter((row) => {
+            const nameFromExcel = row["Educator's Name"]?.toLowerCase().trim();
+            const deptFromExcel = row["Department"]?.trim();
+            return (
+              nameFromExcel === fullName &&
+              deptFromExcel === currentUser.department
+            );
+          })
+          .map((row) => {
+            const extractedYear = extractYear(row["Academic Year"]);
+            return {
+              ...row,
+              "Academic Year": extractedYear && !isNaN(extractedYear) ? extractedYear : 1999,
+              "Honorarium": row["Honorarium"] === "" ? null : Number(row["Honorarium"]),
+              "Training Hours": Math.round(Number(row["Training Hours"])) || 0,
+
+            };
+          });
+
+        if (validRows.length === 0) {
+          toast.error("No valid rows matched your account details.");
+          return reject("No valid rows.");
+        }
 
         const token = localStorage.getItem("token");
-        const formData = new FormData();
-        formData.append("file", file);
 
         const response = await axios.post(
           "http://localhost:3001/upload-non-institutional",
-          formData,
+          { data: validRows },
           {
             headers: {
               Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data",
+              "Content-Type": "application/json",
             },
           }
         );
 
-        if (validRows.length === 0) {
-          toast.error("No valid rows matched your account details.");
-        } else {
-          toast.success(`${validRows.length} row(s) matched and uploaded.`);
-        }
-
+        toast.success(`${validRows.length} row(s) matched and uploaded.`);
         resolve(response);
       };
 

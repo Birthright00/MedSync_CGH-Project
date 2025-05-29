@@ -1209,39 +1209,32 @@ app.post("/upload-non-institutional", verifyToken, (req, res) => {
 
 
 // -------------------------------------------------------------------------------------------------------------//
-// POST REQUEST to upload Non-Institutional CSV data on behalf of a staff (For Manager Role)
+// POST REQUEST to upload processed Non-Institutional data directly (For Manager Role)
 // -------------------------------------------------------------------------------------------------------------//
-app.post("/upload-non-institutional-manager", verifyToken, upload.single("file"), (req, res) => {
+app.post("/upload-non-institutional-manager", verifyToken, (req, res) => {
   try {
-    const file = req.file;
-    if (!file) return res.status(400).json({ error: "No file uploaded." });
-
-    const workbook = XLSX.read(file.buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    console.log("📥 Manager direct upload endpoint hit");
 
     const userRole = req.user.role;
-
-    // Ensure this route is only accessible to managers
     if (userRole !== "management") {
       return res.status(403).json({ error: "Access denied. Managers only." });
     }
 
-    // Manager-provided override fields
-    const overrideName = req.body.full_name?.toLowerCase().trim();
-    const overrideDept = req.body.department?.toLowerCase().trim();
+    const { full_name, department, mcr_number, rows } = req.body;
 
-    if (!overrideName || !overrideDept) {
-      return res.status(400).json({ error: "Missing full name or department." });
+    if (!full_name || !department || !rows || !Array.isArray(rows)) {
+      return res.status(400).json({ error: "Missing required fields." });
     }
 
-    // Split full name into last and first name
+    const overrideName = full_name.toLowerCase().trim();
+    const overrideDept = department.toLowerCase().trim();
+    const overrideMcr = mcr_number?.trim() || null;
+
     const [last_name, ...rest] = overrideName.split(" ");
     const first_name = rest.join(" ");
     const fullName = `${last_name} ${first_name}`.toLowerCase().trim();
 
-    // Match Excel rows
-    const validRows = jsonData.filter(
+    const validRows = rows.filter(
       (row) =>
         row["Educator's Name"]?.toLowerCase().trim() === fullName &&
         row["Department"]?.toLowerCase().trim() === overrideDept
@@ -1251,40 +1244,37 @@ app.post("/upload-non-institutional-manager", verifyToken, upload.single("file")
       return res.status(200).json({ message: "No valid rows matched the educator’s details." });
     }
 
-    // Use dummy MCR as managers don’t have one — frontend does not pass it
     const insertValues = validRows.map((row) => [
-      null, // mcr_number
-      row["Teaching Categories"],
-      row["Role"],
-      row["Activity Type"],
-      row["Medium"],
-      row["Host Country"],
-      row["Honorarium"],
-      row["Academic Year"],
-      row["Training Hours"],
+      overrideMcr,
+      row["Teaching Categories"] || "",
+      row["Role"] || "",
+      row["Activity Type"] || "",
+      row["Medium"] || "",
+      row["Host Country"] || "",
+      row["Honorarium"] === "" ? 0 : row["Honorarium"],
+      row["Academic Year"] || "",
+      row["Training Hours"] || 0,
     ]);
 
     const query = `
       INSERT INTO non_institutional 
       (mcr_number, teaching_categories, role, activity_type, medium, host_country, honorarium, academic_year, training_hours)
-      VALUES ?`;
+      VALUES ?
+    `;
 
     db.query(query, [insertValues], (insertErr) => {
       if (insertErr) {
-        console.error("Error inserting CSV data:", insertErr);
+        console.error("Error inserting data:", insertErr);
         return res.status(500).json({ error: "Failed to insert data." });
       }
 
-      res.status(201).json({
-        message: `${insertValues.length} activity(s) uploaded successfully.`,
-      });
+      res.status(201).json({ message: `${insertValues.length} activity(s) uploaded successfully.` });
     });
   } catch (err) {
     console.error("Manager upload error:", err);
     res.status(500).json({ error: "Internal server error." });
   }
 });
-
 
 
 // -------------------------------------------------------------------------------------------------------------//
@@ -1540,17 +1530,17 @@ app.post("/upload-main-data", upload.none(), async (req, res) => {
 
 
 
-    // -------------------------------------------------------------------------------------------------------------//
-    // Database connection and Server Start
-    // -------------------------------------------------------------------------------------------------------------//
-    db.connect((err) => {
-      if (err) {
-        console.log("Error connecting to the database:", err);
-      } else {
-        console.log("Connection Successful. Backend server is running!");
-      }
-    });
+// -------------------------------------------------------------------------------------------------------------//
+// Database connection and Server Start
+// -------------------------------------------------------------------------------------------------------------//
+db.connect((err) => {
+  if (err) {
+    console.log("Error connecting to the database:", err);
+  } else {
+    console.log("Connection Successful. Backend server is running!");
+  }
+});
 
-    app.listen(process.env.PORT || 3001, () => {
-      console.log("Connection Successful. Backend server is running!");
-    });
+app.listen(process.env.PORT || 3001, () => {
+  console.log("Connection Successful. Backend server is running!");
+});

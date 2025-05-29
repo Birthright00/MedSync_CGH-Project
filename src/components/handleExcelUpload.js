@@ -77,7 +77,7 @@ const handleExcelUpload = (file, currentUser) => {
         // ✅ Automatically refresh the page after successful upload
         setTimeout(() => {
           window.location.reload();
-        }, 5000);
+        }, 2500);
 
         resolve(response);
       };

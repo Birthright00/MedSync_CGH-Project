@@ -268,7 +268,8 @@ const AddNewNonInstitutionalActivity = () => {
                     handleExcelUploadManager(file, {
                       first_name: staffDetails.first_name,
                       last_name: staffDetails.last_name,
-                      department: staffDetails.department
+                      department: staffDetails.department,
+                      mcr_number: staffDetails.mcr_number
                     })
                   }
                 }}

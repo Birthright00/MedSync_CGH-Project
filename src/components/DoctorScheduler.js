@@ -94,7 +94,6 @@ function DoctorScheduler() {
           <div className="date-slots">
             <div
               className={`date-slot ${selectedDate === 0 ? "selected" : ""}`}
-              onClick={() => handleDateSelection(0)}
             >
               <div className="date-slot-content">
                 <span className="date-text">March 18, 2025</span>
@@ -104,7 +103,6 @@ function DoctorScheduler() {
             </div>
             <div
               className={`date-slot ${selectedDate === 1 ? "selected" : ""}`}
-              onClick={() => handleDateSelection(1)}
             >
               <div className="date-slot-content">
                 <span className="date-text">March 20, 2025</span>
@@ -114,7 +112,6 @@ function DoctorScheduler() {
             </div>
             <div
               className={`date-slot ${selectedDate === 2 ? "selected" : ""}`}
-              onClick={() => handleDateSelection(2)}
             >
               <div className="date-slot-content">
                 <span className="date-text">March 22, 2025</span>
@@ -124,7 +121,6 @@ function DoctorScheduler() {
             </div>
             <div
               className={`date-slot ${selectedDate === 3 ? "selected" : ""}`}
-              onClick={() => handleDateSelection(3)}
             >
               <div className="date-slot-content">
                 <span className="date-text">March 25, 2025</span>
@@ -134,7 +130,6 @@ function DoctorScheduler() {
             </div>
             <div
               className={`date-slot ${selectedDate === 4 ? "selected" : ""}`}
-              onClick={() => handleDateSelection(4)}
             >
               <div className="date-slot-content">
                 <span className="date-text">March 27, 2025</span>
@@ -145,7 +140,7 @@ function DoctorScheduler() {
           </div>
           <div className="action-buttons">
             <button className="primary-button" onClick={handleConfirmSession}>
-              ✅ Confirm Selected Session
+              ✅ Confirm Sessions
             </button>
           </div>
         </div>

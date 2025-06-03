@@ -10,7 +10,7 @@ import HomePage from "./pages_login/HomePage";
 import AboutUs from "./components/AboutUs";
 import NurseManagementHomePage from "./pages_management/NurseManagementHomePage";
 import NurseDetailsPage from "./components/NurseDetailsPage";
-import Scheduler from "./components/DoctorScheduler";
+import Scheduler from "./scheduling/DoctorScheduler-MainPage";
 function App() {
   return (
     <div className="App">

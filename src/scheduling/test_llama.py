@@ -1,85 +1,63 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import gradio as gr
+import faulthandler
+import yaml
+import os
+
+faulthandler.enable()
+
+# Load config from llm_config.yaml
+config_path = os.path.join(os.path.dirname(__file__), "llm_config.yaml")
+with open(config_path, "r") as f:
+    config = yaml.safe_load(f)
+
+model_id = config["model_id"]
+system_prompt = config["system_prompt"]
 
 # Load tokenizer and model
-model_id = "meta-llama/Llama-3.2-3B-Instruct"
-
 print("🔄 Loading tokenizer and model...")
 tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
-    device_map="auto",  # Use GPU if available
+    device_map="auto",  # Uses GPU if available
     torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
     trust_remote_code=True
 )
 print("✅ Model loaded successfully.")
+print(f"Model loaded on: {model.device}")
 
 # Response generation function
-def generate_response(prompt):
-    input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(model.device)
+def generate_response(email_text):
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": email_text}
+    ]
+
+    input_ids = tokenizer.apply_chat_template(messages, return_tensors="pt", tokenize=True).to(model.device)
 
     with torch.no_grad():
         output_ids = model.generate(
             input_ids,
-            max_new_tokens=300,
+            max_new_tokens=config["max_new_tokens"],
             do_sample=False,
-            temperature=0.7,
-            top_k=50,
-            top_p=0.95,
+            temperature=config["temperature"],
+            top_k=config["top_k"],
+            top_p=config["top_p"],
             eos_token_id=tokenizer.eos_token_id,
         )
 
-    response = tokenizer.decode(output_ids[0], skip_special_tokens=True)
-    return response[len(prompt):].strip()
-
-# Optional default email example
-default_prompt = """You are an AI assistant for a hospital scheduling system. Your job is to extract and categorize structured information from emails sent by doctors.
-
-There are two main types of emails:
-1. Change Request
-2. Timetable Availability
-
-Given the email in the input, classify its type and extract relevant fields accordingly.
-
----
-
-If it's a **Change Request**, extract:
-- Original Session Date and Time:
-- New Requested Session Date and Time:
-- Reason for Change:
-- Affected Student Group:
-
-If it's a **Timetable Availability**, extract:
-- Available Dates and Time Slots/Timings (as many as listed):
-- Any Special Conditions or Notes:
-- Relevant Student Group (if mentioned):
-
-If no relevant information can be extracted, return:
-`{"type": "none", "reason": "Not a scheduling-related email"}`
-
----
-
-Return your response in this structured JSON format:
-{
-  "type": "change_request" or "availability",
-  "original_session": "...",        ← only for change_request
-  "new_session": "...",             ← only for change_request
-  "reason": "...",                  ← only for change_request
-  "students": "...",                ← only if mentioned
-  "available_slots_timings": ["..."],       ← only for availability
-  "notes": "..."                    ← optional, for availability
-}
-
-"""
+    response_ids = output_ids[0][input_ids.shape[-1]:]
+    response = tokenizer.decode(response_ids, skip_special_tokens=True).strip()
+    return response
 
 # Launch Gradio UI
 interface = gr.Interface(
     fn=generate_response,
-    inputs=gr.Textbox(lines=15, value=default_prompt, label="Prompt / Email"),
-    outputs=gr.Textbox(label="Model Response"),
-    title="🧠 DeepSeek-R1-Distill-Qwen-1.5B Email Assistant",
-    description="Paste your email prompt and get structured output using DeepSeek LLM.",
+    inputs=gr.Textbox(lines=15, label="Doctor's Email"),
+    outputs=gr.Textbox(label="Structured Output (JSON)"),
+    title="📅 Email Assistant (Llama) - Doctor Scheduling",
+    description="Paste a doctor's email to extract structured timetable-related info.",
 )
 
 interface.launch()

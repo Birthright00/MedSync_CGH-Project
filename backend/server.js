@@ -1530,9 +1530,116 @@ app.post("/upload-main-data", upload.none(), async (req, res) => {
 
 
 // -------------------------------------------------------------------------------------------------------------//
-// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️READING OF EMAILS BY DOCTORS⚠️⚠️⚠️⚠️⚠️⚠️
+// ⚠️⚠️⚠️⚠️⚠️⚠️⚠️READING OF EMAILS BY AI⚠️⚠️⚠️⚠️⚠️⚠️
 // -------------------------------------------------------------------------------------------------------------//
+// -------------------------------------------------------------------------------------------------------------//
+// POST REQUEST to store structured scheduling data (from AI email parser)
+// -------------------------------------------------------------------------------------------------------------//
+app.post("/api/scheduling/parsed-email", (req, res) => {
+  const {
+    type,
+    session_name,
+    from_name,
+    from_email,
+    to_name,
+    to_email,
+    original_session,
+    new_session,
+    reason,
+    students,
+    available_slots_timings,
+    notes
+  } = req.body;
 
+  const insertQuery = `
+    INSERT INTO parsed_emails (
+      type, session_name, from_name, from_email, to_name, to_email,
+      original_session, new_session, reason, students,
+      available_slots_timings, notes, received_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+  `;
+
+  const values = [
+    type,
+    session_name,
+    from_name,
+    from_email,
+    to_name,
+    to_email,
+    original_session,
+    new_session,
+    reason,
+    students,
+    Array.isArray(available_slots_timings) ? available_slots_timings.join(", ") : null,
+    notes
+  ];
+
+  db.query(insertQuery, values, (err, result) => {
+    if (err) {
+      console.error("Error inserting parsed email:", err);
+      return res.status(500).json({ error: "Failed to store parsed scheduling data." });
+    }
+
+    return res.status(201).json({ message: "Parsed email saved successfully." });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST to call for scheduling data and displaying it as notifications
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/scheduling/availability-notifications", (req, res) => {
+  const query = `
+    SELECT
+      session_name,
+      from_name AS doctor,
+      to_name,
+      students,
+      available_slots_timings,
+      received_at
+    FROM parsed_emails
+    WHERE type = 'availability'
+    ORDER BY received_at DESC
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching availability notifications:", err);
+      return res.status(500).json({ error: "Failed to retrieve availability data." });
+    }
+
+    const transformed = results.map(entry => {
+      const slotStrings = entry.available_slots_timings
+        ? entry.available_slots_timings.split(",").map(s => s.trim())
+        : [];
+
+      const available_dates = slotStrings.map(slot => {
+        const match = slot.trim().match(/^(.+?)\s+(\d{1,2}(?::\d{2})?\s?(?:am|pm|AM|PM))$/);
+        if (match) {
+          return {
+            date: match[1].trim(),  // e.g., "11 June"
+            time: match[2].trim()   // e.g., "11am"
+          };
+        } else {
+          return {
+            date: slot.trim(),
+            time: null
+          };
+        }
+      });
+
+
+      return {
+        session_name: entry.session_name || null,
+        doctor: entry.doctor,
+        students: entry.students || null,
+        available_dates
+      };
+    });
+
+    return res.json(transformed);
+  });
+});
 
 
 

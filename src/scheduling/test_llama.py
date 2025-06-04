@@ -8,7 +8,7 @@ import os
 faulthandler.enable()
 
 # Load config from llm_config.yaml
-config_path = os.path.join(os.path.dirname(__file__), "llm_config.yaml")
+config_path = os.path.join(os.path.dirname(__file__), "llm_test_config.yaml")
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 

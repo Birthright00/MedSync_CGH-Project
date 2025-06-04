@@ -16,6 +16,10 @@ def get_emails(access_token):
             email for email in all_emails
             if "tutorial" in (email.get("subject", "") + email.get("bodyPreview", "")).lower()
             or "tutor" in (email.get("subject", "") + email.get("bodyPreview", "")).lower()
+            or "reschedule" in (email.get("subject", "") + email.get("bodyPreview", "")).lower()
+            or "change" in (email.get("subject", "") + email.get("bodyPreview", "")).lower()
+            or "available" in (email.get("subject", "") + email.get("bodyPreview", "")).lower()
+            or "availability" in (email.get("subject", "") + email.get("bodyPreview", "")).lower()
             ]
 
     else:

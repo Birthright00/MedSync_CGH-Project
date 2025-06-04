@@ -1586,7 +1586,7 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// GET REQUEST to call for scheduling data and displaying it as notifications
+// GET REQUEST to call for scheduling data and displaying it as notifications for type = availability
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/api/scheduling/availability-notifications", (req, res) => {
   const query = `
@@ -1641,6 +1641,47 @@ app.get("/api/scheduling/availability-notifications", (req, res) => {
   });
 });
 
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST to call for scheduling data and displaying it as notifications for type = change_request
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/scheduling/change_request", (req, res) => {
+  const query = `
+    SELECT
+      session_name,
+      from_name AS doctor,
+      to_name,
+      original_session,
+      new_session,
+      reason,
+      students,
+      received_at
+    FROM parsed_emails
+    WHERE type = 'change_request'
+    ORDER BY received_at DESC
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching change request notifications:", err);
+      return res.status(500).json({ error: "Failed to retrieve change request data." });
+    }
+
+    const transformed = results.map(entry => ({
+      session_name: entry.session_name || null,
+      doctor: entry.doctor,
+      to_name: entry.to_name || null,
+      students: entry.students || null,
+      original_session: entry.original_session || null,
+      new_session: entry.new_session || null,
+      reason: entry.reason || null,
+      notes: entry.notes || null,
+      received_at: entry.received_at
+    }));
+
+    return res.json(transformed);
+  });
+});
 
 
 // -------------------------------------------------------------------------------------------------------------//

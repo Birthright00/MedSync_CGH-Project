@@ -16,7 +16,7 @@ access_token = get_token_from_device_flow()
 # Load the model once
 llama = LlamaModel()
 
-print("🔁 Monitoring unread tutorial-related emails every 60s...")
+print("🔁 Monitoring unread tutorial-related emails every 5s...")
 
 while True:
     try:
@@ -46,7 +46,7 @@ while True:
                 except json.JSONDecodeError:
                     print("❌ Failed to parse model output:", structured_json)
 
-        time.sleep(60)
+        time.sleep(5)
 
     except Exception as e:
         print("⚠️ Error during polling:", e)

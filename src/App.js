@@ -11,6 +11,7 @@ import AboutUs from "./components/AboutUs";
 import NurseManagementHomePage from "./pages_management/NurseManagementHomePage";
 import NurseDetailsPage from "./components/NurseDetailsPage";
 import Scheduler from "./scheduling/DoctorScheduler-MainPage";
+import Timetable from "./components/Timetable/timetable";
 function App() {
   return (
     <div className="App">
@@ -23,6 +24,7 @@ function App() {
         <Route exact path="/entry" element={<Entry />} />
         <Route exact path="/home" element={<HomePage />} />
         <Route exact path="/about-us" element={<AboutUs />} />
+        <Route exact path="/timetable" element={<Timetable />} />
         <Route
           exact
           path="/nurse-homepage"

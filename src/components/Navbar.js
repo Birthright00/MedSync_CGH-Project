@@ -73,6 +73,10 @@ const Navbar = ({ homeRoute }) => {
     nav("/scheduler");
   };
 
+  const handleTimetable = () => {
+    nav("/timetable");
+  };
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Render
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,6 +121,16 @@ const Navbar = ({ homeRoute }) => {
         >
           About Me
         </motion.button>
+
+        <motion.button
+          className="navbarbutton"
+          whileHover={{ scale: 1.1 }} 
+          whileTap={{ scale: 0.9 }}
+          onClick={handleTimetable}  // or replace with your actual route
+        >
+          Timetable
+        </motion.button>
+
         <motion.button
           className="navbarbutton"
           whileHover={{ scale: 1.1 }}

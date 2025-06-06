@@ -1,0 +1,38 @@
+.timetable {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ccc;
+  font-family: sans-serif;
+}
+
+.header-row,
+.row {
+  display: flex;
+}
+
+.time-cell {
+  width: 60px;
+  min-width: 60px;
+  border-right: 1px solid #ccc;
+  background: #f9f9f9;
+  text-align: right;
+  padding: 8px;
+  font-weight: bold;
+}
+
+.header-cell,
+.cell {
+  flex: 1;
+  border: 1px solid #ccc;
+  padding: 8px;
+  min-height: 60px;
+  position: relative;
+}
+
+.session-box {
+  background-color: #e0f7fa;
+  border-left: 4px solid #00acc1;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}

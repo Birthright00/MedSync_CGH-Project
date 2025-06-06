@@ -1,7 +1,19 @@
 from utils.clean_html import strip_html
 
 def should_process_email(email):
-    return "tutorial" in email.get("subject", "").lower() or "tutorial" in email.get("bodyPreview", "").lower()
+    subject = email.get("subject", "").lower()
+    preview = email.get("bodyPreview", "").lower()
+    combined = subject + preview
+
+    return (
+        "tutorial" in combined
+        or "tutor" in combined
+        or "reschedule" in combined
+        or "change" in combined
+        or "available" in combined
+        or "availability" in combined
+    )
+
 
 def extract_relevant_fields(email):
     return {

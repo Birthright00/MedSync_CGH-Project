@@ -11,7 +11,7 @@ def get_emails(access_token):
     if response.status_code == 200:
         print("✅ Email fetch success.")
         all_emails = response.json().get("value", [])
-        # Only return emails that contain the word 'tutorial' in subject or preview
+        # Only return emails that contain these words in subject or preview
         return [
             email for email in all_emails
             if "tutorial" in (email.get("subject", "") + email.get("bodyPreview", "")).lower()

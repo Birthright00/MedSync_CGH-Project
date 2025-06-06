@@ -23,6 +23,7 @@ while True:
         emails = get_emails(access_token)
         for email in emails:
             if should_process_email(email):
+                
                 fields = extract_relevant_fields(email)
 
                 # 🔧 Use raw message formatting only (system prompt is already in the config)

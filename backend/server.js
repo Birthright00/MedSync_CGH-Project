@@ -1557,7 +1557,6 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
     session_name,
     from_name,
     from_email,
-    to_name,
     to_email,
     original_session,
     new_session,
@@ -1569,11 +1568,11 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
 
   const insertQuery = `
     INSERT INTO parsed_emails (
-      type, session_name, from_name, from_email, to_name, to_email,
+      type, session_name, from_name, from_email, to_email, 
       original_session, new_session, reason, students,
       available_slots_timings, notes, received_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
   `;
 
   const values = [
@@ -1581,7 +1580,6 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
     session_name,
     from_name,
     from_email,
-    to_name,
     to_email,
     original_session,
     new_session,
@@ -1609,7 +1607,8 @@ app.get("/api/scheduling/availability-notifications", (req, res) => {
     SELECT
       session_name,
       from_name AS doctor,
-      to_name,
+      from_email,
+      to_email,
       students,
       available_slots_timings,
       received_at
@@ -1648,6 +1647,7 @@ app.get("/api/scheduling/availability-notifications", (req, res) => {
       return {
         session_name: entry.session_name || null,
         doctor: entry.doctor,
+        from_email: entry.from_email || null,
         students: entry.students || null,
         available_dates
       };
@@ -1666,7 +1666,8 @@ app.get("/api/scheduling/change_request", (req, res) => {
     SELECT
       session_name,
       from_name AS doctor,
-      to_name,
+      from_email,
+      to_email,
       original_session,
       new_session,
       reason,
@@ -1686,7 +1687,8 @@ app.get("/api/scheduling/change_request", (req, res) => {
     const transformed = results.map(entry => ({
       session_name: entry.session_name || null,
       doctor: entry.doctor,
-      to_name: entry.to_name || null,
+      from_email: entry.from_email || null,
+      to_email: entry.to_email || null,
       students: entry.students || null,
       original_session: entry.original_session || null,
       new_session: entry.new_session || null,

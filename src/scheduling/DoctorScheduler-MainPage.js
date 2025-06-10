@@ -24,6 +24,9 @@ const DoctorScheduler = () => {
     };
 
     fetchNotifications();
+    const intervalId = setInterval(fetchNotifications, 5000); // every 5s
+
+    return () => clearInterval(intervalId); // Cleanup
   }, []);
 
   return (
@@ -35,7 +38,7 @@ const DoctorScheduler = () => {
             <div className="notification-box">
               <h2>🩺 Doctor Availability Notifications</h2>
               {availabilityNotifs.map((notif, index) => (
-                <div key={index} className="response-card">
+                <div key={index} className="response-card fade-in">
                   <div className="card-header">
                     <div className="doctor-name">{notif.doctor}</div>
                     <div className="status-badge responded">AVAILABILITY</div>
@@ -68,7 +71,7 @@ const DoctorScheduler = () => {
           <div className="notification-box">
             <h2>📤 Change Request Notifications</h2>
             {changeRequestNotifs.map((notif, index) => (
-              <div key={index} className="response-card">
+              <div key={index} className="response-card fade-in">
                 <div className="card-header">
                   <div className="doctor-name">{notif.doctor}</div>
                   <div className="status-badge pending">CHANGE REQUEST</div>

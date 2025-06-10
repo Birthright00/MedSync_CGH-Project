@@ -24,14 +24,16 @@ while True:
         for email in emails:
             if should_process_email(email):
                 fields = extract_relevant_fields(email)
+                print("📬 Extracted Fields:")
+                for k, v in fields.items():
+                    print(f"{k}: {v}")
 
                 # 🔧 Use raw message formatting only (system prompt is already in the config)
-                user_message = (
-                    f"From: {fields['from_name']} <{fields['from_email']}>\n"
-                    f"To: {fields['to_name']} <{fields['to_email']}>\n\n"
-                    f"Subject: {fields['subject']}\n\n"
-                    f"{fields['body_text']}"
-                )
+                user_message = fields["raw_text"]
+
+                
+                print("🧠 Prompt to LLM:")
+                print(user_message)
 
                 structured_json = llama.generate(user_message).strip()
                 
@@ -40,6 +42,13 @@ while True:
 
                 try:
                     structured_data = json.loads(structured_json)
+                    structured_data["from_name"] = fields["from_name"]
+                    structured_data["from_email"] = fields["from_email"]
+                    structured_data["to_email"] = fields["to_email"]    
+                    
+                    print("📦 Final structured data to send to backend:")
+                    print(json.dumps(structured_data, indent=2))
+
                     code, response = post_structured_data(structured_data)
                     print(f"✅ Sent to backend: {code} - {response}")
                     mark_email_as_read(email['id'], access_token)

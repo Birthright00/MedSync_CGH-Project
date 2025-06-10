@@ -16,11 +16,24 @@ def should_process_email(email):
 
 
 def extract_relevant_fields(email):
+    from_name = email["from"]["emailAddress"]["name"]
+    from_email = email["from"]["emailAddress"]["address"]
+    to_name = email["toRecipients"][0]["emailAddress"]["name"] if email["toRecipients"] else None
+    to_email = email["toRecipients"][0]["emailAddress"]["address"] if email["toRecipients"] else None
+    subject = email.get("subject", "")
+    body_text = strip_html(email.get("body", {}).get("content", ""))
+
+    full_text = f"""From: {from_name} <{from_email}>
+To: {to_name} <{to_email}>
+Subject: {subject}
+
+{body_text}
+"""
+
     return {
-        "from_name": email["from"]["emailAddress"]["name"],
-        "from_email": email["from"]["emailAddress"]["address"],
-        "to_name": email["toRecipients"][0]["emailAddress"]["name"] if email["toRecipients"] else None,
-        "to_email": email["toRecipients"][0]["emailAddress"]["address"] if email["toRecipients"] else None,
-        "body_text": strip_html(email.get("body", {}).get("content", "")),
-        "subject": email.get("subject", "")
+        "from_name": from_name,
+        "from_email": from_email,
+        "to_email": to_email,
+        "body_text": full_text,
+        "raw_text": full_text  # what you send to the LLM
     }

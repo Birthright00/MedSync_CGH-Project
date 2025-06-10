@@ -21,6 +21,9 @@ import white_management from "../images/management_white.png";
 import white_staff from "../images/staff_white.png";
 import hr from "../images/hr.png";
 import hr_white from "../images/hr_white.png";
+import student from "../images/student.png";
+import white_student from "../images/student_white.png";
+
 
 const LoginPage = () => {
   const nav = useNavigate(); // For navigation after successful login
@@ -56,11 +59,18 @@ const LoginPage = () => {
     // SNB number: N or n followed by 5 digits and 1 letter
     const mcrOrSnbPattern = /^[Mm]\d{5}[A-Za-z]$|^[Nn]\d{5}[A-Za-z]$/;
 
+    // For Student: Assuming it follows Management ADID pattern
+    const studentPattern = /^[a-z]+$/; // Adjust this pattern as needed
+    // Note: Adjust the studentPattern based on your actual requirements
+
+
     // Check the pattern based on the selected role
     if (role === "management") {
       return adidPattern.test(username); // Validate ADID for management
     } else if (role === "staff") {
       return mcrOrSnbPattern.test(username); // Validate MCR or SNB for staff
+    } else if (role === "student") {
+      return studentPattern.test(username); // Validate student username
     }
     if (role === "hr") return adidPattern.test(username); // Assuming HR follows management pattern
 
@@ -86,7 +96,7 @@ const LoginPage = () => {
 
     // Making sure users select a role
     if (!selectedRole) {
-      toast.warn("Please select a role (Management, Staff or HR)");
+      toast.warn("Please select a role (Management, Staff, Student or HR)");
       return;
     }
 
@@ -120,10 +130,13 @@ const LoginPage = () => {
 
           // Redirect logic:
           if (selectedRole === "management" || selectedRole === "hr") {
-            nav("/home"); // For management or HR, go to the home page
+            nav("/home"); // For management or HR
           } else if (selectedRole === "staff") {
-            nav(`/staff/${mcr_number}`); // For staff (doctor/nurse), go to their specific staff details page
+            nav(`/staff/${mcr_number}`); // For staff (doctor/nurse), goes to their specific page
+          } else if (selectedRole === "student") {
+            nav("/student-home"); // For students
           }
+
         }, 1000); // Small delay for toast visibility
       } else {
         // Handle specific status codes and show custom toast messages
@@ -183,9 +196,8 @@ const LoginPage = () => {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className={`login-button ${
-                  selectedRole === "management" ? "selected" : ""
-                }`}
+                className={`login-button ${selectedRole === "management" ? "selected" : ""
+                  }`}
                 type="button"
                 onClick={() => setSelectedRole("management")}
               >
@@ -202,9 +214,8 @@ const LoginPage = () => {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className={`login-button ${
-                  selectedRole === "staff" ? "selected" : ""
-                }`}
+                className={`login-button ${selectedRole === "staff" ? "selected" : ""
+                  }`}
                 type="button"
                 onClick={() => setSelectedRole("staff")}
               >
@@ -218,12 +229,27 @@ const LoginPage = () => {
                 />
                 Doctor/Nurse
               </motion.button>{" "}
+
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className={`login-button ${
-                  selectedRole === "hr" ? "selected" : ""
-                }`}
+                className={`login-button ${selectedRole === "student" ? "selected" : ""}`}
+                type="button"
+                onClick={() => setSelectedRole("student")}
+              >
+                <img
+                  src={isRoleSelected("student") ? white_student : student}
+                  alt="student"
+                />
+                Student
+              </motion.button>
+
+
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className={`login-button ${selectedRole === "hr" ? "selected" : ""
+                  }`}
                 type="button"
                 onClick={() => setSelectedRole("hr")}
               >

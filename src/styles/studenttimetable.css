@@ -1,0 +1,84 @@
+/* ################################################# */
+/* Student Timetable Page Styling */
+/* ################################################# */
+.student-timetable-page {
+  width: 100vw;
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  color: #0083ca;
+}
+
+.student-timetable-page:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("../images/login-background-img.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.4;
+  z-index: -1;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.timetable-container {
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px,
+              rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
+  overflow-x: auto;
+  width: 90%;
+  max-width: 1000px;
+}
+
+.timetable-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.timetable-table th,
+.timetable-table td {
+  border: 1px solid #ddd;
+  padding: 12px 15px;
+  text-align: center;
+  font-size: 16px;
+  color: #333;
+}
+
+.timetable-table th {
+  background-color: #0083ca;
+  color: white;
+  font-weight: 600;
+}
+
+/* ################################################# */
+/* Responsive Styling */
+/* ################################################# */
+@media (max-width: 768px) {
+  .timetable-container {
+    padding: 10px;
+  }
+
+  .timetable-table th,
+  .timetable-table td {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+}

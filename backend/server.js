@@ -191,22 +191,38 @@ app.post("/login", (req, res) => {
 // REGISTRATION ROUTE (For Development Purposes Only)
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/register", (req, res) => {
-  const q =
-    "INSERT INTO user_data (user_id, email, user_password, role) VALUES (?, ?, ?, ?)";
+  const { user_id, email, password, role } = req.body;
 
-  bcrypt.hash(req.body.password.toString(), 10, (err, hash) => {
-    if (err)
-      return res.status(500).json({ error: "Error hashing your password" });
+  // First, check if the user_id already exists
+  const checkQuery = "SELECT * FROM user_data WHERE user_id = ?";
+  db.query(checkQuery, [user_id], (err, results) => {
+    if (err) return res.status(500).json({ error: "Database error" });
 
-    const values = [req.body.user_id, req.body.email, hash, req.body.role];
+    if (results.length > 0) {
+      return res.status(409).json({ message: "User already exists." });
+    }
 
-    db.query(q, values, (err, data) => {
-      if (err) return res.status(500).json({ error: err });
+    // Proceed with hashing and inserting new user
+    bcrypt.hash(password.toString(), 10, (err, hash) => {
+      if (err)
+        return res.status(500).json({ error: "Error hashing your password" });
 
-      return res.status(201).json({ message: "User has been created" });
+      const insertQuery =
+        "INSERT INTO user_data (user_id, email, user_password, role) VALUES (?, ?, ?, ?)";
+      const values = [user_id, email, hash, role];
+
+      db.query(insertQuery, values, (err, data) => {
+        if (err)
+          return res
+            .status(500)
+            .json({ error: "Error creating user in the database" });
+
+        return res.status(201).json({ message: "User has been created" });
+      });
     });
   });
 });
+
 
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FROM main_data TABLE

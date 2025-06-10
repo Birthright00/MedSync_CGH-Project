@@ -19,6 +19,8 @@ import show_pw from "../images/show_pw.png";
 import hide_pw from "../images/hide_pw.png";
 import hr from "../images/hr.png";
 import hr_white from "../images/hr_white.png";
+import student from "../images/student.png";
+import white_student from "../images/student_white.png";
 
 const SignUpPage = () => {
   const nav = useNavigate();
@@ -174,6 +176,20 @@ const SignUpPage = () => {
                 <img src={staff} alt="staff" />
                 Staff
               </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className={`login-button ${
+                  selectedRole === "student" ? "selected" : ""
+                }`}
+                type="button"
+                onClick={() => setSelectedRole("student")}
+              >
+                <img src={student} alt="student" />
+                Student
+              </motion.button>
+
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}

@@ -1,0 +1,104 @@
+/* ################################################# */
+/* Student Home Page Layout */
+/* ################################################# */
+.student-home-page {
+  width: 100vw;
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  color: #0083ca;
+}
+
+.student-home-page:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("../images/login-background-img.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.4;
+  z-index: -1;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* ################################################# */
+/* Layout Grid */
+/* ################################################# */
+.home-grid {
+  display: flex;
+  justify-content: space-between;
+  width: 90%;
+  max-width: 1200px;
+  gap: 40px;
+}
+
+.left-panel, .right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.date-time-box,
+.notification-panel,
+.right-panel {
+  background-color: #ffffff; /* Changed from #f8f9fa to white */
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px,
+              rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
+}
+
+.date-time-box h3,
+.notification-panel h4,
+.right-panel h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 20px;
+  color: #0083ca;
+}
+
+.current-time {
+  font-size: 50px;
+  color: #333;
+  margin-bottom: 0;
+}
+
+.notification-panel ul,
+.events-list {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.notification-panel li,
+.events-list li {
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #333;
+}
+
+/* ################################################# */
+/* Responsive Styling */
+/* ################################################# */
+@media (max-width: 768px) {
+  .home-grid {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .left-panel, .right-panel {
+    width: 100%;
+  }
+}

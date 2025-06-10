@@ -1,112 +1,150 @@
-.notifications-tab {
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+/* ################################################# */
+/* Doctor Scheduler Page Styling */
+/* ################################################# */
+.doctor-scheduler-page {
+  position: relative;
+  min-height: 100vh;
+  padding: 20px;
+  background-image: url("../images/login-background-img.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
-/* Card container */
+.doctor-scheduler-page::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  z-index: -1;
+}
+
+/* Grid layout */
+.doctor-scheduler-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.notification-box {
+  background-color: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.timetable-box {
+  grid-column: span 2;
+  background-color: white;
+  padding: 30px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-top: 20px;
+}
+
+/* ################################################# */
+/* Response Card Styling */
+/* ################################################# */
 .response-card {
-  background-color: #fff;
-  border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-  transition: box-shadow 0.3s ease;
+  background: #f9f9f9;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
 }
 
-.response-card:hover {
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
-}
-
-/* Header */
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 10px;
 }
 
 .doctor-name {
-  font-weight: bold;
-  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
 }
 
 .status-badge {
-  padding: 0.3rem 0.7rem;
-  border-radius: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: white;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
 }
 
 .status-badge.responded {
-  background-color: #3b82f6; /* blue */
+  background-color: #e6f7f2;
+  color: #2e7d32;
 }
 
-/* Details */
+.status-badge.pending {
+  background-color: #fff5e6;
+  color: #ff8f00;
+}
+
 .session-details {
-  margin-bottom: 1rem;
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.detail-label {
-  font-weight: 600;
-}
-
-.detail-value {
-  margin-left: 0.3rem;
-}
-
-/* Available Date Slots */
-.date-slots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 1rem 0;
-}
-
-.date-slot {
-  border: 1px solid #ccc;
-  border-radius: 0.75rem;
-  padding: 0.8rem 1rem;
-  background-color: #f9f9f9;
-  min-width: 150px;
-  text-align: center;
-  transition: background-color 0.3s ease;
-}
-
-.date-slot:hover {
-  background-color: #f1f5f9;
-}
-
-.date-slot-content .date-text {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.date-slot-content .time-text {
-  font-size: 0.85rem;
+  font-size: 14px;
   color: #555;
 }
 
-/* Action Buttons */
-.action-buttons {
-  margin-top: 1rem;
-  text-align: right;
+.date-slots {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.primary-button {
-  padding: 0.5rem 1.2rem;
-  background-color: #10b981; /* teal */
-  color: white;
+.date-slot {
+  background-color: #eaf4ff;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.date-slot-content {
+  font-size: 13px;
+  color: #0066cc;
+}
+
+/* ################################################# */
+/* Buttons inside response cards */
+/* ################################################# */
+.response-card button {
+  margin-top: 12px;
+  margin-right: 10px;
+  padding: 6px 12px;
   border: none;
-  border-radius: 0.5rem;
-  font-weight: 600;
+  border-radius: 6px;
+  font-size: 13px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease-in-out;
 }
 
-.primary-button:hover {
-  background-color: #059669;
+.response-card button.accept-btn {
+  background-color: #2e7d32;
+  color: white;
+}
+
+.response-card button.change-btn {
+  background-color: #ffb300;
+  color: white;
+}
+
+/* ################################################# */
+/* Responsive Adjustments */
+/* ################################################# */
+@media (max-width: 900px) {
+  .doctor-scheduler-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .timetable-box {
+    grid-column: span 1;
+  }
 }

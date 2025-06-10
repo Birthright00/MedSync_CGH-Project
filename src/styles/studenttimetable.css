@@ -2,14 +2,19 @@
 /* Student Timetable Page Styling */
 /* ################################################# */
 .student-timetable-page {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100vw;
-  min-height: 100vh;
-  position: relative;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 20px;
   color: #0083ca;
+  background-color: white;
+  z-index: 0;
 }
 
 .student-timetable-page:before {
@@ -33,15 +38,42 @@
   text-align: center;
 }
 
-.timetable-container {
+.react-calendar-wrapper {
   background-color: #ffffff;
   border-radius: 10px;
   padding: 20px;
-  box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px,
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px,
               rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
-  overflow-x: auto;
   width: 90%;
-  max-width: 1000px;
+  max-width: 1200px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+/* Calendar Views Styling */
+.rbc-month-view,
+.rbc-time-view,
+.rbc-agenda-view {
+  background-color: #fff;
+  border-radius: 10px;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.rbc-toolbar-label {
+  color: #0083ca;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.rbc-event {
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 14px;
+  background-color: #3174ad !important;
+  color: white;
+  border: none;
 }
 
 .timetable-table {
@@ -82,3 +114,4 @@
     font-size: 22px;
   }
 }
+

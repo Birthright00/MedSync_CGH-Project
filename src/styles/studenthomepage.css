@@ -73,7 +73,7 @@
 .current-time {
   font-size: 50px;
   color: #333;
-  margin-bottom: 0;
+  margin: 0;
 }
 
 .notification-panel ul,

@@ -44,6 +44,7 @@
     "start": "concurrently \"npm run frontend\" \"npm run backend\"",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
+    "ai-parser": "python src/scheduling/hospital_email_pipeline/main.py",
     "frontend": "react-scripts start",
     "backend": "cd backend && nodemon server.js",
     "build": "react-scripts build",

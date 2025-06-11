@@ -1,10 +1,13 @@
 import msal
+import os
 import configparser
 
 def get_token_from_device_flow():
     # Read config
     config = configparser.ConfigParser()
-    config.read("config.cfg")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(current_dir, "config.cfg")
+    config.read(config_path)
 
     client_id = config["azure"]["clientId"]
     tenant_id = config["azure"]["tenantId"]

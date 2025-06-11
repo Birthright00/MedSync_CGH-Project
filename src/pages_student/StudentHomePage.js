@@ -18,6 +18,7 @@ import {
     WiDayRain,
     WiNightRain,
 } from "react-icons/wi";
+import { MdNotifications, MdEventNote, MdSchedule } from "react-icons/md";
 
 
 const StudentHomePage = () => {
@@ -82,6 +83,16 @@ const StudentHomePage = () => {
             currentTime.toLocaleDateString("en-SG", { weekday: "long" }).toLowerCase()
     );
 
+    const upcomingEvents = timetableData.filter((entry) => {
+        const todayDate = new Date();
+        const weekdays = {
+            sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+            thursday: 4, friday: 5, saturday: 6
+        };
+        const eventDay = weekdays[entry.day.toLowerCase()];
+        return eventDay >= todayDate.getDay();
+    }).slice(0, 3); // limit to 3 upcoming events
+
     const getWeatherIcon = (summary) => {
         if (!summary) return <WiDaySunny className="weather-widget-icon" />;
         const desc = summary.toLowerCase();
@@ -107,39 +118,42 @@ const StudentHomePage = () => {
         <>
             <StudentNavbar />
             <div className="student-home-page">
+
+                <div className="top-bar">
+                    <div className="date-weather-wrapper">
+                        <div className="date-time-box">
+                            <h3>{today}</h3>
+                            <p className="current-time">
+                            <span className="time-wrapper">{time}</span>
+                            </p>
+                        </div>
+
+                        {weather && (
+                            <motion.div
+                                className="weather-widget"
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.6 }}
+                            >
+                                {getWeatherIcon(weather.summary)}
+                                <div>
+                                    <div>{weather.summary}</div>
+                                    <div>{weather.temperature}°C</div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </div>
+                </div>
+
                 <div className="home-grid">
-                    <div className="left-panel">
-                        <div style={{ display: "flex", gap: "20px" }}>
-                            <div className="date-time-box">
-                                <h3>{today}</h3>
-                                <p className="current-time">{time}</p>
-                            </div>
 
-                            {weather && (
-                                <motion.div
-                                    className="weather-widget"
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.6 }}
-                                    style={{ width: "180px" }}
-                                >
-                                    {getWeatherIcon(weather.summary)}
-                                    <div>
-                                        <div>{weather.summary}</div>
-                                        <div>{weather.temperature}°C</div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </div>
-
-                        <div className="notification-panel">
-                            <h4>📢 Notifications</h4>
-                            <ul>
-                                <li>📌 Class on 12 June moved to Room B202</li>
-                                <li>📌 Pathology lecture on 14 June cancelled</li>
-                                <li>📌 Clinicals on 15 June start at 8AM</li>
-                            </ul>
-                        </div>
+                    <div className="notification-panel">
+                        <h4>📢 Notifications</h4>
+                        <ul>
+                            <li>📌 Class on 12 June moved to Room B202</li>
+                            <li>📌 Pathology lecture on 14 June cancelled</li>
+                            <li>📌 Clinicals on 15 June start at 8AM</li>
+                        </ul>
                     </div>
 
                     <div className="right-panel">
@@ -147,18 +161,28 @@ const StudentHomePage = () => {
                         {loading ? (
                             <p>Loading...</p>
                         ) : todayEvents.length === 0 ? (
-                            <p>No events today.</p>
+                            <>
+                                <p>No events today.</p>
+                                <h4>🔜 Upcoming Sessions:</h4>
+                                <ul className="events-list">
+                                    {upcomingEvents.map((event, index) => (
+                                        <li key={index}>
+                                            <strong>{event.subject}</strong> — {event.day} {event.start_time} to {event.end_time} @ {event.location}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </>
                         ) : (
                             <ul className="events-list">
                                 {todayEvents.map((event, index) => (
                                     <li key={index}>
-                                        <strong>{event.subject}</strong> — {event.start_time} to {event.end_time} @{" "}
-                                        {event.location}
+                                        <strong>{event.subject}</strong> — {event.start_time} to {event.end_time} @ {event.location}
                                     </li>
                                 ))}
                             </ul>
                         )}
                     </div>
+
                 </div>
             </div>
         </>

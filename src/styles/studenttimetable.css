@@ -96,6 +96,32 @@
   font-weight: 600;
 }
 
+/* Export Buttons Styling */
+.export-buttons {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.export-buttons button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  font-size: 16px;
+  margin: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s ease all;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.export-buttons button:hover {
+  background-color: #0056b3;
+}
+
+
+
+
 /* ################################################# */
 /* Responsive Styling */
 /* ################################################# */

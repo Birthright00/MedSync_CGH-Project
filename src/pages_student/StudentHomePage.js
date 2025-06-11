@@ -36,17 +36,30 @@ const StudentHomePage = () => {
                     return;
                 }
 
-                const response = await axios.get("http://localhost:3001/student/timetable", {
+                const response = await axios.get("http://localhost:3001/api/scheduling/timetable", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-                setTimetableData(response.data);
+                const mappedData = response.data.map(item => {
+                    const dateObj = new Date(item.date);
+                    const day = dateObj.toLocaleDateString("en-SG", { weekday: "long" });
+                    return {
+                        subject: `${item.session_name} (${item.name})`,
+                        day: day,
+                        start_time: item.time,
+                        end_time: "",  // optional for now
+                        location: item.location,
+                    };
+                });
+
+                setTimetableData(mappedData);
                 setLoading(false);
             } catch (error) {
                 console.error("Error fetching timetable:", error);
                 setLoading(false);
             }
         };
+
 
         const fetchWeather = async () => {
             try {
@@ -124,7 +137,7 @@ const StudentHomePage = () => {
                         <div className="date-time-box">
                             <h3>{today}</h3>
                             <p className="current-time">
-                            <span className="time-wrapper">{time}</span>
+                                <span className="time-wrapper">{time}</span>
                             </p>
                         </div>
 

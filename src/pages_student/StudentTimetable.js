@@ -4,6 +4,7 @@ import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import moment from 'moment';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import axios from 'axios';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import StudentNavbar from "./studentnavbar.js";
@@ -14,42 +15,81 @@ const DnDCalendar = withDragAndDrop(Calendar);
 
 const StudentTimetable = () => {
   const calendarRef = useRef(null);
-
-  const [events] = useState([
-    {
-      id: 0,
-      title: 'Clinic',
-      start: new Date(2025, 5, 6, 11, 0),
-      end: new Date(2025, 5, 6, 12, 0),
-      color: '#31B5F7',
-    },
-    {
-      id: 1,
-      title: 'Ward Round',
-      start: new Date(2025, 5, 7, 9, 0),
-      end: new Date(2025, 5, 7, 10, 0),
-      color: '#BF51F9',
-    },
-  ]);
-
+  const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
+  const normalizeTime = (timeStr, defaultAmPm = "am") => {
+    if (!timeStr) return null;
+    timeStr = timeStr.trim().toLowerCase();
+
+    if (timeStr.includes("am") || timeStr.includes("pm")) {
+      return timeStr.toUpperCase();
+    }
+    return `${timeStr}${defaultAmPm}`.toUpperCase();
+  };
+
+  const fetchTimetable = () => {
+    axios.get("http://localhost:3001/api/scheduling/timetable")
+      .then(res => {
+        const now = new Date();
+
+        const mappedEvents = res.data.map(item => {
+          let startTimeStr = "9am";
+          let endTimeStr = "10am";
+
+          if (item.time) {
+            const timeParts = item.time.split('-').map(t => t.trim());
+            startTimeStr = normalizeTime(timeParts[0], "am");
+
+            if (timeParts[1]) {
+              endTimeStr = normalizeTime(timeParts[1], startTimeStr.includes("PM") ? "pm" : "am");
+            } else {
+              endTimeStr = moment(startTimeStr, "hA").add(1, "hour").format("hA");
+            }
+          }
+
+          const startDateTime = moment(`${item.date} ${startTimeStr}`, "D MMMM YYYY hA").toDate();
+          const endDateTime = moment(`${item.date} ${endTimeStr}`, "D MMMM YYYY hA").toDate();
+
+          return {
+            id: item.id,
+            title: `${item.session_name} (${item.name})`,
+            start: startDateTime,
+            end: endDateTime,
+            color: '#31B5F7',
+            location: item.location,
+            students: item.students,
+            isPast: endDateTime < now   // ✅ Add isPast flag here
+          };
+        });
+
+        setEvents(mappedEvents);
+      })
+      .catch(err => console.error(err));
+  };
+
+  useEffect(() => {
+    fetchTimetable();
+    const interval = setInterval(fetchTimetable, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleSelectEvent = (event) => {
+    if (event.isPast) return;   // ✅ Disable click if past
     setSelectedEvent(event);
   };
 
-  const eventStyleGetter = (event) => {
-    return {
-      style: {
-        backgroundColor: event.color || '#3174ad',
-        borderRadius: '4px',
-        opacity: 0.9,
-        color: 'white',
-        border: 'none',
-        display: 'block',
-      },
-    };
-  };
+  const eventStyleGetter = (event) => ({
+    style: {
+      backgroundColor: event.isPast ? '#999999' : (event.color || '#3174ad'),
+      borderRadius: '4px',
+      opacity: event.isPast ? 0.6 : 0.9,
+      color: 'white',
+      border: 'none',
+      display: 'block',
+      cursor: event.isPast ? 'not-allowed' : 'pointer'
+    }
+  });
 
   const exportAsImage = () => {
     html2canvas(calendarRef.current).then((canvas) => {
@@ -76,7 +116,7 @@ const StudentTimetable = () => {
     <>
       <StudentNavbar />
       <div style={{ padding: '20px' }} ref={calendarRef}>
-        <div style={{ height: '70vh', border: '1px solid #ddd', borderRadius: '8px', padding: '10px', background: 'white'  }}>
+        <div style={{ height: '70vh', border: '1px solid #ddd', borderRadius: '8px', padding: '10px', background: 'white' }}>
           <DnDCalendar
             localizer={localizer}
             events={events}
@@ -114,7 +154,7 @@ const StudentTimetable = () => {
             alignItems: 'center',
             zIndex: 9999
           }}
-          onClick={() => setSelectedEvent(null)} // close modal if clicked outside the box
+          onClick={() => setSelectedEvent(null)}
         >
           <div
             style={{
@@ -126,11 +166,13 @@ const StudentTimetable = () => {
               width: '90%',
               position: 'relative'
             }}
-            onClick={(e) => e.stopPropagation()} // prevent close on inner click
+            onClick={(e) => e.stopPropagation()}
           >
             <h2 style={{ marginTop: 0 }}>{selectedEvent.title}</h2>
             <p><strong>Start:</strong> {moment(selectedEvent.start).format('YYYY-MM-DD HH:mm')}</p>
             <p><strong>End:</strong> {moment(selectedEvent.end).format('YYYY-MM-DD HH:mm')}</p>
+            <p><strong>Location:</strong> {selectedEvent.location}</p>
+            <p><strong>Students:</strong> {selectedEvent.students}</p>
 
             <button
               onClick={() => setSelectedEvent(null)}

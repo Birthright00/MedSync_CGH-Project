@@ -10,7 +10,12 @@ const DoctorScheduler = () => {
   const [changeRequestNotifs, setChangeRequestNotifs] = useState([]);
   const [timetableSessions, setTimetableSessions] = useState([]);
 
-  // ✅ MAIN FETCH FUNCTION (Reusable)
+  // Modal control state
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [selectedNotif, setSelectedNotif] = useState(null);
+  const [isChangeRequest, setIsChangeRequest] = useState(false);
+  const [locationInput, setLocationInput] = useState("");
+
   const fetchAllData = async () => {
     try {
       const [availabilityRes, changeReqRes, timetableRes] = await Promise.all([
@@ -32,54 +37,45 @@ const DoctorScheduler = () => {
     return () => clearInterval(intervalId);
   }, []);
 
-  // ✅ Accept Availability
-  const handleAcceptAvailability = async (notif, slot) => {
-    const location = prompt("Enter location:");
-    if (!location) return;
-
-    try {
-      await axios.post("http://localhost:3001/api/scheduling/add-to-timetable", {
-        session_name: notif.session_name,
-        name: notif.name,
-        date: slot.date,
-        time: slot.time || "-",
-        location: location,
-        students: notif.students || ""
-      });
-
-      // ✅ Delete from parsed_emails after successful add
-      await axios.delete(`http://localhost:3001/api/scheduling/parsed-email/${notif.id}`);
-
-
-      // ✅ Refresh everything after both actions complete
-      await fetchAllData();
-    } catch (err) {
-      console.error("❌ Failed to accept availability:", err);
-    }
+  const openLocationModal = (notif, type) => {
+    setSelectedNotif(notif);
+    setIsChangeRequest(type === "change");
+    setLocationInput("");
+    setShowLocationModal(true);
   };
 
-  // ✅ Accept Change Request
-  const handleAcceptChangeRequest = async (notif) => {
-    const location = prompt("Enter location:");
-    if (!location) return;
-
+  const handleConfirmLocation = async () => {
     try {
-      await axios.post("http://localhost:3001/api/scheduling/add-to-timetable", {
-        session_name: notif.session_name,
-        name: notif.name,
-        date: notif.new_session,
-        time: "-",  
-        location: location,
-        students: notif.students || ""
-      });
+      if (isChangeRequest) {
+        await axios.post("http://localhost:3001/api/scheduling/add-to-timetable", {
+          session_name: selectedNotif.session_name,
+          name: selectedNotif.name,
+          date: selectedNotif.new_session,
+          time: "-",
+          location: locationInput,
+          students: selectedNotif.students || ""
+        });
 
-      // ✅ Delete from parsed_emails after successful add
-      await axios.delete(`http://localhost:3001/api/scheduling/parsed-email/${notif.id}`);
+        await axios.delete(`http://localhost:3001/api/scheduling/parsed-email/${selectedNotif.id}`);
+      } else {
+        for (const slot of selectedNotif.available_dates) {
+          await axios.post("http://localhost:3001/api/scheduling/add-to-timetable", {
+            session_name: selectedNotif.session_name,
+            name: selectedNotif.name,
+            date: slot.date,
+            time: slot.time || "-",
+            location: locationInput,
+            students: selectedNotif.students || ""
+          });
+        }
 
-      // ✅ Refresh everything after both actions complete
+        await axios.delete(`http://localhost:3001/api/scheduling/parsed-email/${selectedNotif.id}`);
+      }
+
+      setShowLocationModal(false);
       await fetchAllData();
     } catch (err) {
-      console.error("❌ Failed to accept change request:", err);
+      console.error("❌ Failed to accept:", err);
     }
   };
 
@@ -99,23 +95,25 @@ const DoctorScheduler = () => {
                   <div className="status-badge responded">AVAILABILITY</div>
                 </div>
                 <div className="session-details">
-                  <span className="detail-label">Session:</span>
-                  <span className="detail-value"> {notif.session_name || "—"}</span><br />
-                  <span className="detail-label">Students:</span>
-                  <span className="detail-value"> {notif.students || "—"}</span><br />
+                  <span className="detail-label">Session:</span> {notif.session_name || "—"}<br />
+                  <span className="detail-label">Students:</span> {notif.students || "—"}<br />
                   <span className="detail-label">Available Dates:</span>
                 </div>
+
                 <div className="date-slots">
                   {notif.available_dates.map((slot, i) => (
                     <div key={i} className="date-slot">
                       <div className="date-slot-content">
                         <span className="date-text">{slot.date}</span><br />
                         <span className="time-text">{slot.time || "—"}</span><br />
-                        <button className="accept-btn" onClick={() => handleAcceptAvailability(notif, slot)}>✅ Accept</button>
-                        <button className="change-btn" disabled>🔄 Change</button>
                       </div>
                     </div>
                   ))}
+                </div>
+
+                <div style={{ marginTop: "10px" }}>
+                  <button className="accept-btn" onClick={() => openLocationModal(notif, "availability")}>✅ Accept</button>
+                  <button className="change-btn" disabled>🔄 Change</button>
                 </div>
               </div>
             ))}
@@ -131,23 +129,17 @@ const DoctorScheduler = () => {
                   <div className="status-badge pending">CHANGE REQUEST</div>
                 </div>
                 <div className="session-details">
-                  <span className="detail-label">Session:</span>
-                  <span className="detail-value"> {notif.session_name || "—"}</span><br />
-                  <span className="detail-label">Original Session:</span>
-                  <span className="detail-value"> {notif.original_session || "—"}</span><br />
-                  <span className="detail-label">New Session:</span>
-                  <span className="detail-value"> {notif.new_session || "—"}</span><br />
-                  <span className="detail-label">Students:</span>
-                  <span className="detail-value"> {notif.students || "—"}</span><br />
-                  <span className="detail-label">Reason:</span>
-                  <span className="detail-value"> {notif.reason || "—"}</span><br />
-                  <button className="accept-btn" onClick={() => handleAcceptChangeRequest(notif)}>✅ Accept</button>
+                  <span className="detail-label">Session:</span> {notif.session_name || "—"}<br />
+                  <span className="detail-label">Original Session:</span> {notif.original_session || "—"}<br />
+                  <span className="detail-label">New Session:</span> {notif.new_session || "—"}<br />
+                  <span className="detail-label">Students:</span> {notif.students || "—"}<br />
+                  <span className="detail-label">Reason:</span> {notif.reason || "—"}<br />
+                  <button className="accept-btn" onClick={() => openLocationModal(notif, "change")}>✅ Accept</button>
                   <button className="change-btn" disabled>🔄 Change</button>
                 </div>
               </div>
             ))}
           </div>
-
         </div>
 
         <div className="timetable-box">
@@ -155,6 +147,26 @@ const DoctorScheduler = () => {
           <DoctorScheduling sessions={timetableSessions} />
         </div>
       </div>
+
+      {/* Nice Popup Modal */}
+      {showLocationModal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h3>Enter Location</h3>
+            <input
+              type="text"
+              value={locationInput}
+              onChange={(e) => setLocationInput(e.target.value)}
+              placeholder="Enter location..."
+              style={{ width: "100%", padding: "8px" }}
+            />
+            <div className="modal-buttons">
+              <button onClick={handleConfirmLocation} className="confirm-btn">Confirm</button>
+              <button onClick={() => setShowLocationModal(false)} className="cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

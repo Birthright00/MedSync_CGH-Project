@@ -10,7 +10,6 @@ import '../styles/DoctorScheduler.css';
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
 
-// ✅ Now DoctorScheduling receives sessions as props
 const DoctorScheduling = ({ sessions }) => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -18,11 +17,9 @@ const DoctorScheduling = ({ sessions }) => {
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const modalRef = useRef(null);
 
-  // ✅ Whenever sessions (from parent) changes, map to calendar events
   useEffect(() => {
     const mappedEvents = sessions.map((s, index) => {
-      const startDate = parseDateAndTime(s.date, s.time);
-      const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour default
+      const { startDate, endDate } = parseDateAndTime(s.date, s.time);
       return {
         id: s.id ?? index,
         title: s.session_name,
@@ -39,19 +36,40 @@ const DoctorScheduling = ({ sessions }) => {
   const parseDateAndTime = (dateStr, timeStr) => {
     const [day, monthName, year] = dateStr.split(' ');
     const month = monthStrToNum(monthName);
-    let hour = 9, minute = 0;
+
+    let startHour = 9, startMinute = 0, endHour = 10, endMinute = 0;
 
     if (timeStr && timeStr !== "-" && timeStr !== "—") {
-      const match = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
-      if (match) {
-        hour = parseInt(match[1]);
-        minute = match[2] ? parseInt(match[2]) : 0;
-        const ampm = match[3].toLowerCase();
-        if (ampm === "pm" && hour < 12) hour += 12;
-        if (ampm === "am" && hour === 12) hour = 0;
+      const rangeMatch = timeStr.match(/(.+?)(?:-|to)(.+)/i);
+      if (rangeMatch) {
+        const startTime = parseSingleTime(rangeMatch[1].trim());
+        const endTime = parseSingleTime(rangeMatch[2].trim());
+        startHour = startTime.hour;
+        startMinute = startTime.minute;
+        endHour = endTime.hour;
+        endMinute = endTime.minute;
+      } else {
+        const singleTime = parseSingleTime(timeStr);
+        startHour = singleTime.hour;
+        startMinute = singleTime.minute;
+        endHour = startHour + 1;
+        endMinute = startMinute;
       }
     }
-    return new Date(year, month, parseInt(day), hour, minute);
+
+    const startDate = new Date(year, month, parseInt(day), startHour, startMinute);
+    const endDate = new Date(year, month, parseInt(day), endHour, endMinute);
+    return { startDate, endDate };
+  };
+
+  const parseSingleTime = (timeStr) => {
+    const match = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+    let hour = parseInt(match[1]);
+    const minute = match[2] ? parseInt(match[2]) : 0;
+    const ampm = match[3].toLowerCase();
+    if (ampm === "pm" && hour < 12) hour += 12;
+    if (ampm === "am" && hour === 12) hour = 0;
+    return { hour, minute };
   };
 
   const monthStrToNum = (monthStr) => {
@@ -166,22 +184,8 @@ const DoctorScheduling = ({ sessions }) => {
       </div>
 
       {selectedEvent && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0, left: 0, width: '100vw', height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
-            justifyContent: 'center', alignItems: 'center', zIndex: 1000
-          }}
-        >
-          <div
-            ref={modalRef}
-            style={{
-              background: '#fff', padding: '30px', borderRadius: '12px',
-              width: '90%', maxWidth: '500px', boxShadow: '0 0 20px rgba(0,0,0,0.3)',
-              display: 'flex', flexDirection: 'column', gap: '12px',
-            }}
-          >
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div ref={modalRef} style={{ background: '#fff', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 0 20px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h2>Edit Event</h2>
             <label>Title:</label>
             <input className="edit-input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
@@ -194,9 +198,7 @@ const DoctorScheduling = ({ sessions }) => {
             <label>End Time:</label>
             <input className="edit-input" type="datetime-local" value={form.end} onChange={e => setForm({ ...form, end: e.target.value })} />
             <label>Color:</label>
-            <input type="color" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })}
-              style={{ width: '50px', height: '30px', border: 'none', cursor: 'pointer', padding: '0' }} />
-
+            <input type="color" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} style={{ width: '50px', height: '30px', border: 'none', cursor: 'pointer', padding: '0' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
               <button onClick={handleSave} style={{ backgroundColor: '#2e7d32', color: '#fff', padding: '10px 20px', borderRadius: '8px' }}>Save</button>
               <button onClick={handleDelete} style={{ backgroundColor: '#e53935', color: '#fff', padding: '10px 20px', borderRadius: '8px' }}>Delete</button>

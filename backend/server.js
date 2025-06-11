@@ -1630,23 +1630,29 @@ app.get("/api/scheduling/availability-notifications", (req, res) => {
         : [];
 
       const available_dates = slotStrings.map(slot => {
-        const match = slot.trim().match(/^(.+?)\s+(\d{1,2}(?::\d{2})?\s?(?:am|pm|AM|PM))$/);
-        if (match) {
-          return {
-            date: match[1].trim(),  // e.g., "11 June"
-            time: match[2].trim()   // e.g., "11am"
-          };
-        } else {
-          return {
-            date: slot.trim(),
-            time: null
-          };
+        // Normalize ordinals: 9th → 9
+        slot = slot.replace(/(\d+)(st|nd|rd|th)/gi, '$1');
+
+        // Regex: extract date + time
+        const match = slot.match(/^(\d{1,2}\s+\w+(?:\s+\d{4})?)\s+(.+)$/);
+        if (!match) {
+          return { date: slot.trim(), time: null };
         }
+
+        let datePart = match[1].trim();
+        let timePart = match[2].trim();
+
+        // If year missing, append current year
+        if (!/\d{4}/.test(datePart)) {
+          const currentYear = new Date().getFullYear();
+          datePart += ` ${currentYear}`;
+        }
+
+        return { date: datePart, time: timePart };
       });
 
-
       return {
-        id: entry.id, 
+        id: entry.id,
         session_name: entry.session_name || null,
         name: entry.name,
         from_email: entry.from_email || null,
@@ -1658,6 +1664,7 @@ app.get("/api/scheduling/availability-notifications", (req, res) => {
     return res.json(transformed);
   });
 });
+
 
 
 // -------------------------------------------------------------------------------------------------------------//
@@ -1688,7 +1695,7 @@ app.get("/api/scheduling/change_request", (req, res) => {
     }
 
     const transformed = results.map(entry => ({
-      id: entry.id, 
+      id: entry.id,
       session_name: entry.session_name || null,
       name: entry.name,
       from_email: entry.from_email || null,
@@ -1781,6 +1788,8 @@ app.delete("/api/scheduling/parsed-email/:id", (req, res) => {
     res.status(200).json({ message: "Parsed email deleted successfully." });
   });
 });
+
+
 
 
 // -------------------------------------------------------------------------------------------------------------//

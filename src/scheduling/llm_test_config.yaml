@@ -66,8 +66,8 @@ system_prompt: |
   To: Med Admin <med-admin@hospital.sg>
 
   I'm available for the following dates:
-  - 10 July (Mon) 2pm
-  - 13 July (Thu) 4pm
+  - 10 July (Mon) 2pm-5pm
+  - 13 July (Thu) 4pm to 6pm
   This is for the Year 2 batch.
 
   Expected Output:
@@ -81,12 +81,13 @@ system_prompt: |
     "reason": null,
     "students": "Year 2 batch",
     "available_slots_timings": [
-      "10 July (Mon) 2pm",
-      "13 July (Thu) 4pm"
+      "10 July (Mon) 2pm-5pm",
+      "13 July (Thu) 4pm-6pm"
     ],
     "notes": null
   }
 
   ---
+
 
   Now process the following email:

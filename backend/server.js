@@ -1605,8 +1605,9 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
 app.get("/api/scheduling/availability-notifications", (req, res) => {
   const query = `
     SELECT
+      id,
       session_name,
-      from_name AS doctor,
+      from_name AS name,
       from_email,
       to_email,
       students,
@@ -1645,8 +1646,9 @@ app.get("/api/scheduling/availability-notifications", (req, res) => {
 
 
       return {
+        id: entry.id, 
         session_name: entry.session_name || null,
-        doctor: entry.doctor,
+        name: entry.name,
         from_email: entry.from_email || null,
         students: entry.students || null,
         available_dates
@@ -1664,8 +1666,9 @@ app.get("/api/scheduling/availability-notifications", (req, res) => {
 app.get("/api/scheduling/change_request", (req, res) => {
   const query = `
     SELECT
+      id,
       session_name,
-      from_name AS doctor,
+      from_name AS name,
       from_email,
       to_email,
       original_session,
@@ -1685,8 +1688,9 @@ app.get("/api/scheduling/change_request", (req, res) => {
     }
 
     const transformed = results.map(entry => ({
+      id: entry.id, 
       session_name: entry.session_name || null,
-      doctor: entry.doctor,
+      name: entry.name,
       from_email: entry.from_email || null,
       to_email: entry.to_email || null,
       students: entry.students || null,
@@ -1698,6 +1702,83 @@ app.get("/api/scheduling/change_request", (req, res) => {
     }));
 
     return res.json(transformed);
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// For calling of database to add sessions inside if accepted
+// -------------------------------------------------------------------------------------------------------------//
+app.post("/api/scheduling/add-to-timetable", (req, res) => {
+  const { session_name, name, date, time, location, students } = req.body;
+
+  if (!session_name || !name || !date || !time) {
+    return res.status(400).json({ error: "Missing required fields." });
+  }
+
+  const insertQuery = `
+    INSERT INTO scheduled_sessions 
+    (session_name, name, date, time, location, students) 
+    VALUES (?, ?, ?, ?, ?, ?)
+  `;
+
+  const values = [session_name, name, date, time, location || "", students || ""];
+
+  db.query(insertQuery, values, (err, result) => {
+    if (err) {
+      console.error("Error inserting into timetable:", err);
+      return res.status(500).json({ error: "Failed to insert session." });
+    }
+
+    res.status(201).json({ message: "Session successfully added to timetable." });
+  });
+});
+
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST to fetch scheduled sessions for timetable display
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/scheduling/timetable", (req, res) => {
+  const query = `
+    SELECT id, session_name, name, date, time, location, students
+    FROM scheduled_sessions
+    ORDER BY date ASC, time ASC
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching scheduled sessions:", err);
+      return res.status(500).json({ error: "Failed to fetch timetable data." });
+    }
+
+    res.status(200).json(results);
+  });
+});
+
+// ✅ DELETE from scheduled_sessions (timetable)
+app.delete("/api/scheduling/delete-scheduled-session/:id", (req, res) => {
+  const { id } = req.params;
+
+  const deleteQuery = `DELETE FROM scheduled_sessions WHERE id = ?`;
+
+  db.query(deleteQuery, [id], (err, result) => {
+    if (err) {
+      console.error("Error deleting scheduled session:", err);
+      return res.status(500).json({ error: "Failed to delete scheduled session." });
+    }
+    res.status(200).json({ message: "Scheduled session deleted successfully." });
+  });
+});
+
+
+// ✅ DELETE from parsed_emails after accepting
+app.delete("/api/scheduling/parsed-email/:id", (req, res) => {
+  const { id } = req.params;
+  db.query("DELETE FROM parsed_emails WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Failed to delete parsed email:", err);
+      return res.status(500).json({ error: "Failed to delete parsed email." });
+    }
+    res.status(200).json({ message: "Parsed email deleted successfully." });
   });
 });
 

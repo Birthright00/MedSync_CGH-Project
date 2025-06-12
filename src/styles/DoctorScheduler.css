@@ -92,10 +92,16 @@
 /* Response Card Styling */
 /* ################################################# */
 .response-card {
-  background: #f9f9f9;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.response-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
 }
 
 .card-header {
@@ -111,25 +117,28 @@
 }
 
 .status-badge {
-  padding: 5px 10px;
-  border-radius: 20px;
+  padding: 6px 14px;
+  border-radius: 24px;
   font-size: 12px;
-  font-weight: bold;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .status-badge.responded {
-  background-color: #e6f7f2;
-  color: #2e7d32;
+  background: linear-gradient(to right, #c8f7dc, #b2f5ca);
+  color: #137547;
 }
 
 .status-badge.pending {
-  background-color: #fff5e6;
+  background: linear-gradient(to right, #ffe8cc, #ffd6a1);
   color: #ff8f00;
 }
 
+
 .session-details {
   font-size: 14px;
-  color: #555;
+  color: #666;
+  line-height: 1.4;
 }
 
 .date-slots {
@@ -140,18 +149,16 @@
 }
 
 .date-slot {
-  background-color: #eaf4ff;
+  background-color: #eef6ff;
   padding: 16px 24px;
-  /* increase padding horizontally and vertically */
-  border-radius: 8px;
-  /* slightly rounder corners */
-  min-width: 150px;
-  /* make sure box doesn't shrink too small */
-  text-align: center;
-  /* center the text inside */
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  /* optional: slight shadow for better visual */
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  font-weight: 600;
+  font-size: 14px;
+  color: #1954a3;
 }
+
+
 
 .date-slot-content {
   font-size: 13px;
@@ -162,41 +169,39 @@
 /* Buttons inside response cards */
 /* ################################################# */
 .response-card button {
-  margin-top: 12px;
-  margin-right: 10px;
-  padding: 6px 12px;
+  margin-top: 16px;
+  margin-right: 12px;
+  padding: 12px 24px;
   border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+  transition: all 0.2s ease-in-out;
 }
 
 .response-card button.accept-btn {
   background-color: #2e7d32;
-  color: white;
-  padding: 9px 18px;
-  /* larger padding for bigger button */
-  font-size: 16px;
-  /* bigger text */
-  border-radius: 8px;
-  /* rounder corners */
-  min-width: 150px;
-  /* ensures consistent width */
-  border: none;
-  cursor: pointer;
+  color: #fff;
+}
+
+.response-card button.accept-btn:hover {
+  background-color: #226427;
 }
 
 .response-card button.change-btn {
   background-color: #ffb300;
-  color: white;
-  padding: 9px 18px;
-  font-size: 16px;
-  border-radius: 8px;
-  min-width: 150px;
-  border: none;
-  cursor: not-allowed;
-  /* still disabled */
+  color: #fff;
+}
+
+.response-card button.change-btn:hover {
+  background-color: #e89a00;
+}
+
+
+.rbc-event {
+  border-radius: 8px !important;
+  font-weight: 500;
 }
 
 

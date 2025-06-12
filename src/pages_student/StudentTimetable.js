@@ -20,7 +20,7 @@ const StudentTimetable = () => {
 
   const normalizeTime = (timeStr, defaultAmPm = "am") => {
     if (!timeStr) return null;
-    timeStr = timeStr.trim().toLowerCase();
+    timeStr = timeStr.trim().toLowerCase().replace(/[:.]/g, '');
 
     if (timeStr.includes("am") || timeStr.includes("pm")) {
       return timeStr.toUpperCase();
@@ -49,9 +49,9 @@ const StudentTimetable = () => {
             }
           }
 
+          const startDateTime = moment(`${item.date} ${startTimeStr}`, ["D MMMM YYYY hmmA", "D MMMM YYYY hA"]).toDate();
+          const endDateTime = moment(`${item.date} ${endTimeStr}`, ["D MMMM YYYY hmmA", "D MMMM YYYY hA"]).toDate();
 
-          const startDateTime = moment(`${item.date} ${startTimeStr}`, "D MMMM YYYY hA").toDate();
-          const endDateTime = moment(`${item.date} ${endTimeStr}`, "D MMMM YYYY hA").toDate();
 
           return {
             id: item.id,
@@ -114,6 +114,27 @@ const StudentTimetable = () => {
     });
   };
 
+  const CustomToolbar = ({ label, onNavigate, onView }) => {
+    return (
+      <div className="rbc-toolbar">
+        <span className="rbc-btn-group">
+          <button onClick={() => onNavigate('PREV')}>Prev</button>
+          <button onClick={() => onNavigate('TODAY')}>Today</button>
+          <button onClick={() => onNavigate('NEXT')}>Next</button>
+        </span>
+
+        <span className="rbc-toolbar-label">{label}</span>
+
+        <span className="rbc-btn-group">
+          <button onClick={() => onView('month')}>Month</button>
+          <button onClick={() => onView('work_week')}>Week</button>
+          <button onClick={() => onView('agenda')}>Agenda</button>
+        </span>
+      </div>
+    );
+  };
+
+
   return (
     <>
       <StudentNavbar />
@@ -124,8 +145,10 @@ const StudentTimetable = () => {
             events={events}
             startAccessor="start"
             endAccessor="end"
-            defaultView={Views.WEEK}
-            views={['month', 'week', 'agenda']}
+            defaultView={Views.WORK_WEEK}
+            views={['month', 'work_week', 'agenda']}
+            min={new Date(1970, 1, 1, 8, 0)}
+            max={new Date(1970, 1, 1, 18, 0)}
             selectable={false}
             resizable={false}
             draggableAccessor={() => false}
@@ -133,6 +156,9 @@ const StudentTimetable = () => {
             onEventResize={() => { }}
             onSelectEvent={handleSelectEvent}
             eventPropGetter={eventStyleGetter}
+            components={{
+              toolbar: CustomToolbar   // <-- inject custom toolbar here
+            }}
           />
         </div>
 

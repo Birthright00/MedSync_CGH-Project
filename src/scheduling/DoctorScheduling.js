@@ -303,7 +303,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         <span className="rbc-toolbar-label">{label}</span>
         <span className="rbc-btn-group">
           <button onClick={() => onView('month')}>Month</button>
-          <button onClick={() => onView('week')}>Week</button>
+          <button onClick={() => onView('work_week')}>Week</button>
           <button onClick={() => onView('agenda')}>Agenda</button>
         </span>
 
@@ -340,14 +340,16 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
   return (
     <>
-      <div style={{ height: '60vh', padding: '20px' }}>
+      <div style={{ height: '70vh', padding: '0px' }}>
         <DnDCalendar
           localizer={localizer}
           events={events}
           startAccessor="start"
           endAccessor="end"
-          defaultView={Views.WEEK}
-          views={['month', 'week', 'agenda']}
+          defaultView={Views.WORK_WEEK}
+          views={['month', 'work_week', 'agenda']}
+          min={new Date(1970, 1, 1, 8, 0)}   // <-- Start at 8:00 AM
+          max={new Date(1970, 1, 1, 18, 0)}  // <-- End at 6:00 PM
           onSelectEvent={(event, e) => handleSelectEvent(event, e)}
           onEventDrop={moveEvent}
           onEventResize={resizeEvent}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import DoctorScheduling from "./DoctorScheduling";
+import cghNoNotifications from "../images/cgh_no_notifications.png";
 import "../styles/DoctorScheduler.css";
 import "../styles/navbar.css";
 
@@ -88,57 +89,74 @@ const DoctorScheduler = () => {
           {/* Availability Notifications */}
           <div className="notification-box">
             <h2>🩺 Doctor Availability Notifications</h2>
-            {availabilityNotifs.map((notif, index) => (
-              <div key={index} className="response-card fade-in">
-                <div className="card-header">
-                  <div className="doctor-name">{notif.name}</div>
-                  <div className="status-badge responded">AVAILABILITY</div>
-                </div>
-                <div className="session-details">
-                  <span className="detail-label">Session:</span> {notif.session_name || "—"}<br />
-                  <span className="detail-label">Students:</span> {notif.students || "—"}<br />
-                  <span className="detail-label">Available Dates:</span>
-                </div>
 
-                <div className="date-slots">
-                  {notif.available_dates.map((slot, i) => (
-                    <div key={i} className="date-slot">
-                      <div className="date-slot-content">
-                        <span className="date-text">{slot.date}</span><br />
-                        <span className="time-text">{slot.time || "—"}</span><br />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ marginTop: "10px" }}>
-                  <button className="accept-btn" onClick={() => openLocationModal(notif, "availability")}>✅ Accept</button>
-                  <button className="change-btn" disabled>🔄 Change</button>
-                </div>
+            {availabilityNotifs.length === 0 ? (
+              <div className="no-notifications fade-in">
+                <img src={cghNoNotifications} alt="No Notifications" className="no-notifications-image" />
+                <p className="no-notifications-text">No New Notifications!</p>
               </div>
-            ))}
+            ) : (
+              availabilityNotifs.map((notif, index) => (
+                <div key={index} className="response-card fade-in">
+                  <div className="card-header">
+                    <div className="doctor-name">{notif.name}</div>
+                    <div className="status-badge responded">AVAILABILITY</div>
+                  </div>
+                  <div className="session-details">
+                    <span className="detail-label">Session:</span> {notif.session_name || "—"}<br />
+                    <span className="detail-label">Students:</span> {notif.students || "—"}<br />
+                    <span className="detail-label">Available Dates:</span>
+                  </div>
+
+                  <div className="date-slots">
+                    {notif.available_dates.map((slot, i) => (
+                      <div key={i} className="date-slot">
+                        <div className="date-slot-content">
+                          <span className="date-text">{slot.date}</span><br />
+                          <span className="time-text">{slot.time || "—"}</span><br />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: "10px" }}>
+                    <button className="accept-btn" onClick={() => openLocationModal(notif, "availability")}>✅ Accept</button>
+                    <button className="change-btn" disabled>🔄 Change</button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
+
 
           {/* Change Request Notifications */}
           <div className="notification-box">
             <h2>📤 Change Request Notifications</h2>
-            {changeRequestNotifs.map((notif, index) => (
-              <div key={index} className="response-card fade-in">
-                <div className="card-header">
-                  <div className="doctor-name">{notif.name}</div>
-                  <div className="status-badge pending">CHANGE REQUEST</div>
-                </div>
-                <div className="session-details">
-                  <span className="detail-label">Session:</span> {notif.session_name || "—"}<br />
-                  <span className="detail-label">Original Session:</span> {notif.original_session || "—"}<br />
-                  <span className="detail-label">New Session:</span> {notif.new_session || "—"}<br />
-                  <span className="detail-label">Students:</span> {notif.students || "—"}<br />
-                  <span className="detail-label">Reason:</span> {notif.reason || "—"}<br />
-                  <button className="accept-btn" onClick={() => openLocationModal(notif, "change")}>✅ Accept</button>
-                  <button className="change-btn" disabled>🔄 Change</button>
-                </div>
+
+            {changeRequestNotifs.length === 0 ? (
+              <div className="no-notifications fade-in">
+                <img src={cghNoNotifications} alt="No Notifications" className="no-notifications-image" />
+                <p className="no-notifications-text">No New Notifications!</p>
               </div>
-            ))}
+            ) : (
+              changeRequestNotifs.map((notif, index) => (
+                <div key={index} className="response-card fade-in">
+                  <div className="card-header">
+                    <div className="doctor-name">{notif.name}</div>
+                    <div className="status-badge pending">CHANGE REQUEST</div>
+                  </div>
+                  <div className="session-details">
+                    <span className="detail-label">Session:</span> {notif.session_name || "—"}<br />
+                    <span className="detail-label">Original Session:</span> {notif.original_session || "—"}<br />
+                    <span className="detail-label">New Session:</span> {notif.new_session || "—"}<br />
+                    <span className="detail-label">Students:</span> {notif.students || "—"}<br />
+                    <span className="detail-label">Reason:</span> {notif.reason || "—"}<br />
+                    <button className="accept-btn" onClick={() => openLocationModal(notif, "change")}>✅ Accept</button>
+                    <button className="change-btn" disabled>🔄 Change</button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

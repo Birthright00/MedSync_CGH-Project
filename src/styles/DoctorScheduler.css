@@ -205,6 +205,27 @@
 }
 
 
+/* No notification message styling */
+.no-notifications {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 50px 0;
+}
+
+.no-notifications-image {
+  width: 80px;   /* smaller size */
+  height: auto;
+  margin-right: 15px; /* gap between image and text */
+}
+
+.no-notifications-text {
+  font-size: 20px;
+  font-weight: 500;
+  color: #333;
+}
+
+
 /* ################################################# */
 /* Responsive Adjustments */
 /* ################################################# */

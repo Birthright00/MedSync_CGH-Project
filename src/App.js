@@ -1,4 +1,5 @@
 import "./App.css";
+import { ToastContainer } from 'react-toastify';
 import ScrollToTop from "./components/ScrollToTop";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LoginPage from "./pages_login/LoginPage";
@@ -13,11 +14,14 @@ import NurseDetailsPage from "./components/NurseDetailsPage";
 import Scheduler from "./scheduling/DoctorScheduler-MainPage";
 import StudentHomePage from "./pages_student/StudentHomePage";
 import StudentTimetable from "./pages_student/StudentTimetable";
+import NotificationWatcher from './components/NotificationWatcher';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   return (
     <div className="App">
       <ScrollToTop />
+      <NotificationWatcher />
       <Routes>
         <Route exact path="/" element={<LoginPage />} />
         <Route exact path="/management-home" element={<ManagementHomePage />} />
@@ -36,6 +40,7 @@ function App() {
         <Route exact path="/student-timetable" element={<StudentTimetable />} />
         <Route exact path="/scheduler" element={<Scheduler />} />
       </Routes>
+      <ToastContainer />
     </div>
   );
 }

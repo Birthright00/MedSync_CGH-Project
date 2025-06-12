@@ -52,9 +52,14 @@
 /* Popup Modal Styling */
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.5);
-  display: flex; justify-content: center; align-items: center;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
   z-index: 9999;
 }
 
@@ -62,7 +67,7 @@
   background: #fff;
   padding: 30px;
   border-radius: 10px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.3);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
   width: 400px;
 }
 
@@ -136,8 +141,16 @@
 
 .date-slot {
   background-color: #eaf4ff;
-  padding: 10px;
-  border-radius: 6px;
+  padding: 16px 24px;
+  /* increase padding horizontally and vertically */
+  border-radius: 8px;
+  /* slightly rounder corners */
+  min-width: 150px;
+  /* make sure box doesn't shrink too small */
+  text-align: center;
+  /* center the text inside */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  /* optional: slight shadow for better visual */
 }
 
 .date-slot-content {
@@ -162,12 +175,30 @@
 .response-card button.accept-btn {
   background-color: #2e7d32;
   color: white;
+  padding: 9px 18px;
+  /* larger padding for bigger button */
+  font-size: 16px;
+  /* bigger text */
+  border-radius: 8px;
+  /* rounder corners */
+  min-width: 150px;
+  /* ensures consistent width */
+  border: none;
+  cursor: pointer;
 }
 
 .response-card button.change-btn {
   background-color: #ffb300;
   color: white;
+  padding: 9px 18px;
+  font-size: 16px;
+  border-radius: 8px;
+  min-width: 150px;
+  border: none;
+  cursor: not-allowed;
+  /* still disabled */
 }
+
 
 /* ################################################# */
 /* Responsive Adjustments */
@@ -191,6 +222,7 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

@@ -143,8 +143,8 @@ const DoctorScheduler = () => {
         </div>
 
         <div className="timetable-box">
-          <h2>📅 Timetable</h2>
-          <DoctorScheduling sessions={timetableSessions} />
+          <h1 style={{ textAlign: 'center', margin: '20px 0' }}>📅 Timetable</h1>
+          <DoctorScheduling sessions={timetableSessions} refreshSessions={fetchAllData} />
         </div>
       </div>
 

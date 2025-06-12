@@ -1789,7 +1789,46 @@ app.delete("/api/scheduling/parsed-email/:id", (req, res) => {
   });
 });
 
+/* For Updating scheduled sessions in the timetable */
 
+app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
+  const { id } = req.params;
+  const { title, doctor, location, start, end} = req.body;
+
+  // Helper function to format date
+  function formatDate(dateStr) {
+    const dateObj = new Date(dateStr);
+    const options = { day: '2-digit', month: 'long', year: 'numeric' };
+    return dateObj.toLocaleDateString('en-GB', options);
+  }
+
+  // Helper function to format time
+  function formatTime(dateStr) {
+    const date = new Date(dateStr);
+    let hour = date.getHours();
+    const minute = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hour >= 12 ? 'pm' : 'am';
+    hour = hour % 12 || 12;
+    return `${hour}:${minute}${ampm}`;
+  }
+
+  const dateStr = formatDate(start);  // e.g. "12 June 2025"
+  const timeStr = `${formatTime(start)} - ${formatTime(end)}`;  // e.g. "9:00am - 10:00am"
+
+  console.log("Updating session:", { id, title, doctor, location, dateStr, timeStr});
+
+  db.query(`
+    UPDATE scheduled_sessions
+    SET session_name = ?, name = ?, location = ?, date = ?, time = ?
+    WHERE id = ?
+  `, [title, doctor, location, dateStr, timeStr, id], (err, result) => {
+    if (err) {
+      console.error("Failed to update session:", err);
+      return res.status(500).json({ error: "Failed to update session" });
+    }
+    res.json({ message: "Session updated successfully" });
+  });
+});
 
 
 // -------------------------------------------------------------------------------------------------------------//

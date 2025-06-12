@@ -10,11 +10,13 @@ import '../styles/DoctorScheduler.css';
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
 
-const DoctorScheduling = ({ sessions }) => {
+const DoctorScheduling = ({ sessions, refreshSessions }) => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [form, setForm] = useState({ title: '', doctor: '', location: '', start: '', end: '', color: '' });
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [undoStack, setUndoStack] = useState([]);
+  const [redoStack, setRedoStack] = useState([]);
   const modalRef = useRef(null);
 
   useEffect(() => {
@@ -27,7 +29,7 @@ const DoctorScheduling = ({ sessions }) => {
         location: s.location,
         start: startDate,
         end: endDate,
-        color: '#3174ad'
+        isPast: endDate < new Date(),
       };
     });
     setEvents(mappedEvents);
@@ -40,7 +42,9 @@ const DoctorScheduling = ({ sessions }) => {
     let startHour = 9, startMinute = 0, endHour = 10, endMinute = 0;
 
     if (timeStr && timeStr !== "-" && timeStr !== "—") {
-      const rangeMatch = timeStr.match(/(.+?)(?:-|to)(.+)/i);
+      const normalizedTimeStr = timeStr.replace(/\s*-\s*/g, '-').replace(/\s*to\s*/gi, '-');
+
+      const rangeMatch = normalizedTimeStr.match(/^(.+?)-(.+)$/);
       if (rangeMatch) {
         const startTime = parseSingleTime(rangeMatch[1].trim());
         const endTime = parseSingleTime(rangeMatch[2].trim());
@@ -49,7 +53,7 @@ const DoctorScheduling = ({ sessions }) => {
         endHour = endTime.hour;
         endMinute = endTime.minute;
       } else {
-        const singleTime = parseSingleTime(timeStr);
+        const singleTime = parseSingleTime(normalizedTimeStr);
         startHour = singleTime.hour;
         startMinute = singleTime.minute;
         endHour = startHour + 1;
@@ -61,6 +65,8 @@ const DoctorScheduling = ({ sessions }) => {
     const endDate = new Date(year, month, parseInt(day), endHour, endMinute);
     return { startDate, endDate };
   };
+
+
 
   const parseSingleTime = (timeStr) => {
     const match = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
@@ -117,25 +123,46 @@ const DoctorScheduling = ({ sessions }) => {
     };
   }, [selectedEvent]);
 
-  const handleSave = () => {
-    setEvents(events.map(e =>
-      e.id === selectedEvent.id
-        ? {
-          ...e,
-          title: form.title,
-          doctor: form.doctor,
-          location: form.location,
-          start: new Date(form.start),
-          end: new Date(form.end),
-          color: form.color,
-        }
-        : e
-    ));
-    setSelectedEvent(null);
+  const handleSave = async () => {
+    const updatedEvent = {
+      ...selectedEvent,
+      title: form.title,
+      doctor: form.doctor,
+      location: form.location,
+      start: new Date(form.start),
+      end: new Date(form.end),
+    };
+
+    setUndoStack(prev => [...prev, { before: selectedEvent, after: updatedEvent }]);
+    setRedoStack([]); // clear redo on every new action
+
+    try {
+      await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${selectedEvent.id}`, {
+        title: form.title,
+        doctor: form.doctor,
+        location: form.location,
+        start: form.start,
+        end: form.end,
+        color: form.color,
+      });
+
+      setSelectedEvent(null);
+      if (refreshSessions) {
+        await refreshSessions();
+      }
+    } catch (err) {
+      console.error("❌ Failed to update backend:", err);
+      alert("Failed to save changes to database.");
+    }
   };
+
+
 
   const handleDelete = async () => {
     if (window.confirm(`Delete "${selectedEvent.title}"?`)) {
+      setUndoStack(prev => [...prev, { before: selectedEvent, after: null }]);
+      setRedoStack([]);
+
       try {
         await axios.delete(`http://localhost:3001/api/scheduling/delete-scheduled-session/${selectedEvent.id}`);
         setEvents(events.filter(e => e.id !== selectedEvent.id));
@@ -147,27 +174,173 @@ const DoctorScheduling = ({ sessions }) => {
     }
   };
 
-  const moveEvent = ({ event, start, end }) => {
-    setEvents(events.map(e => (e.id === event.id ? { ...e, start, end } : e)));
+
+  const moveEvent = async ({ event, start, end }) => {
+    const updatedEvent = {
+      ...event,
+      start,
+      end,
+    };
+    setUndoStack(prev => [...prev, { before: event, after: updatedEvent }]);
+    setRedoStack([]);
+
+    try {
+      await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${event.id}`, {
+        title: event.title,
+        doctor: event.doctor,
+        location: event.location,
+        start: start.toISOString(),   // convert to ISO format for backend consistency
+        end: end.toISOString(),
+      });
+
+      if (refreshSessions) {
+        await refreshSessions();
+      }
+    } catch (err) {
+      console.error("❌ Failed to update event after drag:", err);
+    }
   };
 
-  const resizeEvent = ({ event, start, end }) => {
-    setEvents(events.map(e => (e.id === event.id ? { ...e, start, end } : e)));
+
+  const resizeEvent = async ({ event, start, end }) => {
+    const updatedEvent = {
+      ...event,
+      start,
+      end,
+    };
+    setUndoStack(prev => [...prev, { before: event, after: updatedEvent }]);
+    setRedoStack([]);
+
+    try {
+      await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${event.id}`, {
+        title: event.title,
+        doctor: event.doctor,
+        location: event.location,
+        start: start.toISOString(),
+        end: end.toISOString(),
+      });
+
+      if (refreshSessions) {
+        await refreshSessions();
+      }
+    } catch (err) {
+      console.error("❌ Failed to update event after resize:", err);
+    }
   };
 
   const eventStyleGetter = (event) => ({
     style: {
-      backgroundColor: event.color || '#3174ad',
+      backgroundColor: '#3174ad',
       borderRadius: '4px',
-      opacity: 0.9,
+      opacity: event.isPast ? 0.6 : 0.9,
       color: 'white',
       border: 'none',
-    },
+      display: 'block',
+      cursor: event.isPast ? 'not-allowed' : 'pointer'
+    }
   });
+
+  const handleUndo = async () => {
+    if (undoStack.length === 0) {
+      alert("Nothing to undo");
+      return;
+    }
+
+    const lastAction = undoStack[undoStack.length - 1];
+    setRedoStack(prev => [...prev, lastAction]);  // push full pair to redo
+
+    if (lastAction.before) {
+      await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${lastAction.before.id}`, {
+        title: lastAction.before.title,
+        doctor: lastAction.before.doctor,
+        location: lastAction.before.location,
+        start: moment(lastAction.before.start).toISOString(),
+        end: moment(lastAction.before.end).toISOString(),
+      });
+    } else {
+      await axios.delete(`http://localhost:3001/api/scheduling/delete-scheduled-session/${lastAction.after.id}`);
+    }
+
+    setUndoStack(prev => prev.slice(0, -1));
+    if (refreshSessions) await refreshSessions();
+  };
+
+
+  const handleRedo = async () => {
+    if (redoStack.length === 0) {
+      alert("Nothing to redo");
+      return;
+    }
+
+    const nextAction = redoStack[redoStack.length - 1];
+    setUndoStack(prev => [...prev, nextAction]);  // push back to undo
+
+    if (nextAction.after) {
+      await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${nextAction.after.id}`, {
+        title: nextAction.after.title,
+        doctor: nextAction.after.doctor,
+        location: nextAction.after.location,
+        start: moment(nextAction.after.start).toISOString(),
+        end: moment(nextAction.after.end).toISOString(),
+      });
+    } else {
+      await axios.delete(`http://localhost:3001/api/scheduling/delete-scheduled-session/${nextAction.before.id}`);
+    }
+
+    setRedoStack(prev => prev.slice(0, -1));
+    if (refreshSessions) await refreshSessions();
+  };
+
+
+  const CustomToolbar = ({ label, onNavigate, onView, undoAvailable, redoAvailable, onUndo, onRedo }) => {
+    return (
+      <div className="rbc-toolbar">
+        <span className="rbc-btn-group">
+          <button onClick={() => onNavigate('PREV')}>Prev</button>
+          <button onClick={() => onNavigate('TODAY')}>Today</button>
+          <button onClick={() => onNavigate('NEXT')}>Next</button>
+        </span>
+        <span className="rbc-toolbar-label">{label}</span>
+        <span className="rbc-btn-group">
+          <button onClick={() => onView('month')}>Month</button>
+          <button onClick={() => onView('week')}>Week</button>
+          <button onClick={() => onView('agenda')}>Agenda</button>
+        </span>
+
+        <span className="rbc-btn-group">
+          <button
+            onClick={onUndo}
+            disabled={!undoAvailable}
+            style={{
+              backgroundColor: undoAvailable ? '#1976d2' : '#cccccc',
+              color: '#fff',
+              marginRight: '5px',
+              borderRadius: '6px',
+              cursor: undoAvailable ? 'pointer' : 'not-allowed'
+            }}
+          >Undo</button>
+
+          <button
+            onClick={onRedo}
+            disabled={!redoAvailable}
+            style={{
+              backgroundColor: redoAvailable ? '#388e3c' : '#cccccc',
+              color: '#fff',
+              borderRadius: '6px',
+              cursor: undoAvailable ? 'pointer' : 'not-allowed'
+            }}
+          >Redo</button>
+        </span>
+      </div>
+    );
+  };
+
+
+
 
   return (
     <>
-      <div style={{ height: '80vh', padding: '20px' }}>
+      <div style={{ height: '60vh', padding: '20px' }}>
         <DnDCalendar
           localizer={localizer}
           events={events}
@@ -180,6 +353,17 @@ const DoctorScheduling = ({ sessions }) => {
           onEventResize={resizeEvent}
           resizable
           eventPropGetter={eventStyleGetter}
+          components={{
+            toolbar: (props) => (
+              <CustomToolbar
+                {...props}
+                undoAvailable={undoStack.length > 0}
+                redoAvailable={redoStack.length > 0}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+              />
+            )
+          }}
         />
       </div>
 
@@ -197,8 +381,6 @@ const DoctorScheduling = ({ sessions }) => {
             <input className="edit-input" type="datetime-local" value={form.start} onChange={e => setForm({ ...form, start: e.target.value })} />
             <label>End Time:</label>
             <input className="edit-input" type="datetime-local" value={form.end} onChange={e => setForm({ ...form, end: e.target.value })} />
-            <label>Color:</label>
-            <input type="color" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} style={{ width: '50px', height: '30px', border: 'none', cursor: 'pointer', padding: '0' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
               <button onClick={handleSave} style={{ backgroundColor: '#2e7d32', color: '#fff', padding: '10px 20px', borderRadius: '8px' }}>Save</button>
               <button onClick={handleDelete} style={{ backgroundColor: '#e53935', color: '#fff', padding: '10px 20px', borderRadius: '8px' }}>Delete</button>

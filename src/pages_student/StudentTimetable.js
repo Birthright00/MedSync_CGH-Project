@@ -38,7 +38,8 @@ const StudentTimetable = () => {
           let endTimeStr = "10am";
 
           if (item.time) {
-            const timeParts = item.time.split('-').map(t => t.trim());
+            const normalized = item.time.toLowerCase().replace(/\s*to\s*/g, '-').replace(/\s*-\s*/g, '-');
+            const timeParts = normalized.split('-').map(t => t.trim());
             startTimeStr = normalizeTime(timeParts[0], "am");
 
             if (timeParts[1]) {
@@ -47,6 +48,7 @@ const StudentTimetable = () => {
               endTimeStr = moment(startTimeStr, "hA").add(1, "hour").format("hA");
             }
           }
+
 
           const startDateTime = moment(`${item.date} ${startTimeStr}`, "D MMMM YYYY hA").toDate();
           const endDateTime = moment(`${item.date} ${endTimeStr}`, "D MMMM YYYY hA").toDate();

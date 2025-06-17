@@ -1,6 +1,7 @@
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { toast } from "react-toastify";
+import API_BASE_URL from '../apiConfig';
 
 const handleExcelUploadManager = (file, selectedDoctor) => {
   return new Promise(async (resolve, reject) => {
@@ -70,7 +71,7 @@ const handleExcelUploadManager = (file, selectedDoctor) => {
           console.log("🚀 Sending JSON to /upload-non-institutional-manager");
 
           const response = await axios.post(
-            "http://localhost:3001/upload-non-institutional-manager",
+            `${API_BASE_URL}/upload-non-institutional-manager`,
             {
               full_name: fullName,
               department: department,

@@ -42,7 +42,7 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "start": "concurrently \"npm run frontend\" \"npm run backend\"",
+    "start": "node generate-qr.js && concurrently \"npm run frontend\" \"npm run backend\"",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
     "ai-parser": "python src/scheduling/hospital_email_pipeline/main.py",
@@ -72,6 +72,7 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "gh-pages": "^6.2.0"
+    "gh-pages": "^6.2.0",
+    "vite-plugin-qrcode": "^0.2.4"
   }
 }

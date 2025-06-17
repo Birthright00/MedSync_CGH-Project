@@ -5,6 +5,8 @@ import DoctorScheduling from "./DoctorScheduling";
 import cghNoNotifications from "../images/cgh_no_notifications.png";
 import "../styles/DoctorScheduler.css";
 import "../styles/navbar.css";
+import API_BASE_URL from '../apiConfig';
+
 
 const DoctorScheduler = () => {
   const [availabilityNotifs, setAvailabilityNotifs] = useState([]);
@@ -22,13 +24,13 @@ const DoctorScheduler = () => {
       const token = localStorage.getItem("token");
 
       const [availabilityRes, changeReqRes, timetableRes] = await Promise.all([
-        axios.get("http://localhost:3001/api/scheduling/availability-notifications", {
+        axios.get(`${API_BASE_URL}/api/scheduling/availability-notifications`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get("http://localhost:3001/api/scheduling/change_request", {
+        axios.get(`${API_BASE_URL}/api/scheduling/change_request`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get("http://localhost:3001/api/scheduling/timetable", {
+        axios.get(`${API_BASE_URL}/api/scheduling/timetable`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
       ]);
@@ -56,7 +58,7 @@ const DoctorScheduler = () => {
   const handleReject = async (notifId) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3001/api/scheduling/parsed-email/${notifId}`, {
+      await axios.delete(`${API_BASE_URL}/api/scheduling/parsed-email/${notifId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       await fetchAllData();  // Refresh after delete
@@ -70,7 +72,7 @@ const DoctorScheduler = () => {
     try {
       const token = localStorage.getItem("token");
       if (isChangeRequest) {
-        await axios.post("http://localhost:3001/api/scheduling/add-to-timetable", {
+        await axios.post(`${API_BASE_URL}/api/scheduling/add-to-timetable`, {
           session_name: selectedNotif.session_name,
           name: selectedNotif.name,
           date: selectedNotif.new_session,
@@ -81,11 +83,11 @@ const DoctorScheduler = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        await axios.delete(`http://localhost:3001/api/scheduling/parsed-email/${selectedNotif.id}`,
+        await axios.delete(`${API_BASE_URL}/api/scheduling/parsed-email/${selectedNotif.id}`,
           { headers: { Authorization: `Bearer ${token}` } });
       } else {
         for (const slot of selectedNotif.available_dates) {
-          await axios.post("http://localhost:3001/api/scheduling/add-to-timetable", {
+          await axios.post(`${API_BASE_URL}/api/scheduling/add-to-timetable`, {
             session_name: selectedNotif.session_name,
             name: selectedNotif.name,
             date: slot.date,
@@ -97,7 +99,7 @@ const DoctorScheduler = () => {
           });
         }
 
-        await axios.delete(`http://localhost:3001/api/scheduling/parsed-email/${selectedNotif.id}`,
+        await axios.delete(`${API_BASE_URL}/api/scheduling/parsed-email/${selectedNotif.id}`,
           { headers: { Authorization: `Bearer ${token}` } });
       }
 

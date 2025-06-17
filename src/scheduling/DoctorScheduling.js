@@ -6,6 +6,8 @@ import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import '../styles/DoctorScheduler.css';
+import API_BASE_URL from '../apiConfig';
+
 
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
@@ -140,7 +142,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${selectedEvent.id}`, {
+      await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${selectedEvent.id}`, {
         title: form.title,
         doctor: form.doctor,
         location: form.location,
@@ -172,7 +174,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
       try {
         const token = localStorage.getItem("token");
-        await axios.delete(`http://localhost:3001/api/scheduling/delete-scheduled-session/${selectedEvent.id}`, {
+        await axios.delete(`${API_BASE_URL}/api/scheduling/delete-scheduled-session/${selectedEvent.id}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
         setEvents(events.filter(e => e.id !== selectedEvent.id));
@@ -196,7 +198,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${event.id}`, {
+      await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${event.id}`, {
         title: event.title,
         doctor: event.doctor,
         location: event.location,
@@ -228,7 +230,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${event.id}`, {
+      await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${event.id}`, {
         title: event.title,
         doctor: event.doctor,
         location: event.location,
@@ -270,7 +272,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     setRedoStack(prev => [...prev, lastAction]);  // push full pair to redo
 
     if (lastAction.before) {
-      await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${lastAction.before.id}`, {
+      await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${lastAction.before.id}`, {
         title: lastAction.before.title,
         doctor: lastAction.before.doctor,
         location: lastAction.before.location,
@@ -282,7 +284,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         }
       );
     } else {
-      await axios.delete(`http://localhost:3001/api/scheduling/delete-scheduled-session/${lastAction.after.id}`, {
+      await axios.delete(`${API_BASE_URL}/api/scheduling/delete-scheduled-session/${lastAction.after.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
     }
@@ -302,7 +304,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     setUndoStack(prev => [...prev, nextAction]);  // push back to undo
 
     if (nextAction.after) {
-      await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${nextAction.after.id}`, {
+      await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${nextAction.after.id}`, {
         title: nextAction.after.title,
         doctor: nextAction.after.doctor,
         location: nextAction.after.location,
@@ -314,7 +316,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         }
       );
     } else {
-      await axios.delete(`http://localhost:3001/api/scheduling/delete-scheduled-session/${nextAction.before.id}`, {
+      await axios.delete(`${API_BASE_URL}/api/scheduling/delete-scheduled-session/${nextAction.before.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
     }

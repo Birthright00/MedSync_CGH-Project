@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
+import API_BASE_URL from '../apiConfig';
 
 // Components Imports
 import Footer from "../components/footer";
@@ -102,7 +103,7 @@ const LoginPage = () => {
 
     // API Call to Backend for Login
     try {
-      const response = await fetch("http://localhost:3001/login", {
+      const response = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

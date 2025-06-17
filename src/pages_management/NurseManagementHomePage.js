@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CSVLink } from "react-csv";
 import { motion } from "framer-motion";
+import API_BASE_URL from '../apiConfig';
 
 const ManagementHomePage = () => {
   // ########################################## //
@@ -181,7 +182,7 @@ const ManagementHomePage = () => {
           return;
         }
         const response = await axios.get(
-          "http://localhost:3001/main_data_nurses",
+          `${API_BASE_URL}/main_data_nurses`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

@@ -7,6 +7,7 @@ import { CSVLink } from "react-csv";
 import * as XLSX from "xlsx";
 import { motion } from "framer-motion";
 import MainDataTemplateDownload from "../components/csv_upload_templates/MainDataTemplateDownload";
+import API_BASE_URL from '../apiConfig';
 const ManagementHomePage = () => {
   // ########################################## //
   // Generic Constants
@@ -149,7 +150,7 @@ const ManagementHomePage = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:3001/upload-main-data", {
+      const response = await fetch(`${API_BASE_URL}/upload-main-data`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -304,7 +305,7 @@ const ManagementHomePage = () => {
           return;
         }
         const response = await axios.get(
-          "http://localhost:3001/database?includeDeleted=true",
+          `${API_BASE_URL}/database?includeDeleted=true`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

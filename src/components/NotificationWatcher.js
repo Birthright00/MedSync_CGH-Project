@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import API_BASE_URL from '../apiConfig';
 
 const NotificationWatcher = () => {
   const [lastSeenCount, setLastSeenCount] = useState(0);
@@ -15,10 +16,10 @@ const NotificationWatcher = () => {
         }
 
         const [availabilityRes, changeReqRes] = await Promise.all([
-          axios.get("http://localhost:3001/api/scheduling/availability-notifications", {
+          axios.get(`${API_BASE_URL}/api/scheduling/availability-notifications`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          axios.get("http://localhost:3001/api/scheduling/change_request", {
+          axios.get(`${API_BASE_URL}/api/scheduling/change_request`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
         ]);

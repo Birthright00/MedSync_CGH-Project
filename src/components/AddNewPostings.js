@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import API_BASE_URL from '../apiConfig';
 import { FaPlus, FaTimes, FaPaperPlane } from "react-icons/fa";
 import { confirmAlert } from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
@@ -54,7 +55,7 @@ const AddNewPostings = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `http://localhost:3001/contracts/${mcr_number}`,
+        `${API_BASE_URL}/contracts/${mcr_number}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -109,7 +110,7 @@ const AddNewPostings = () => {
         try {
           const token = localStorage.getItem("token");
           const response = await axios.get(
-            `http://localhost:3001/postings?mcr_number=${mcr_number}&school_name=${value}`,
+            `${API_BASE_URL}/postings?mcr_number=${mcr_number}&school_name=${value}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           const postings = response.data;
@@ -151,7 +152,7 @@ const AddNewPostings = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        `http://localhost:3001/postings`,
+        `${API_BASE_URL}/postings`,
         newPosting,
         {
           headers: { Authorization: `Bearer ${token}` },

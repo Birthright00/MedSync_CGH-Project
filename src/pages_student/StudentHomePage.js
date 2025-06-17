@@ -19,6 +19,7 @@ import {
     WiNightRain,
 } from "react-icons/wi";
 import { MdNotifications, MdEventNote, MdSchedule } from "react-icons/md";
+import API_BASE_URL from '../apiConfig';
 
 
 const StudentHomePage = () => {
@@ -36,7 +37,7 @@ const StudentHomePage = () => {
                     return;
                 }
 
-                const response = await axios.get("http://localhost:3001/api/scheduling/timetable", {
+                const response = await axios.get(`${API_BASE_URL}/api/scheduling/timetable`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 

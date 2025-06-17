@@ -9,6 +9,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import StudentNavbar from "./studentnavbar.js";
 import '../styles/studenttimetable.css';
+import API_BASE_URL from '../apiConfig';
 
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
@@ -29,7 +30,7 @@ const StudentTimetable = () => {
   };
 
   const fetchTimetable = () => {
-    axios.get("http://localhost:3001/api/scheduling/timetable")
+    axios.get(`${API_BASE_URL}/api/scheduling/timetable`)
       .then(res => {
         const now = new Date();
 

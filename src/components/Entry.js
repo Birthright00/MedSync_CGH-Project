@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import API_BASE_URL from '../apiConfig';
+
 
 const Entry = () => {
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -115,7 +117,7 @@ const Entry = () => {
       console.log("Sending POST request to backend...");
 
       const response = await axios.post(
-        "http://localhost:3001/entry",
+        `${API_BASE_URL}/entry`,
         dataToSubmit,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -182,7 +184,7 @@ const Entry = () => {
       if (value.length === 7 && mcrRegex.test(value)) {
         try {
           const response = await axios.get(
-            `http://localhost:3001/staff/${value}`,
+            `${API_BASE_URL}/staff/${value}`,
             {
               headers: { Authorization: `Bearer ${token}` },
             }

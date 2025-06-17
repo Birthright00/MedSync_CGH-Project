@@ -69,7 +69,12 @@ const restrictToReadOnlyforHR = (req, res, next) => {
 // -------------------------------------------------------------------------------------------------------------//
 app.use(express.json()); // Parse incoming JSON requests, so you can access req.body in POST requests when the data is sent in JSON format.
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded data
-app.use(cors()); //Enables CORS, allowing cross-origin requests from browsers e.g. 3000 for frontend, 3001 for backend
+app.use(cors({
+  origin: "*",  // Allow all origins (for development only)
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // -------------------------------------------------------------------------------------------------------------//
 // DATABASE CONNECTION SETUP
@@ -1852,6 +1857,8 @@ db.connect((err) => {
   }
 });
 
-app.listen(process.env.PORT || 3001, () => {
-  console.log("Connection Successful. Backend server is running!");
+const PORT = process.env.PORT || 3001;
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Connection Successful. Backend server is running on port ${PORT}`);
 });

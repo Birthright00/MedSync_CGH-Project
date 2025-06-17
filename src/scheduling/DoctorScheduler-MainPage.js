@@ -6,6 +6,8 @@ import cghNoNotifications from "../images/cgh_no_notifications.png";
 import "../styles/DoctorScheduler.css";
 import "../styles/navbar.css";
 import API_BASE_URL from '../apiConfig';
+import { MdCancel } from 'react-icons/md';
+import { MdCheckBox, MdAutorenew } from 'react-icons/md';
 
 
 const DoctorScheduler = () => {
@@ -149,10 +151,21 @@ const DoctorScheduler = () => {
                     ))}
                   </div>
 
-                  <div style={{ marginTop: "10px" }}>
-                    <button className="accept-btn" onClick={() => openLocationModal(notif, "availability")}>✅ Accept</button>
-                    <button className="change-btn" disabled>🔄 Change</button>
-                    <button className="reject-btn" onClick={() => handleReject(notif.id)}>❌ Reject</button>
+                  <div style={{ marginTop: "10px", display: "flex", gap: "10px", alignItems: "center" }}>
+                    <button className="accept-btn" onClick={() => openLocationModal(notif, "availability")}>
+                      <MdCheckBox style={{ fontSize: '22px', verticalAlign: 'middle', position: 'relative', top: '-1px', marginRight: '5px' }} />
+                      Accept
+                    </button>
+
+                    <button className="change-btn" disabled>
+                      <MdAutorenew style={{ fontSize: '22px', verticalAlign: 'middle', position: 'relative', top: '-1px', marginRight: '5px' }} />
+                      Change
+                    </button>
+
+                    <button className="reject-btn" onClick={() => handleReject(notif.id)}>
+                      <MdCancel style={{ fontSize: '22px', verticalAlign: 'middle', position: 'relative', top: '-1px', marginRight: '5px' }} />
+                      Reject
+                    </button>
                   </div>
                 </div>
               ))
@@ -184,7 +197,7 @@ const DoctorScheduler = () => {
                     <span className="detail-label">Reason:</span> {notif.reason || "—"}<br />
                     <button className="accept-btn" onClick={() => openLocationModal(notif, "change")}>✅ Accept</button>
                     <button className="change-btn" disabled>🔄 Change</button>
-                    <button className="reject-btn" onClick={() => handleReject(notif.id)}>❌ Reject</button>
+                    <button className="reject-btn" onClick={() => handleReject(notif.id)}>❎ Reject</button>
                   </div>
                 </div>
               ))

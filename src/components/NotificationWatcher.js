@@ -1,26 +1,43 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
 const NotificationWatcher = () => {
+  const [lastSeenCount, setLastSeenCount] = useState(0);
+
   useEffect(() => {
     const checkNotifications = async () => {
       try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.log("No token found for notifications");
+          return;
+        }
+
         const [availabilityRes, changeReqRes] = await Promise.all([
-          axios.get("http://localhost:3001/api/scheduling/availability-notifications"),
-          axios.get("http://localhost:3001/api/scheduling/change_request"),
+          axios.get("http://localhost:3001/api/scheduling/availability-notifications", {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get("http://localhost:3001/api/scheduling/change_request", {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
         ]);
 
-        if (availabilityRes.data.length > 0 || changeReqRes.data.length > 0) {
+        const totalCount = availabilityRes.data.length + changeReqRes.data.length;
+
+        if (totalCount > lastSeenCount) {
           toast.info("You have notifications!", {
+            toastId: 'notifications',
             position: "top-right",
-            autoClose: 3000,
+            autoClose: false,
             hideProgressBar: false,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
             progress: undefined,
           });
+
+          setLastSeenCount(totalCount);
         }
 
       } catch (err) {
@@ -28,9 +45,10 @@ const NotificationWatcher = () => {
       }
     };
 
-    checkNotifications();
-
-  }, []);  // Only once when app loads
+    checkNotifications();  // run immediately
+    const intervalId = setInterval(checkNotifications, 5000);
+    return () => clearInterval(intervalId);
+  }, [lastSeenCount]);
 
   return null;
 };

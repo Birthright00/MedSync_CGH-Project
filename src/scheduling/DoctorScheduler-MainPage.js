@@ -19,10 +19,18 @@ const DoctorScheduler = () => {
 
   const fetchAllData = async () => {
     try {
+      const token = localStorage.getItem("token");
+
       const [availabilityRes, changeReqRes, timetableRes] = await Promise.all([
-        axios.get("http://localhost:3001/api/scheduling/availability-notifications"),
-        axios.get("http://localhost:3001/api/scheduling/change_request"),
-        axios.get("http://localhost:3001/api/scheduling/timetable"),
+        axios.get("http://localhost:3001/api/scheduling/availability-notifications", {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get("http://localhost:3001/api/scheduling/change_request", {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get("http://localhost:3001/api/scheduling/timetable", {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
       ]);
       setAvailabilityNotifs(availabilityRes.data);
       setChangeRequestNotifs(changeReqRes.data);
@@ -45,8 +53,22 @@ const DoctorScheduler = () => {
     setShowLocationModal(true);
   };
 
+  const handleReject = async (notifId) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:3001/api/scheduling/parsed-email/${notifId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      await fetchAllData();  // Refresh after delete
+    } catch (err) {
+      console.error("❌ Failed to reject notification:", err);
+    }
+  };
+
+
   const handleConfirmLocation = async () => {
     try {
+      const token = localStorage.getItem("token");
       if (isChangeRequest) {
         await axios.post("http://localhost:3001/api/scheduling/add-to-timetable", {
           session_name: selectedNotif.session_name,
@@ -55,9 +77,12 @@ const DoctorScheduler = () => {
           time: "-",
           location: locationInput,
           students: selectedNotif.students || ""
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
         });
 
-        await axios.delete(`http://localhost:3001/api/scheduling/parsed-email/${selectedNotif.id}`);
+        await axios.delete(`http://localhost:3001/api/scheduling/parsed-email/${selectedNotif.id}`,
+          { headers: { Authorization: `Bearer ${token}` } });
       } else {
         for (const slot of selectedNotif.available_dates) {
           await axios.post("http://localhost:3001/api/scheduling/add-to-timetable", {
@@ -67,10 +92,13 @@ const DoctorScheduler = () => {
             time: slot.time || "-",
             location: locationInput,
             students: selectedNotif.students || ""
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
           });
         }
 
-        await axios.delete(`http://localhost:3001/api/scheduling/parsed-email/${selectedNotif.id}`);
+        await axios.delete(`http://localhost:3001/api/scheduling/parsed-email/${selectedNotif.id}`,
+          { headers: { Authorization: `Bearer ${token}` } });
       }
 
       setShowLocationModal(false);
@@ -122,6 +150,7 @@ const DoctorScheduler = () => {
                   <div style={{ marginTop: "10px" }}>
                     <button className="accept-btn" onClick={() => openLocationModal(notif, "availability")}>✅ Accept</button>
                     <button className="change-btn" disabled>🔄 Change</button>
+                    <button className="reject-btn" onClick={() => handleReject(notif.id)}>❌ Reject</button>
                   </div>
                 </div>
               ))
@@ -153,6 +182,7 @@ const DoctorScheduler = () => {
                     <span className="detail-label">Reason:</span> {notif.reason || "—"}<br />
                     <button className="accept-btn" onClick={() => openLocationModal(notif, "change")}>✅ Accept</button>
                     <button className="change-btn" disabled>🔄 Change</button>
+                    <button className="reject-btn" onClick={() => handleReject(notif.id)}>❌ Reject</button>
                   </div>
                 </div>
               ))

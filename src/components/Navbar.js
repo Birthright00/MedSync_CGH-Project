@@ -70,7 +70,7 @@ const Navbar = ({ homeRoute }) => {
   };
 
   const handleScheduler = () => {
-    nav("/scheduler");
+    nav("/timetable");
   };
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -92,6 +92,7 @@ const Navbar = ({ homeRoute }) => {
           Home
         </motion.button>
 
+        {userRole === "management" && (
         <motion.button
           className="navbarbutton"
           whileHover={{ scale: 1.1 }}
@@ -100,6 +101,7 @@ const Navbar = ({ homeRoute }) => {
         >
           Schedule
         </motion.button>
+        )}
 
         {/* <motion.button
           className="navbarbutton"

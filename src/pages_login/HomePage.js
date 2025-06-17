@@ -51,7 +51,7 @@ const HomePage = () => {
 
   useEffect(() => {
     const announcementsData = [
-      { id: 1, message: "System maintenance scheduled for Dec 16." },
+      { id: 1, message: "System maintenance scheduled for Sep 5." },
     ];
     setAnnouncements(announcementsData);
   }, []);

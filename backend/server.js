@@ -115,6 +115,16 @@ const verifyToken = (req, res, next) => {
   }
 };
 
+// Middleware to restrict access by role
+const requireRole = (role) => {
+  return (req, res, next) => {
+    if (!req.user || req.user.role !== role) {
+      return res.status(403).json({ message: "Access Denied: Insufficient role permissions" });
+    }
+    next();
+  };
+};
+
 // -------------------------------------------------------------------------------------------------------------//
 // BACKEND SERVER
 // -------------------------------------------------------------------------------------------------------------//
@@ -1602,7 +1612,7 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST to call for scheduling data and displaying it as notifications for type = availability
 // -------------------------------------------------------------------------------------------------------------//
-app.get("/api/scheduling/availability-notifications", (req, res) => {
+app.get("/api/scheduling/availability-notifications", verifyToken, requireRole("management"), (req, res) => {
   const query = `
     SELECT
       id,
@@ -1670,7 +1680,7 @@ app.get("/api/scheduling/availability-notifications", (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST to call for scheduling data and displaying it as notifications for type = change_request
 // -------------------------------------------------------------------------------------------------------------//
-app.get("/api/scheduling/change_request", (req, res) => {
+app.get("/api/scheduling/change_request", verifyToken, requireRole("management"), (req, res) => {
   const query = `
     SELECT
       id,
@@ -1715,7 +1725,7 @@ app.get("/api/scheduling/change_request", (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 // For calling of database to add sessions inside if accepted
 // -------------------------------------------------------------------------------------------------------------//
-app.post("/api/scheduling/add-to-timetable", (req, res) => {
+app.post("/api/scheduling/add-to-timetable", verifyToken, requireRole("management"), (req, res) => {
   const { session_name, name, date, time, location, students } = req.body;
 
   if (!session_name || !name || !date || !time) {
@@ -1762,7 +1772,7 @@ app.get("/api/scheduling/timetable", (req, res) => {
 });
 
 // ✅ DELETE from scheduled_sessions (timetable)
-app.delete("/api/scheduling/delete-scheduled-session/:id", (req, res) => {
+app.delete("/api/scheduling/delete-scheduled-session/:id", verifyToken, requireRole("management"), (req, res) => {
   const { id } = req.params;
 
   const deleteQuery = `DELETE FROM scheduled_sessions WHERE id = ?`;

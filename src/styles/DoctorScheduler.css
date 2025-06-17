@@ -198,6 +198,16 @@
   background-color: #e89a00;
 }
 
+.response-card button.reject-btn {
+  background-color: #e53935; /* Strong red */
+  color: #fff;
+}
+
+.response-card button.reject-btn:hover {
+  background-color: #c62828; /* Darker red on hover */
+}
+
+
 
 .rbc-event {
   border-radius: 8px !important;

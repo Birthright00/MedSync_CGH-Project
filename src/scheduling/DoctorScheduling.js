@@ -42,7 +42,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     let startHour = 9, startMinute = 0, endHour = 10, endMinute = 0;
 
     if (timeStr && timeStr !== "-" && timeStr !== "—") {
-      const normalizedTimeStr = timeStr.replace(/\s*-\s*/g, '-').replace(/\s*to\s*/gi, '-');
+      const normalizedTimeStr = timeStr.replace(/\s*-\s*/g, '-').replace(/\s*to\s*/gi, '-').replace(/\./g, ':');
 
       const rangeMatch = normalizedTimeStr.match(/^(.+?)-(.+)$/);
       if (rangeMatch) {
@@ -66,13 +66,15 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     return { startDate, endDate };
   };
 
-
-
   const parseSingleTime = (timeStr) => {
-    const match = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
-    let hour = parseInt(match[1]);
-    const minute = match[2] ? parseInt(match[2]) : 0;
+    const match = timeStr.match(/(\d{1,2})(?::?(\d{0,2}))?\s*(am|pm)/i);
+    if (!match) {
+      throw new Error(`Cannot parse time string: "${timeStr}"`);
+    }
+    let hour = parseInt(match[1], 10);
+    const minute = match[2] ? parseInt(match[2], 10) : 0;
     const ampm = match[3].toLowerCase();
+
     if (ampm === "pm" && hour < 12) hour += 12;
     if (ampm === "am" && hour === 12) hour = 0;
     return { hour, minute };
@@ -137,6 +139,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     setRedoStack([]); // clear redo on every new action
 
     try {
+      const token = localStorage.getItem("token");
       await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${selectedEvent.id}`, {
         title: form.title,
         doctor: form.doctor,
@@ -144,7 +147,11 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         start: form.start,
         end: form.end,
         color: form.color,
-      });
+      },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        }
+      );
 
       setSelectedEvent(null);
       if (refreshSessions) {
@@ -164,7 +171,10 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       setRedoStack([]);
 
       try {
-        await axios.delete(`http://localhost:3001/api/scheduling/delete-scheduled-session/${selectedEvent.id}`);
+        const token = localStorage.getItem("token");
+        await axios.delete(`http://localhost:3001/api/scheduling/delete-scheduled-session/${selectedEvent.id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
         setEvents(events.filter(e => e.id !== selectedEvent.id));
         setSelectedEvent(null);
       } catch (err) {
@@ -185,13 +195,18 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     setRedoStack([]);
 
     try {
+      const token = localStorage.getItem("token");
       await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${event.id}`, {
         title: event.title,
         doctor: event.doctor,
         location: event.location,
         start: start.toISOString(),   // convert to ISO format for backend consistency
         end: end.toISOString(),
-      });
+      },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        }
+      );
 
       if (refreshSessions) {
         await refreshSessions();
@@ -212,13 +227,18 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     setRedoStack([]);
 
     try {
+      const token = localStorage.getItem("token");
       await axios.patch(`http://localhost:3001/api/scheduling/update-scheduled-session/${event.id}`, {
         title: event.title,
         doctor: event.doctor,
         location: event.location,
         start: start.toISOString(),
         end: end.toISOString(),
-      });
+      },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        }
+      );
 
       if (refreshSessions) {
         await refreshSessions();
@@ -256,9 +276,15 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         location: lastAction.before.location,
         start: moment(lastAction.before.start).toISOString(),
         end: moment(lastAction.before.end).toISOString(),
-      });
+      },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        }
+      );
     } else {
-      await axios.delete(`http://localhost:3001/api/scheduling/delete-scheduled-session/${lastAction.after.id}`);
+      await axios.delete(`http://localhost:3001/api/scheduling/delete-scheduled-session/${lastAction.after.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
     }
 
     setUndoStack(prev => prev.slice(0, -1));
@@ -282,9 +308,15 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         location: nextAction.after.location,
         start: moment(nextAction.after.start).toISOString(),
         end: moment(nextAction.after.end).toISOString(),
-      });
+      },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        }
+      );
     } else {
-      await axios.delete(`http://localhost:3001/api/scheduling/delete-scheduled-session/${nextAction.before.id}`);
+      await axios.delete(`http://localhost:3001/api/scheduling/delete-scheduled-session/${nextAction.before.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
     }
 
     setRedoStack(prev => prev.slice(0, -1));

@@ -10,11 +10,14 @@ import calendar from "../images/calender.png";  // Create icons like you did for
 import white_calendar from "../images/calender_white.png";
 import email from "../images/email.png";
 import white_email from "../images/email_white.png";
+import white_medicalteam from "../images/medicalteam_white.png";
+import medicalteam from "../images/medicalteam.png";
 
 const SchedulerLanding = () => {
     const nav = useNavigate();
     const [isCreateHovered, setIsCreateHovered] = useState(false);
     const [isScheduleHovered, setIsScheduleHovered] = useState(false);
+    const [isManageHovered, setIsManageHovered] = useState(false);
     const [announcements, setAnnouncements] = useState([]);
 
     useEffect(() => {
@@ -47,6 +50,10 @@ const SchedulerLanding = () => {
         nav("/timetable/scheduling");
     };
 
+    const handleUsers = () => {
+        nav("/timetable/users-management");
+    };
+
     return (
         <>
             <Navbar />
@@ -66,7 +73,7 @@ const SchedulerLanding = () => {
 
                 <div className="card-container">
                     <motion.div
-                        className="data-card doctor-card"
+                        className="data-card createschedule-card"
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
@@ -84,7 +91,7 @@ const SchedulerLanding = () => {
                     </motion.div>
 
                     <motion.div
-                        className="data-card nurse-card"
+                        className="data-card timetableschedule-card"
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.4 }}
@@ -99,6 +106,24 @@ const SchedulerLanding = () => {
                         />
                         <h2>Timetable Scheduling</h2>
                         <p>Edit or modify the master timetable.</p>
+                    </motion.div>
+
+                    <motion.div
+                        className="data-card managerdoctorstudent-card"
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.4 }}
+                        onClick={handleUsers}
+                        onMouseEnter={() => setIsManageHovered(true)}
+                        onMouseLeave={() => setIsManageHovered(false)}
+                    >
+                        <img
+                            src={isManageHovered ? white_medicalteam : medicalteam}
+                            alt="calender"
+                            className="card-icon"
+                        />
+                        <h2>Manage Users</h2>
+                        <p>View and modify doctor and student information.</p>
                     </motion.div>
                 </div>
             </div>

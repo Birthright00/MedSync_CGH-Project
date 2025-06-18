@@ -59,10 +59,14 @@ const StudentTimetable = () => {
             title: `${item.session_name} (${item.name})`,
             start: startDateTime,
             end: endDateTime,
-            color: '#31B5F7',
+            // ✅ CHANGED: color based on rescheduled status
+            color: ["rescheduled", "resized"].includes(item.change_type) ? "#fdd835" : "#31B5F7",
             location: item.location,
             students: item.students,
-            isPast: endDateTime < now   // ✅ Add isPast flag here
+            isPast: endDateTime < now,
+            originalTime: item.original_time,
+            changeType: item.change_type,
+            changeReason: item.change_reason
           };
         });
 
@@ -82,17 +86,25 @@ const StudentTimetable = () => {
     setSelectedEvent(event);
   };
 
+
+  const getEventColor = (event) => {
+    if (event.isPast) return '#999999';
+    if (['rescheduled', 'resized'].includes(event.changeType)) return '#fdd835';
+    return '#3174ad';
+  };
+
   const eventStyleGetter = (event) => ({
     style: {
-      backgroundColor: event.isPast ? '#999999' : (event.color || '#3174ad'),
+      backgroundColor: getEventColor(event),
       borderRadius: '4px',
-      opacity: event.isPast ? 0.6 : 0.9,
+      opacity: 0.9,
       color: 'white',
       border: 'none',
       display: 'block',
       cursor: event.isPast ? 'not-allowed' : 'pointer'
     }
   });
+
 
   const exportAsImage = () => {
     html2canvas(calendarRef.current).then((canvas) => {
@@ -202,6 +214,13 @@ const StudentTimetable = () => {
             <p><strong>End:</strong> {moment(selectedEvent.end).format('YYYY-MM-DD HH:mm')}</p>
             <p><strong>Location:</strong> {selectedEvent.location}</p>
             <p><strong>Students:</strong> {selectedEvent.students}</p>
+
+            {["rescheduled", "resized"].includes(selectedEvent.changeType) && (
+              <div style={{ marginTop: '10px', backgroundColor: '#fff3cd', padding: '10px', borderRadius: '6px' }}>
+                <p><strong>⏱ Originally:</strong> {moment(selectedEvent.originalTime).format('DD/MM/YYYY [at] hh:mm A')}</p>
+              </div>
+            )}
+
 
             <button
               onClick={() => setSelectedEvent(null)}

@@ -47,9 +47,13 @@ const StudentHomePage = () => {
                     return {
                         subject: `${item.session_name} (${item.name})`,
                         day: day,
+                        date: item.date,
                         start_time: item.time,
-                        end_time: "",  // optional for now
+                        end_time: "",
                         location: item.location,
+                        change_type: item.change_type,
+                        change_reason: item.change_reason,
+                        original_time: item.original_time,
                     };
                 });
 
@@ -60,7 +64,6 @@ const StudentHomePage = () => {
                 setLoading(false);
             }
         };
-
 
         const fetchWeather = async () => {
             try {
@@ -76,12 +79,15 @@ const StudentHomePage = () => {
         fetchTimetable();
         fetchWeather();
 
-        const interval = setInterval(() => {
-            setCurrentTime(new Date());
-        }, 1000);
+        const timeInterval = setInterval(() => setCurrentTime(new Date()), 1000);
+        const timetableInterval = setInterval(fetchTimetable, 5000); // <-- 🔁 ADD THIS
 
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(timeInterval);
+            clearInterval(timetableInterval); // <-- CLEANUP
+        };
     }, []);
+
 
     const today = currentTime.toLocaleDateString("en-SG", {
         weekday: "long",
@@ -106,6 +112,48 @@ const StudentHomePage = () => {
         const eventDay = weekdays[entry.day.toLowerCase()];
         return eventDay >= todayDate.getDay();
     }).slice(0, 3); // limit to 3 upcoming events
+
+    const changeNotifications = timetableData
+        .filter(item => ["rescheduled", "resized"].includes(item.change_type))
+        .map((item, idx) => {
+            const originalDate = new Date(item.original_time);
+            const newDate = new Date(item.date);
+
+            const formattedOriginalDate = originalDate.toLocaleDateString("en-SG");
+            const formattedOriginalTime = originalDate.toLocaleTimeString("en-SG", { hour: '2-digit', minute: '2-digit', hour12: true });
+
+            const formattedNewDate = newDate.toLocaleDateString("en-SG");
+            // Split time range
+            const [start, end] = item.start_time?.split("-") || ["", ""];
+            const formattedNewStartTime = start.trim();
+            const formattedNewEndTime = end ? end.trim() : "";
+
+
+            return (
+                <li key={idx} className="notification-card">
+                    <div className="notification-header">
+                        🕒 <strong>{item.subject}</strong>{" "}
+                        {item.change_type === "resized"
+                            ? "was resized."
+                            : item.change_type === "rescheduled"
+                                ? "was rescheduled."
+                                : ""}
+                    </div>
+                    <div className="notification-details">
+                        <div>
+                            <span className="label">Originally:</span>{" "}
+                            <span className="value">{formattedOriginalDate} at {formattedOriginalTime}</span>
+                        </div>
+                        <div>
+                            <span className="label">Now:</span>{" "}
+                            <span className="value">{formattedNewDate} at {formattedNewStartTime} - {formattedNewEndTime}</span>
+                        </div>
+                    </div>
+                </li>
+            );
+        });
+
+
 
     const getWeatherIcon = (summary) => {
         if (!summary) return <WiDaySunny className="weather-widget-icon" />;
@@ -164,9 +212,11 @@ const StudentHomePage = () => {
                     <div className="notification-panel">
                         <h4>📢 Notifications</h4>
                         <ul>
-                            <li>📌 Class on 12 June moved to Room B202</li>
-                            <li>📌 Pathology lecture on 14 June cancelled</li>
-                            <li>📌 Clinicals on 15 June start at 8AM</li>
+                            {changeNotifications.length === 0 ? (
+                                <li>No new notifications</li>
+                            ) : (
+                                changeNotifications.map((note, idx) => <li key={idx}>{note}</li>)
+                            )}
                         </ul>
                     </div>
 

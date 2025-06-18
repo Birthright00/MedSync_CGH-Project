@@ -32,6 +32,9 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         start: startDate,
         end: endDate,
         isPast: endDate < new Date(),
+        originalTime: s.original_time,
+        changeType: s.change_type,
+        changeReason: s.change_reason,
       };
     });
     setEvents(mappedEvents);
@@ -149,6 +152,9 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         start: form.start,
         end: form.end,
         color: form.color,
+        original_time: moment(selectedEvent.start).format('YYYY-MM-DDTHH:mm'),
+        change_type: 'rescheduled',
+        change_reason: 'Manual edit by Education Office',
       },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
@@ -204,6 +210,9 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         location: event.location,
         start: start.toISOString(),   // convert to ISO format for backend consistency
         end: end.toISOString(),
+        original_time: moment(event.start).format('YYYY-MM-DDTHH:mm'),
+        change_type: 'rescheduled',
+        change_reason: 'Rescheduled via drag',
       },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
@@ -236,6 +245,9 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         location: event.location,
         start: start.toISOString(),
         end: end.toISOString(),
+        original_time: moment(event.start).format('YYYY-MM-DDTHH:mm'),
+        change_type: 'resized',
+        change_reason: 'Duration adjusted by Education Office',
       },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }

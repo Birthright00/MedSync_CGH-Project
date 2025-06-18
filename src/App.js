@@ -17,6 +17,8 @@ import SchedulerLanding from "./scheduling/SchedulerLanding";
 import StudentHomePage from "./pages_student/StudentHomePage";
 import StudentTimetable from "./pages_student/StudentTimetable";
 import NotificationWatcher from './components/NotificationWatcher';
+import UserManagementLanding from "./user_management/UserManagementLanding";
+import CreateNewSession from './scheduling/CreateNewSession'; // adjust path if needed
 import 'react-toastify/dist/ReactToastify.css';
 import { Toast } from "bootstrap";
 
@@ -56,7 +58,20 @@ function App() {
             <Scheduler />
           </ProtectedRoute>
         } />
+
+        <Route path="/timetable/create" element={<CreateNewSession />} />
+
+        {/*  
+        <Route path="/timetable/create" element={
+          <iframe
+            src="/CreateNewSession.html"
+            style={{ width: "100%", height: "100vh", border: "none" }}
+            title="Create New Session"
+          />
+        } /> */}
         
+        <Route path="/timetable/users-management" element={<UserManagementLanding />} />
+
       </Routes>
     </div>
   );

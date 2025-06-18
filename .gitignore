@@ -10,6 +10,7 @@
 
 # production
 /build
+/excel_test
 
 # misc
 .DS_Store

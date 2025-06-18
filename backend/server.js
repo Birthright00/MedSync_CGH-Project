@@ -1761,7 +1761,7 @@ app.post("/api/scheduling/add-to-timetable", verifyToken, requireRole("managemen
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/api/scheduling/timetable", (req, res) => {
   const query = `
-    SELECT id, session_name, name, date, time, location, students
+    SELECT id, session_name, name, date, time, location, students, change_type, original_time, change_reason
     FROM scheduled_sessions
     ORDER BY date ASC, time ASC
   `;
@@ -1808,7 +1808,7 @@ app.delete("/api/scheduling/parsed-email/:id", (req, res) => {
 
 app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
   const { id } = req.params;
-  const { title, doctor, location, start, end} = req.body;
+  const { title, doctor, location, start, end, original_time, change_type, change_reason} = req.body;
 
   // Helper function to format date
   function formatDate(dateStr) {
@@ -1830,13 +1830,13 @@ app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
   const dateStr = formatDate(start);  // e.g. "12 June 2025"
   const timeStr = `${formatTime(start)} - ${formatTime(end)}`;  // e.g. "9:00am - 10:00am"
 
-  console.log("Updating session:", { id, title, doctor, location, dateStr, timeStr});
+  console.log("Updating session:", { id, title, doctor, location, dateStr, timeStr, original_time, change_type, change_reason });
 
   db.query(`
     UPDATE scheduled_sessions
-    SET session_name = ?, name = ?, location = ?, date = ?, time = ?
+    SET session_name = ?, name = ?, date = ?, time = ?, location = ?, original_time = ?, change_type = ?, change_reason = ?
     WHERE id = ?
-  `, [title, doctor, location, dateStr, timeStr, id], (err, result) => {
+  `, [title, doctor, dateStr, timeStr, location, original_time || null, change_type || null, change_reason || null, id], (err, result) => {
     if (err) {
       console.error("Failed to update session:", err);
       return res.status(500).json({ error: "Failed to update session" });

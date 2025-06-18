@@ -1,8 +1,13 @@
 // src/apiConfig.js
 
-const isLocalhost = window.location.hostname === 'localhost';
-const API_BASE_URL = isLocalhost
-  ? 'http://localhost:3001'
-  : 'http://192.168.19.248:3001';
+let hostname = window.location.hostname;
+let protocol = window.location.protocol;
+
+// Optional fallback for offline/local dev environments
+if (!hostname || hostname === '') {
+  hostname = 'localhost';
+}
+
+const API_BASE_URL = `${protocol}//${hostname}:3001`;
 
 export default API_BASE_URL;

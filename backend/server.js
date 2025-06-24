@@ -1761,7 +1761,7 @@ app.post("/api/scheduling/add-to-timetable", verifyToken, requireRole("managemen
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/api/scheduling/timetable", (req, res) => {
   const query = `
-    SELECT id, session_name, name, date, time, location, students, change_type, original_time, change_reason
+    SELECT id, session_name, name, date, time, location, students, change_type, original_time, change_reason, is_read
     FROM scheduled_sessions
     ORDER BY date ASC, time ASC
   `;
@@ -1805,10 +1805,9 @@ app.delete("/api/scheduling/parsed-email/:id", (req, res) => {
 });
 
 /* For Updating scheduled sessions in the timetable */
-
 app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
   const { id } = req.params;
-  const { title, doctor, location, start, end, original_time, change_type, change_reason} = req.body;
+  const { title, doctor, location, start, end, original_time, change_type, change_reason, is_read} = req.body;
 
   // Helper function to format date
   function formatDate(dateStr) {
@@ -1830,11 +1829,11 @@ app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
   const dateStr = formatDate(start);  // e.g. "12 June 2025"
   const timeStr = `${formatTime(start)} - ${formatTime(end)}`;  // e.g. "9:00am - 10:00am"
 
-  console.log("Updating session:", { id, title, doctor, location, dateStr, timeStr, original_time, change_type, change_reason });
+  console.log("Updating session:", { id, title, doctor, location, dateStr, timeStr, original_time, change_type, change_reason, is_read });
 
   db.query(`
     UPDATE scheduled_sessions
-    SET session_name = ?, name = ?, date = ?, time = ?, location = ?, original_time = ?, change_type = ?, change_reason = ?
+    SET session_name = ?, name = ?, date = ?, time = ?, location = ?, original_time = ?, change_type = ?, change_reason = ?, is_read = 0
     WHERE id = ?
   `, [title, doctor, dateStr, timeStr, location, original_time || null, change_type || null, change_reason || null, id], (err, result) => {
     if (err) {
@@ -1845,6 +1844,29 @@ app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
   });
 });
 
+// Marking Notification as Read
+app.patch('/api/scheduling/mark-as-read/:id', (req, res) => {
+  const sessionId = req.params.id;
+
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Missing session ID' });
+  }
+
+  const query = 'UPDATE scheduled_sessions SET is_read = 1 WHERE id = ?';
+
+  db.query(query, [sessionId], (err, result) => {
+    if (err) {
+      console.error('❌ DB error:', err);
+      return res.status(500).json({ error: 'Failed to mark as read' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    res.json({ success: true, message: 'Session marked as read' });
+  });
+});
 
 // -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start

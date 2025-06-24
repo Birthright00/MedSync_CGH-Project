@@ -21,6 +21,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
   const [redoStack, setRedoStack] = useState([]);
   const modalRef = useRef(null);
 
+
   useEffect(() => {
     const mappedEvents = sessions.map((s, index) => {
       const { startDate, endDate } = parseDateAndTime(s.date, s.time);
@@ -140,7 +141,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       end: new Date(form.end),
     };
 
-    setUndoStack(prev => [...prev, { before: selectedEvent, after: updatedEvent }]);
+    setUndoStack(prev => [...prev, { before: selectedEvent, after: updatedEvent, change_type: 'rescheduled', change_reason: 'Manual edit by Education Office', }]);
     setRedoStack([]); // clear redo on every new action
 
     try {
@@ -155,6 +156,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         original_time: moment(selectedEvent.start).format('YYYY-MM-DDTHH:mm'),
         change_type: 'rescheduled',
         change_reason: 'Manual edit by Education Office',
+        is_read: 0,  // 👈 reset to unread
       },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
@@ -175,7 +177,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
   const handleDelete = async () => {
     if (window.confirm(`Delete "${selectedEvent.title}"?`)) {
-      setUndoStack(prev => [...prev, { before: selectedEvent, after: null }]);
+      setUndoStack(prev => [...prev, { before: selectedEvent, after: null, change_type: 'deleted', change_reason: 'Deleted by user', }]);
       setRedoStack([]);
 
       try {
@@ -199,7 +201,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       start,
       end,
     };
-    setUndoStack(prev => [...prev, { before: event, after: updatedEvent }]);
+    setUndoStack(prev => [...prev, { before: event, after: updatedEvent, change_type: 'rescheduled', change_reason: 'Rescheduled via drag', }]);
     setRedoStack([]);
 
     try {
@@ -213,6 +215,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         original_time: moment(event.start).format('YYYY-MM-DDTHH:mm'),
         change_type: 'rescheduled',
         change_reason: 'Rescheduled via drag',
+        is_read: 0,  // 👈 reset to unread
       },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
@@ -234,7 +237,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       start,
       end,
     };
-    setUndoStack(prev => [...prev, { before: event, after: updatedEvent }]);
+    setUndoStack(prev => [...prev, { before: event, after: updatedEvent, change_type: 'resized', change_reason: 'Duration adjusted by Education Office', }]);
     setRedoStack([]);
 
     try {
@@ -248,6 +251,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         original_time: moment(event.start).format('YYYY-MM-DDTHH:mm'),
         change_type: 'resized',
         change_reason: 'Duration adjusted by Education Office',
+        is_read: 0,  // 👈 reset to unread
       },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
@@ -264,7 +268,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
   const eventStyleGetter = (event) => ({
     style: {
-      backgroundColor: '#3174ad',
+      backgroundColor: event.color || '#3174ad',
       borderRadius: '4px',
       opacity: event.isPast ? 0.6 : 0.9,
       color: 'white',
@@ -281,29 +285,58 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     }
 
     const lastAction = undoStack[undoStack.length - 1];
-    setRedoStack(prev => [...prev, lastAction]);  // push full pair to redo
+    setRedoStack(prev => [...prev, lastAction]);
 
-    if (lastAction.before) {
-      await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${lastAction.before.id}`, {
-        title: lastAction.before.title,
-        doctor: lastAction.before.doctor,
-        location: lastAction.before.location,
-        start: moment(lastAction.before.start).toISOString(),
-        end: moment(lastAction.before.end).toISOString(),
-      },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        }
-      );
-    } else {
-      await axios.delete(`${API_BASE_URL}/api/scheduling/delete-scheduled-session/${lastAction.after.id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
+    const isBackToOriginal =
+      moment(lastAction.before.start).isSame(lastAction.after.start) &&
+      moment(lastAction.before.end).isSame(lastAction.after.end) &&
+      lastAction.before.title === lastAction.after.title &&
+      lastAction.before.doctor === lastAction.after.doctor &&
+      lastAction.before.location === lastAction.after.location;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      if (lastAction.after && isBackToOriginal) {
+        // Undo to original — clear change_type & original_time
+        await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${lastAction.before.id}`, {
+          title: lastAction.before.title,
+          doctor: lastAction.before.doctor,
+          location: lastAction.before.location,
+          start: moment(lastAction.before.start).toISOString(),
+          end: moment(lastAction.before.end).toISOString(),
+          change_type: null,
+          change_reason: null,
+          original_time: null,
+          is_read: 1, // ✅ mark as read so it does NOT appear in StudentHomePage
+          color: '#3174ad',  // ✅ revert color to original blue
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        // Normal undo
+        await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${lastAction.before.id}`, {
+          title: lastAction.before.title,
+          doctor: lastAction.before.doctor,
+          location: lastAction.before.location,
+          start: moment(lastAction.before.start).toISOString(),
+          end: moment(lastAction.before.end).toISOString(),
+          original_time: moment(lastAction.after?.start ?? lastAction.before.start).format('YYYY-MM-DDTHH:mm'),
+          change_type: lastAction.change_type,
+          change_reason: `Undo: ${lastAction.change_reason}`,
+          is_read: 0,
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+
+      setUndoStack(prev => prev.slice(0, -1));
+      if (refreshSessions) await refreshSessions();
+    } catch (err) {
+      console.error("Undo failed:", err);
     }
-
-    setUndoStack(prev => prev.slice(0, -1));
-    if (refreshSessions) await refreshSessions();
   };
+
 
 
   const handleRedo = async () => {
@@ -315,26 +348,54 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     const nextAction = redoStack[redoStack.length - 1];
     setUndoStack(prev => [...prev, nextAction]);  // push back to undo
 
-    if (nextAction.after) {
-      await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${nextAction.after.id}`, {
-        title: nextAction.after.title,
-        doctor: nextAction.after.doctor,
-        location: nextAction.after.location,
-        start: moment(nextAction.after.start).toISOString(),
-        end: moment(nextAction.after.end).toISOString(),
-      },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        }
-      );
-    } else {
-      await axios.delete(`${API_BASE_URL}/api/scheduling/delete-scheduled-session/${nextAction.before.id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-    }
+    const isBackToOriginal =
+      moment(nextAction.before.start).isSame(nextAction.after.start) &&
+      moment(nextAction.before.end).isSame(nextAction.after.end) &&
+      nextAction.before.title === nextAction.after.title &&
+      nextAction.before.doctor === nextAction.after.doctor &&
+      nextAction.before.location === nextAction.after.location;
 
-    setRedoStack(prev => prev.slice(0, -1));
-    if (refreshSessions) await refreshSessions();
+    try {
+      const token = localStorage.getItem("token");
+
+      if (nextAction.before && isBackToOriginal) {
+        // Redo returns to original state — clear all change markers
+        await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${nextAction.after.id}`, {
+          title: nextAction.after.title,
+          doctor: nextAction.after.doctor,
+          location: nextAction.after.location,
+          start: moment(nextAction.after.start).toISOString(),
+          end: moment(nextAction.after.end).toISOString(),
+          change_type: null,
+          change_reason: null,
+          original_time: null,
+          is_read: 1, // ✅ mark as read so it does NOT appear in StudentHomePage
+          color: '#3174ad',  // ✅ revert color to original blue
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        // Normal redo
+        await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${nextAction.after.id}`, {
+          title: nextAction.after.title,
+          doctor: nextAction.after.doctor,
+          location: nextAction.after.location,
+          start: moment(nextAction.after.start).toISOString(),
+          end: moment(nextAction.after.end).toISOString(),
+          original_time: moment(nextAction.before?.start ?? nextAction.after.start).format('YYYY-MM-DDTHH:mm'),
+          change_type: nextAction.change_type,
+          change_reason: `Redo: ${nextAction.change_reason}`,
+          is_read: 0,
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+
+      setRedoStack(prev => prev.slice(0, -1));
+      if (refreshSessions) await refreshSessions();
+    } catch (err) {
+      console.error("❌ Failed to redo:", err);
+    }
   };
 
 

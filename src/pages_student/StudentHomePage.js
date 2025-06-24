@@ -3,6 +3,7 @@ import StudentNavbar from "./studentnavbar.js";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
+import moment from "moment";
 import {
     WiDaySunny,
     WiCloud,
@@ -47,6 +48,7 @@ const StudentHomePage = () => {
                     const day = dateObj.toLocaleDateString("en-SG", { weekday: "long" });
                     const [start, end] = getStartEndTime(item.time);  // <-- ✅ Apply time parsing here
                     return {
+                        session_id: item.id,
                         subject: `${item.session_name} (${item.name})`,
                         day: day,
                         date: item.date,
@@ -56,6 +58,7 @@ const StudentHomePage = () => {
                         change_type: item.change_type,
                         change_reason: item.change_reason,
                         original_time: item.original_time,
+                        is_read: item.is_read,
                     };
                 });
 
@@ -116,8 +119,33 @@ const StudentHomePage = () => {
     }).slice(0, 3); // limit to 3 upcoming events
 
     const changeNotifications = timetableData
-        .filter(item => ["rescheduled", "resized"].includes(item.change_type))
+        .filter((item) => {
+            const isChangeType = ["rescheduled", "resized"].includes(item.change_type);
+            const isUnread = item.is_read == 0;
+            if (!isChangeType || !isUnread) return false;
+
+            const startMoment = moment(item.start_time, ["h:mmA", "hA", "hh:mmA"], true);
+            if (!startMoment.isValid()) {
+                console.warn("Invalid start_time format:", item.start_time);
+                return false;
+            }
+
+            const dateMoment = moment(item.date, ["YYYY-MM-DD", "D/M/YYYY", "D MMMM YYYY", "DD MMMM YYYY"], true);
+            if (!dateMoment.isValid()) {
+                console.warn("Invalid date format:", item.date);
+                return false;
+            }
+
+            const combinedDateTime = moment(`${item.date} ${item.start_time}`, ["YYYY-MM-DD h:mmA", "D/M/YYYY h:mmA", "D MMMM YYYY h:mmA", "DD MMMM YYYY h:mmA", "D MMMM YYYY hh:mmA", "DD MMMM YYYY hh:mmA"], true);
+            if (!combinedDateTime.isValid()) {
+                console.warn("Invalid combined datetime:", item.date, item.start_time);
+                return false;
+            }
+
+            return combinedDateTime.toDate() >= new Date();
+        })
         .map((item, idx) => {
+            console.log("item.start_time:", item.start_time);
             const originalDate = new Date(item.original_time);
             const newDate = new Date(item.date);
 
@@ -130,30 +158,56 @@ const StudentHomePage = () => {
             const formattedNewStartTime = start.trim();
             const formattedNewEndTime = end ? end.trim() : "";
 
+            const borderColor = item.change_type === "resized" ? "#FFB703" : "#FF6B6B";
 
-            return (
-                <li key={idx} className="notification-card">
-                    <div className="notification-header">
-                        🕒 <strong>{item.subject}</strong>{" "}
-                        {item.change_type === "resized"
-                            ? "was resized."
-                            : item.change_type === "rescheduled"
-                                ? "was rescheduled."
-                                : ""}
-                    </div>
-                    <div className="notification-details">
-                        <div>
-                            <span className="label">Originally:</span>{" "}
-                            <span className="value">{formattedOriginalDate} at {formattedOriginalTime}</span>
+            return {
+                id: idx,
+                element: (
+                    <li key={idx} className="notification-card" style={{ borderLeft: `6px solid ${borderColor}` }}>
+                        <div className="notification-header">
+                            🕒 <strong>{item.subject}</strong>{" "}
+                            {item.change_type === "resized"
+                                ? "was resized."
+                                : "was rescheduled."}
                         </div>
-                        <div>
-                            <span className="label">Now:</span>{" "}
-                            <span className="value">{formattedNewDate} at {formattedNewStartTime} - {formattedNewEndTime}</span>
+                        <div className="notification-details">
+                            <div>
+                                <span className="label">Originally:</span>{" "}
+                                <span className="value">{formattedOriginalDate} at {formattedOriginalTime}</span>
+                            </div>
+                            <div>
+                                <span className="label">Now:</span>{" "}
+                                <span className="value">{formattedNewDate} at {formattedNewStartTime}</span>
+                            </div>
                         </div>
-                    </div>
-                </li>
-            );
+                        <button
+                            className="mark-as-read-button"
+                            onClick={() => handleMarkAsRead(item)}
+                        >
+                            Mark as Read
+                        </button>
+                    </li>
+                )
+            };
         });
+
+    const handleMarkAsRead = async (item) => {
+        try {
+            const token = localStorage.getItem("token");
+            await axios.patch(`${API_BASE_URL}/api/scheduling/mark-as-read/${item.session_id}`, {
+                is_read: true,
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            // Locally update
+            setTimetableData(prev =>
+                prev.map(i => i.session_id === item.session_id ? { ...i, is_read: 1 } : i)
+            );
+        } catch (error) {
+            console.error("Error marking notification as read:", error);
+        }
+    };
 
 
 
@@ -213,11 +267,13 @@ const StudentHomePage = () => {
 
                     <div className="notification-panel">
                         <h4>📢 Notifications</h4>
-                        <ul>
+                        <ul className="notification-list">
                             {changeNotifications.length === 0 ? (
-                                <li>No new notifications</li>
+                                <li className="notification-card">
+                                    <div className="notification-header">No new notifications</div>
+                                </li>
                             ) : (
-                                changeNotifications.map((note, idx) => <li key={idx}>{note}</li>)
+                                changeNotifications.map(note => note.element)
                             )}
                         </ul>
                     </div>
@@ -250,19 +306,19 @@ const StudentHomePage = () => {
                         ) : (
                             <ul className="events-list">
                                 {todayEvents.map((event, index) => (
-                                        <li key={index} className="event-card">
-                                            <div className="event-left">
-                                                <strong>{event.subject}</strong>
-                                                <p>{event.date}, {event.day}</p>
-                                            </div>
-                                            <div className="event-right">
-                                                <span className="event-time">
-                                                    {event.start_time} - {event.end_time}-
-                                                </span>
-                                                <span className="event-location">@ {event.location}</span>
-                                            </div>
-                                        </li>
-                                    ))}
+                                    <li key={index} className="event-card">
+                                        <div className="event-left">
+                                            <strong>{event.subject}</strong>
+                                            <p>{event.date}, {event.day}</p>
+                                        </div>
+                                        <div className="event-right">
+                                            <span className="event-time">
+                                                {event.start_time} - {event.end_time}-
+                                            </span>
+                                            <span className="event-location">@ {event.location}</span>
+                                        </div>
+                                    </li>
+                                ))}
                             </ul>
                         )}
                     </div>

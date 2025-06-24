@@ -20,6 +20,7 @@ import {
 } from "react-icons/wi";
 import { MdNotifications, MdEventNote, MdSchedule } from "react-icons/md";
 import API_BASE_URL from '../apiConfig';
+import { getStartEndTime } from "./parseTime.js";
 
 
 const StudentHomePage = () => {
@@ -44,12 +45,13 @@ const StudentHomePage = () => {
                 const mappedData = response.data.map(item => {
                     const dateObj = new Date(item.date);
                     const day = dateObj.toLocaleDateString("en-SG", { weekday: "long" });
+                    const [start, end] = getStartEndTime(item.time);  // <-- ✅ Apply time parsing here
                     return {
                         subject: `${item.session_name} (${item.name})`,
                         day: day,
                         date: item.date,
-                        start_time: item.time,
-                        end_time: "",
+                        start_time: start,
+                        end_time: end,
                         location: item.location,
                         change_type: item.change_type,
                         change_reason: item.change_reason,
@@ -230,8 +232,17 @@ const StudentHomePage = () => {
                                 <h4>🔜 Upcoming Sessions:</h4>
                                 <ul className="events-list">
                                     {upcomingEvents.map((event, index) => (
-                                        <li key={index}>
-                                            <strong>{event.subject}</strong> — {event.day} {event.start_time} to {event.end_time} @ {event.location}
+                                        <li key={index} className="event-card">
+                                            <div className="event-left">
+                                                <strong>{event.subject}</strong>
+                                                <p>{event.date}, {event.day}</p>
+                                            </div>
+                                            <div className="event-right">
+                                                <span className="event-time">
+                                                    {event.start_time} - {event.end_time}
+                                                </span>
+                                                <span className="event-location">@ {event.location}</span>
+                                            </div>
                                         </li>
                                     ))}
                                 </ul>
@@ -239,10 +250,19 @@ const StudentHomePage = () => {
                         ) : (
                             <ul className="events-list">
                                 {todayEvents.map((event, index) => (
-                                    <li key={index}>
-                                        <strong>{event.subject}</strong> — {event.start_time} to {event.end_time} @ {event.location}
-                                    </li>
-                                ))}
+                                        <li key={index} className="event-card">
+                                            <div className="event-left">
+                                                <strong>{event.subject}</strong>
+                                                <p>{event.date}, {event.day}</p>
+                                            </div>
+                                            <div className="event-right">
+                                                <span className="event-time">
+                                                    {event.start_time} - {event.end_time}-
+                                                </span>
+                                                <span className="event-location">@ {event.location}</span>
+                                            </div>
+                                        </li>
+                                    ))}
                             </ul>
                         )}
                     </div>

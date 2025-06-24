@@ -10,6 +10,7 @@ import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import StudentNavbar from "./studentnavbar.js";
 import '../styles/studenttimetable.css';
 import API_BASE_URL from '../apiConfig';
+import { getStartEndTime } from './parseTime.js'; // Import the function to parse time
 
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
@@ -21,13 +22,15 @@ const StudentTimetable = () => {
 
   const normalizeTime = (timeStr, defaultAmPm = "am") => {
     if (!timeStr) return null;
-    timeStr = timeStr.trim().toLowerCase().replace(/[:.]/g, '');
+    timeStr = timeStr.trim().toLowerCase();
 
-    if (timeStr.includes("am") || timeStr.includes("pm")) {
-      return timeStr.toUpperCase();
+    if (!timeStr.includes("am") && !timeStr.includes("pm")) {
+      timeStr += defaultAmPm;
     }
-    return `${timeStr}${defaultAmPm}`.toUpperCase();
+
+    return timeStr.toUpperCase(); // Keep ":" intact, return valid format like "2:30PM"
   };
+
 
   const fetchTimetable = () => {
     axios.get(`${API_BASE_URL}/api/scheduling/timetable`)
@@ -35,23 +38,12 @@ const StudentTimetable = () => {
         const now = new Date();
 
         const mappedEvents = res.data.map(item => {
-          let startTimeStr = "9am";
-          let endTimeStr = "10am";
+          const [startTimeStr, endTimeStr] = getStartEndTime(item.time);
 
-          if (item.time) {
-            const normalized = item.time.toLowerCase().replace(/\s*to\s*/g, '-').replace(/\s*-\s*/g, '-');
-            const timeParts = normalized.split('-').map(t => t.trim());
-            startTimeStr = normalizeTime(timeParts[0], "am");
-
-            if (timeParts[1]) {
-              endTimeStr = normalizeTime(timeParts[1], startTimeStr.includes("PM") ? "pm" : "am");
-            } else {
-              endTimeStr = moment(startTimeStr, "hA").add(1, "hour").format("hA");
-            }
-          }
-
-          const startDateTime = moment(`${item.date} ${startTimeStr}`, ["D MMMM YYYY hmmA", "D MMMM YYYY hA"]).toDate();
-          const endDateTime = moment(`${item.date} ${endTimeStr}`, ["D MMMM YYYY hmmA", "D MMMM YYYY hA"]).toDate();
+          console.log("Item Time:", item.time, "→ Start:", startTimeStr, "End:", endTimeStr);
+          // Parse date and time together
+          const startDateTime = moment(`${item.date} ${startTimeStr}`, ["D MMMM YYYY h:mmA", "D MMMM YYYY hA"]).toDate();
+          const endDateTime = moment(`${item.date} ${endTimeStr}`, ["D MMMM YYYY h:mmA", "D MMMM YYYY hA"]).toDate();
 
 
           return {

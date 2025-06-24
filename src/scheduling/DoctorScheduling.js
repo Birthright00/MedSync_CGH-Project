@@ -141,7 +141,40 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       end: new Date(form.end),
     };
 
-    setUndoStack(prev => [...prev, { before: selectedEvent, after: updatedEvent, change_type: 'rescheduled', change_reason: 'Manual edit by Education Office', }]);
+    const locationChanged = selectedEvent.location !== form.location;
+    const timeChanged =
+      moment(selectedEvent.start).toISOString() !== moment(form.start).toISOString() ||
+      moment(selectedEvent.end).toISOString() !== moment(form.end).toISOString();
+    const doctorChanged = selectedEvent.doctor !== form.doctor;
+    const titleChanged = selectedEvent.title !== form.title;
+
+    let change_type = null;
+    let change_reason = "";
+
+
+    if (locationChanged && timeChanged) {
+      change_type = 'rescheduled';
+      change_reason = 'Time and location changed by Education Office';
+    } else if (locationChanged) {
+      change_type = 'location_changed';
+      change_reason = 'Location changed by Education Office';
+    } else if (timeChanged) {
+      change_type = 'rescheduled';
+      change_reason = 'Manual time change by Education Office';
+
+    } /*else if (doctorChanged) {
+      change_type = 'doctor_changed';
+      change_reason = 'Doctor updated by Education Office';
+    } else if (titleChanged) {
+      change_type = 'title_changed';
+      change_reason = 'Tutorial title updated by Education Office';
+    } */
+    else {
+      setSelectedEvent(null); // no changes
+      return;
+    }
+
+    setUndoStack(prev => [...prev, { before: selectedEvent, after: updatedEvent, change_type: change_type, change_reason: change_reason, }]);
     setRedoStack([]); // clear redo on every new action
 
     try {
@@ -154,8 +187,8 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         end: form.end,
         color: form.color,
         original_time: moment(selectedEvent.start).format('YYYY-MM-DDTHH:mm'),
-        change_type: 'rescheduled',
-        change_reason: 'Manual edit by Education Office',
+        change_type: change_type,
+        change_reason: change_reason,
         is_read: 0,  // 👈 reset to unread
       },
         {
@@ -478,7 +511,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
       {selectedEvent && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div ref={modalRef} style={{ background: '#fff', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 0 20px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div ref={modalRef} style={{ background: '#fff', padding: '30px 40px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 0 20px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h2>Edit Event</h2>
             <label>Title:</label>
             <input className="edit-input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />

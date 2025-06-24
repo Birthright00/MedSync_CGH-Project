@@ -120,7 +120,7 @@ const StudentHomePage = () => {
 
     const changeNotifications = timetableData
         .filter((item) => {
-            const isChangeType = ["rescheduled", "resized"].includes(item.change_type);
+            const isChangeType = ["rescheduled", "resized", "location_changed"].includes(item.change_type);
             const isUnread = item.is_read == 0;
             if (!isChangeType || !isUnread) return false;
 
@@ -158,27 +158,51 @@ const StudentHomePage = () => {
             const formattedNewStartTime = start.trim();
             const formattedNewEndTime = end ? end.trim() : "";
 
-            const borderColor = item.change_type === "resized" ? "#FFB703" : "#FF6B6B";
+            const borderColor =
+                item.change_type === "resized"
+                    ? "#FFB703"
+                    : item.change_type === "rescheduled"
+                        ? "#FF6B6B"
+                        : "#00BFA6"; // green for location_changed
+
 
             return {
                 id: idx,
                 element: (
                     <li key={idx} className="notification-card" style={{ borderLeft: `6px solid ${borderColor}` }}>
                         <div className="notification-header">
-                            🕒 <strong>{item.subject}</strong>{" "}
-                            {item.change_type === "resized"
-                                ? "was resized."
-                                : "was rescheduled."}
+                            {item.change_type === "location_changed" ? (
+                                <>
+                                    📍 <strong>{item.subject}</strong> was moved to a new location.
+                                </>
+                            ) : (
+                                <>
+                                    🕒 <strong>{item.subject}</strong>{" "}
+                                    {item.change_type === "resized"
+                                        ? "was resized."
+                                        : "was rescheduled."}
+                                </>
+                            )}
                         </div>
+
                         <div className="notification-details">
-                            <div>
-                                <span className="label">Originally:</span>{" "}
-                                <span className="value">{formattedOriginalDate} at {formattedOriginalTime}</span>
-                            </div>
-                            <div>
-                                <span className="label">Now:</span>{" "}
-                                <span className="value">{formattedNewDate} at {formattedNewStartTime}</span>
-                            </div>
+                            {item.change_type === "location_changed" ? (
+                                <div>
+                                    <span className="label">New Location:</span>{" "}
+                                    <span className="value">@ {item.location}</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <div>
+                                        <span className="label">Originally:</span>{" "}
+                                        <span className="value">{formattedOriginalDate} at {formattedOriginalTime}</span>
+                                    </div>
+                                    <div>
+                                        <span className="label">Now:</span>{" "}
+                                        <span className="value">{formattedNewDate} at {formattedNewStartTime}</span>
+                                    </div>
+                                </>
+                            )}
                         </div>
                         <button
                             className="mark-as-read-button"

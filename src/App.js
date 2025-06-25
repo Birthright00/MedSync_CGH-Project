@@ -19,6 +19,7 @@ import StudentTimetable from "./pages_student/StudentTimetable";
 import NotificationWatcher from './components/NotificationWatcher';
 import UserManagementLanding from "./user_management/UserManagementLanding";
 import CreateNewSession from './scheduling/CreateNewSession'; // adjust path if needed
+import StaffTimetable from "./staff/StaffTimetable";
 import 'react-toastify/dist/ReactToastify.css';
 import { Toast } from "bootstrap";
 
@@ -71,6 +72,11 @@ function App() {
         } /> */}
         
         <Route path="/timetable/users-management" element={<UserManagementLanding />} />
+
+
+        {/* For Staff */}
+        <Route exact path="/staff-timetable" element={<StaffTimetable />} />
+
 
       </Routes>
     </div>

@@ -1,5 +1,5 @@
 import "../styles/staffdetailpage.css";
-import Navbar from "./Navbar";
+import StaffNavbar from "../staff/StaffNavbar";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -309,7 +309,7 @@ const StaffDetailPage = () => {
     <>
       {" "}
       <ToastContainer />
-      <Navbar homeRoute="/management-home" />
+      <StaffNavbar homeRoute="/management-home" />
       <motion.div
         className="staff-detail-page"
         initial={{ opacity: 0 }}

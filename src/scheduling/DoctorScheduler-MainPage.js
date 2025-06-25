@@ -80,7 +80,8 @@ const DoctorScheduler = () => {
           date: selectedNotif.new_session,
           time: "-",
           location: locationInput,
-          students: selectedNotif.students || ""
+          students: selectedNotif.students || "",
+          doctor_email: selectedNotif.from_email
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -95,7 +96,8 @@ const DoctorScheduler = () => {
             date: slot.date,
             time: slot.time || "-",
             location: locationInput,
-            students: selectedNotif.students || ""
+            students: selectedNotif.students || "",
+            doctor_email: selectedNotif.from_email
           }, {
             headers: { Authorization: `Bearer ${token}` }
           });

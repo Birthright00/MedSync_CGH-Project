@@ -30,7 +30,12 @@ const StudentTimetable = () => {
   const [calendarDate, setCalendarDate] = useState(new Date());
 
   const fetchTimetable = () => {
-    axios.get(`${API_BASE_URL}/api/scheduling/timetable`)
+    const token = localStorage.getItem("token");
+    axios.get(`${API_BASE_URL}/api/scheduling/timetable`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    })
       .then(res => {
         const now = new Date();
 

@@ -71,7 +71,7 @@ app.use(express.json()); // Parse incoming JSON requests, so you can access req.
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded data
 app.use(cors({
   origin: "*",  // Allow all origins (for development only)
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
@@ -1731,19 +1731,19 @@ app.get("/api/scheduling/change_request", verifyToken, requireRole("management")
 // For calling of database to add sessions inside if accepted
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/api/scheduling/add-to-timetable", verifyToken, requireRole("management"), (req, res) => {
-  const { session_name, name, date, time, location, students } = req.body;
+  const { session_name, name, date, time, location, students, doctor_email} = req.body;
 
-  if (!session_name || !name || !date || !time) {
+  if (!session_name || !name || !date || !time || !doctor_email) {
     return res.status(400).json({ error: "Missing required fields." });
   }
 
   const insertQuery = `
     INSERT INTO scheduled_sessions 
-    (session_name, name, date, time, location, students) 
-    VALUES (?, ?, ?, ?, ?, ?)
+    (session_name, name, date, time, location, students, doctor_email) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
-  const values = [session_name, name, date, time, location || "", students || ""];
+  const values = [session_name, name, date, time, location || "", students || "",  doctor_email];
 
   db.query(insertQuery, values, (err, result) => {
     if (err) {
@@ -1759,14 +1759,30 @@ app.post("/api/scheduling/add-to-timetable", verifyToken, requireRole("managemen
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST to fetch scheduled sessions for timetable display
 // -------------------------------------------------------------------------------------------------------------//
-app.get("/api/scheduling/timetable", (req, res) => {
-  const query = `
+app.get("/api/scheduling/timetable", verifyToken, (req, res) => {
+  const userRole = req.user.role;
+  const userEmail = req.user.email;
+
+  let query = `
     SELECT id, session_name, name, date, time, location, students, change_type, original_time, change_reason, is_read
-    FROM scheduled_sessions
-    ORDER BY date ASC, time ASC
   `;
 
-  db.query(query, (err, results) => {
+  if (userRole === "staff") {
+    query += `, doctor_email`;
+  }
+
+  query += ` FROM scheduled_sessions`;
+
+  const params = [];
+
+  if (userRole === "staff" && userEmail) {
+    query += ` WHERE doctor_email = ?`;
+    params.push(userEmail);
+  }
+
+  query += ` ORDER BY date ASC, time ASC`;
+
+  db.query(query, params, (err, results) => {
     if (err) {
       console.error("Error fetching scheduled sessions:", err);
       return res.status(500).json({ error: "Failed to fetch timetable data." });
@@ -1775,6 +1791,8 @@ app.get("/api/scheduling/timetable", (req, res) => {
     res.status(200).json(results);
   });
 });
+
+
 
 // ✅ DELETE from scheduled_sessions (timetable)
 app.delete("/api/scheduling/delete-scheduled-session/:id", verifyToken, requireRole("management"), (req, res) => {
@@ -1807,7 +1825,7 @@ app.delete("/api/scheduling/parsed-email/:id", (req, res) => {
 /* For Updating scheduled sessions in the timetable */
 app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
   const { id } = req.params;
-  const { title, doctor, location, start, end, original_time, change_type, change_reason, is_read} = req.body;
+  const { title, doctor, location, start, end, original_time, change_type, change_reason, is_read } = req.body;
 
   // Helper function to format date
   function formatDate(dateStr) {

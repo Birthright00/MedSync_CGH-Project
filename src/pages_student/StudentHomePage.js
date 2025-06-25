@@ -19,7 +19,6 @@ import {
     WiDayRain,
     WiNightRain,
 } from "react-icons/wi";
-import { MdNotifications, MdEventNote, MdSchedule } from "react-icons/md";
 import API_BASE_URL from '../apiConfig';
 import { getStartEndTime } from "./parseTime.js";
 
@@ -49,7 +48,8 @@ const StudentHomePage = () => {
                     const [start, end] = getStartEndTime(item.time);  // <-- ✅ Apply time parsing here
                     return {
                         session_id: item.id,
-                        subject: `${item.session_name} (${item.name})`,
+                        subject: `${item.session_name}`,
+                        name:  `${item.name}`,
                         day: day,
                         date: item.date,
                         start_time: start,
@@ -121,7 +121,7 @@ const StudentHomePage = () => {
     const changeNotifications = timetableData
         .filter((item) => {
             const isChangeType = ["rescheduled", "resized", "location_changed"].includes(item.change_type);
-            const isUnread = item.is_read == 0;
+            const isUnread = item.is_read === 0;
             if (!isChangeType || !isUnread) return false;
 
             const startMoment = moment(item.start_time, ["h:mmA", "hA", "hh:mmA"], true);
@@ -154,9 +154,9 @@ const StudentHomePage = () => {
 
             const formattedNewDate = newDate.toLocaleDateString("en-SG");
             // Split time range
-            const [start, end] = item.start_time?.split("-") || ["", ""];
+            const [start] = item.start_time?.split("-") || ["", ""];
             const formattedNewStartTime = start.trim();
-            const formattedNewEndTime = end ? end.trim() : "";
+            // const formattedNewEndTime = end ? end.trim() : "";
 
             const borderColor =
                 item.change_type === "resized"
@@ -173,14 +173,14 @@ const StudentHomePage = () => {
                         <div className="notification-header">
                             {item.change_type === "location_changed" ? (
                                 <>
-                                    📍 <strong>{item.subject}</strong> was moved to a new location.
+                                    📍 <strong>{item.subject}</strong> moved to new location.
                                 </>
                             ) : (
                                 <>
                                     🕒 <strong>{item.subject}</strong>{" "}
                                     {item.change_type === "resized"
-                                        ? "was resized."
-                                        : "was rescheduled."}
+                                        ? "resized."
+                                        : "rescheduled."}
                                 </>
                             )}
                         </div>
@@ -200,6 +200,10 @@ const StudentHomePage = () => {
                                     <div>
                                         <span className="label">Now:</span>{" "}
                                         <span className="value">{formattedNewDate} at {formattedNewStartTime}</span>
+                                    </div>
+                                    <div>
+                                        <span className="label">Doctor:</span>{" "}
+                                        <span className="value">{item.name}</span>
                                     </div>
                                 </>
                             )}

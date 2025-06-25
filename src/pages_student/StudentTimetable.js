@@ -11,6 +11,9 @@ import StudentNavbar from "./studentnavbar.js";
 import '../styles/studenttimetable.css';
 import API_BASE_URL from '../apiConfig';
 import { getStartEndTime } from './parseTime.js'; // Import the function to parse time
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver'; // also install: npm install file-saver
+
 
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
@@ -19,18 +22,12 @@ const StudentTimetable = () => {
   const calendarRef = useRef(null);
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
-
-  const normalizeTime = (timeStr, defaultAmPm = "am") => {
-    if (!timeStr) return null;
-    timeStr = timeStr.trim().toLowerCase();
-
-    if (!timeStr.includes("am") && !timeStr.includes("pm")) {
-      timeStr += defaultAmPm;
-    }
-
-    return timeStr.toUpperCase(); // Keep ":" intact, return valid format like "2:30PM"
-  };
-
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportType, setExportType] = useState(null); // 'png' or 'pdf'
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
+  const [calendarView, setCalendarView] = useState(Views.WORK_WEEK);
+  const [calendarDate, setCalendarDate] = useState(new Date());
 
   const fetchTimetable = () => {
     axios.get(`${API_BASE_URL}/api/scheduling/timetable`)
@@ -45,14 +42,13 @@ const StudentTimetable = () => {
           const startDateTime = moment(`${item.date} ${startTimeStr}`, ["D MMMM YYYY h:mmA", "D MMMM YYYY hA"]).toDate();
           const endDateTime = moment(`${item.date} ${endTimeStr}`, ["D MMMM YYYY h:mmA", "D MMMM YYYY hA"]).toDate();
 
-
           return {
             id: item.id,
             title: `${item.session_name} (${item.name})`,
             start: startDateTime,
             end: endDateTime,
             // ✅ CHANGED: color based on rescheduled status
-            color: ["rescheduled", "resized"].includes(item.change_type) ? "#fdd835" : "#31B5F7",
+            color: ["rescheduled", "resized"].includes(item.change_type) ? "#D49A00" : "#31B5F7",
             location: item.location,
             students: item.students,
             isPast: endDateTime < now,
@@ -78,10 +74,9 @@ const StudentTimetable = () => {
     setSelectedEvent(event);
   };
 
-
   const getEventColor = (event) => {
     if (event.isPast) return '#999999';
-    if (['rescheduled', 'resized'].includes(event.changeType)) return '#fdd835';
+    if (['rescheduled', 'resized'].includes(event.changeType)) return '#D49A00';
     return '#3174ad';
   };
 
@@ -97,27 +92,194 @@ const StudentTimetable = () => {
     }
   });
 
+  const exportAsImage = async () => {
+    const start = moment(exportStartDate).startOf('day');
+    const end = moment(exportEndDate).endOf('day');
 
-  const exportAsImage = () => {
-    html2canvas(calendarRef.current).then((canvas) => {
-      const link = document.createElement('a');
-      link.download = 'timetable.png';
-      link.href = canvas.toDataURL();
-      link.click();
+    const zip = new JSZip();
+    const container = calendarRef.current;
+    const originalHeight = container.style.height;
+    const originalDate = calendarDate;
+    const originalView = calendarView;
+
+    // 📦 Work_Week Export (multi-week PNGs)
+    if (calendarView === Views.WORK_WEEK) {
+      let weekCursor = moment(start);
+      let weekIndex = 1;
+
+      setCalendarView(Views.WORK_WEEK);
+
+      while (weekCursor.isSameOrBefore(end, 'week')) {
+        setCalendarDate(weekCursor.toDate());
+
+        await new Promise(resolve => setTimeout(resolve, 700));
+        container.style.height = 'auto';
+
+        const canvas = await html2canvas(container, { scale: 2 });
+        const dataURL = canvas.toDataURL('image/png');
+
+        zip.file(`timetable_week${weekIndex}.png`, dataURL.split(',')[1], { base64: true });
+
+        weekIndex++;
+        weekCursor.add(1, 'week');
+      }
+    }
+
+    // 📦 Agenda View Export (single PNG over date range)
+    else if (calendarView === Views.AGENDA) {
+      setCalendarView(Views.AGENDA);
+      setCalendarDate(start.toDate());
+
+      await new Promise(resolve => setTimeout(resolve, 700));
+      container.style.height = 'auto';
+
+      const canvas = await html2canvas(container, { scale: 2 });
+      const dataURL = canvas.toDataURL('image/png');
+
+      zip.file(`timetable_agenda_${start.format("YYYYMMDD")}_to_${end.format("YYYYMMDD")}.png`, dataURL.split(',')[1], { base64: true });
+    }
+
+    // 📦 Month View Export (single PNG)
+    else {
+      setCalendarView(Views.MONTH);
+      setCalendarDate(start.toDate());
+
+      await new Promise(resolve => setTimeout(resolve, 700));
+      container.style.height = 'auto';
+
+      const canvas = await html2canvas(container, { scale: 2 });
+      const dataURL = canvas.toDataURL('image/png');
+
+      zip.file(`timetable_month_${start.format("YYYYMMDD")}.png`, dataURL.split(',')[1], { base64: true });
+    }
+
+    // 🎯 Restore State
+    container.style.height = originalHeight;
+    setCalendarDate(originalDate);
+    setCalendarView(originalView);
+
+    // 📥 Trigger ZIP Download
+    zip.generateAsync({ type: 'blob' }).then(content => {
+      saveAs(content, 'timetable_export.zip');
     });
   };
 
-  const exportAsPDF = () => {
-    html2canvas(calendarRef.current).then((canvas) => {
+  const exportAsPDF = async () => {
+    const start = moment(exportStartDate).startOf('day');
+    const end = moment(exportEndDate).endOf('day');
+
+    const pdf = new jsPDF('landscape');
+    const container = calendarRef.current;
+    const originalDate = calendarDate;
+    const originalView = calendarView;
+    const originalHeight = container.style.height;
+
+    // Case A: Weekly export (multi-page)
+    if (calendarView === Views.WORK_WEEK) {
+      let firstPage = true;
+      const weekCursor = moment(start);
+
+      setCalendarView(Views.WORK_WEEK);
+
+      while (weekCursor.isSameOrBefore(end, 'week')) {
+        setCalendarDate(weekCursor.toDate());
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        container.style.height = 'auto';
+
+        const canvas = await html2canvas(container, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        if (!firstPage) pdf.addPage();
+        firstPage = false;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+        weekCursor.add(1, 'week');
+      }
+    }
+
+    // Case B: Agenda view (single page)
+    else if (calendarView === Views.AGENDA) {
+      setCalendarView(Views.AGENDA);
+      setCalendarDate(start.toDate());
+
+      await new Promise(resolve => setTimeout(resolve, 700));
+      container.style.height = 'auto';
+
+      const canvas = await html2canvas(container, { scale: 2 });
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('landscape');
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save('timetable.pdf');
-    });
+    }
+
+    // Case C: Month view
+    else {
+      setCalendarView(Views.MONTH);
+      setCalendarDate(start.toDate());
+
+      await new Promise(resolve => setTimeout(resolve, 600));
+      container.style.height = 'auto';
+
+      const canvas = await html2canvas(container, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    }
+
+    pdf.save('timetable.pdf');
+
+    // Restore state
+    container.style.height = originalHeight;
+    setCalendarDate(originalDate);
+    setCalendarView(originalView);
   };
+
+
+  const handleExport = async () => {
+    const start = moment(exportStartDate).startOf('day');
+    const end = moment(exportEndDate).endOf('day');
+
+    const filteredEvents = events.filter(event =>
+      moment(event.start).isSameOrAfter(start) &&
+      moment(event.end).isSameOrBefore(end)
+    );
+
+    // Backup state
+    const backupEvents = [...events];
+    const backupDate = calendarDate;
+    const backupView = calendarView;
+
+    setEvents(filteredEvents);
+    setShowExportModal(false);
+
+    if (exportType === 'png') {
+      await exportAsImage();
+      setEvents(backupEvents);
+      setCalendarDate(backupDate);
+      setCalendarView(backupView);
+      return;
+    }
+
+
+    if (exportType === 'pdf') {
+      await exportAsPDF();
+      setEvents(backupEvents);
+      setCalendarDate(backupDate);
+      setCalendarView(backupView);
+      return;
+    }
+  };
+
 
   const CustomToolbar = ({ label, onNavigate, onView }) => {
     return (
@@ -139,6 +301,19 @@ const StudentTimetable = () => {
     );
   };
 
+  const CustomEvent = ({ event }) => {
+    return (
+      <div>
+        <div><strong>{event.title}</strong></div>
+        {event.location && (
+          <div style={{ fontSize: '0.75em', marginTop: '2px' }}>
+            📍 {event.location}
+          </div>
+        )}
+      </div>
+    );
+  };
+
 
   return (
     <>
@@ -150,7 +325,15 @@ const StudentTimetable = () => {
             events={events}
             startAccessor="start"
             endAccessor="end"
-            defaultView={Views.WORK_WEEK}
+            view={calendarView}
+            length={
+              calendarView === Views.AGENDA
+                ? moment(exportEndDate).diff(moment(exportStartDate), 'days') + 1
+                : undefined
+            }
+            onView={view => setCalendarView(view)}
+            date={calendarDate}
+            onNavigate={date => setCalendarDate(date)}
             views={['month', 'work_week', 'agenda']}
             min={new Date(1970, 1, 1, 8, 0)}
             max={new Date(1970, 1, 1, 18, 0)}
@@ -162,15 +345,21 @@ const StudentTimetable = () => {
             onSelectEvent={handleSelectEvent}
             eventPropGetter={eventStyleGetter}
             components={{
-              toolbar: CustomToolbar   // <-- inject custom toolbar here
+              toolbar: CustomToolbar,   // <-- inject custom toolbar here
+              event: CustomEvent
             }}
           />
         </div>
 
-        <div className="export-buttons" style={{ textAlign: 'center', margin: '20px 0' }} >
-          <button onClick={exportAsImage} style={{ marginRight: '10px' }}>Save as PNG</button>
-          <button onClick={exportAsPDF}>Save as PDF</button>
+        <div className="export-buttons" style={{ textAlign: 'center', margin: '20px 0' }}>
+          <button onClick={() => { setExportType('png'); setShowExportModal(true); }} style={{ marginRight: '10px' }}>
+            Save as PNG
+          </button>
+          <button onClick={() => { setExportType('pdf'); setShowExportModal(true); }}>
+            Save as PDF
+          </button>
         </div>
+
       </div>
 
       {selectedEvent && (
@@ -213,7 +402,6 @@ const StudentTimetable = () => {
               </div>
             )}
 
-
             <button
               onClick={() => setSelectedEvent(null)}
               style={{
@@ -231,8 +419,41 @@ const StudentTimetable = () => {
           </div>
         </div>
       )}
+
+      {showExportModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999,
+          display: 'flex', justifyContent: 'center', alignItems: 'center'
+        }}
+          onClick={() => setShowExportModal(false)}
+        >
+          <div
+            style={{ background: 'white', padding: '20px', borderRadius: '10px', width: '300px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>Select Date Range</h3>
+            <label>Start Date:</label>
+            <input type="date" value={exportStartDate} onChange={e => setExportStartDate(e.target.value)} />
+            <br /><br />
+            <label>End Date:</label>
+            <input type="date" value={exportEndDate} onChange={e => setExportEndDate(e.target.value)} />
+            <br /><br />
+            <button
+              onClick={() => handleExport()}
+              disabled={!exportStartDate || !exportEndDate}
+            >
+              Export
+            </button>
+            <button onClick={() => setShowExportModal(false)} style={{ marginLeft: '10px' }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
     </>
   );
 };
 
 export default StudentTimetable;
+
+

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import moment from "moment";
 import Navbar from "../components/Navbar";
 import DoctorScheduling from "./DoctorScheduling";
 import cghNoNotifications from "../images/cgh_no_notifications.png";
@@ -74,21 +75,60 @@ const DoctorScheduler = () => {
     try {
       const token = localStorage.getItem("token");
       if (isChangeRequest) {
-        await axios.post(`${API_BASE_URL}/api/scheduling/add-to-timetable`, {
-          session_name: selectedNotif.session_name,
-          name: selectedNotif.name,
-          date: selectedNotif.new_session,
-          time: "-",
+        const newSession = selectedNotif.new_session || "";
+        const [datePart, ...timeParts] = newSession.split(/(?<=\d{4})\s+/);
+        const date = datePart?.trim() || "";
+        const time = timeParts.join(" ").trim() || "";
+
+        // Parse original session to match
+        const [originalDatePart, originalTimeRange] = selectedNotif.original_session.split(/(?<=\d{4})\s+/);
+
+        const originalDate = originalDatePart?.trim();
+        const originalStartTime = originalTimeRange?.split("-")[0]?.trim().toLowerCase();
+
+        const matchingSession = timetableSessions.find(session => {
+          const sessionName = session.session_name?.trim().toLowerCase();
+          const doctorName = session.name?.trim().toLowerCase();
+          const sessionDate = session.date?.trim();
+          const sessionStartTime = session.time?.split("-")[0]?.trim().toLowerCase();
+
+          return (
+            sessionName === (selectedNotif.original_session_name || selectedNotif.session_name)?.trim().toLowerCase() &&
+            doctorName === selectedNotif.name?.trim().toLowerCase() &&
+            sessionDate === originalDate &&
+            sessionStartTime === originalStartTime
+          );
+        });
+
+
+        if (!matchingSession) {
+          alert("⚠️ Could not find the original session to update.");
+          return;
+        }
+
+        const newStart = moment(`${date} ${time.split("-")[0].trim()}`, "D MMMM YYYY h:mmA").toISOString();
+        const newEnd = moment(`${date} ${time.split("-")[1].trim()}`, "D MMMM YYYY h:mmA").toISOString();
+
+        await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${matchingSession.id}`, {
+          title: selectedNotif.session_name,
+          doctor: selectedNotif.name,
           location: locationInput,
-          students: selectedNotif.students || "",
-          doctor_email: selectedNotif.from_email
+          start: newStart,
+          end: newEnd,
+          original_time: selectedNotif.original_session,
+          change_type: "rescheduled",
+          change_reason: selectedNotif.reason,
+          is_read: 0
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        await axios.delete(`${API_BASE_URL}/api/scheduling/parsed-email/${selectedNotif.id}`,
-          { headers: { Authorization: `Bearer ${token}` } });
-      } else {
+        await axios.delete(`${API_BASE_URL}/api/scheduling/parsed-email/${selectedNotif.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+
+      else {
         for (const slot of selectedNotif.available_dates) {
           await axios.post(`${API_BASE_URL}/api/scheduling/add-to-timetable`, {
             session_name: selectedNotif.session_name,
@@ -197,9 +237,23 @@ const DoctorScheduler = () => {
                     <span className="detail-label">New Session:</span> {notif.new_session || "—"}<br />
                     <span className="detail-label">Students:</span> {notif.students || "—"}<br />
                     <span className="detail-label">Reason:</span> {notif.reason || "—"}<br />
-                    <button className="accept-btn" onClick={() => openLocationModal(notif, "change")}>✅ Accept</button>
-                    <button className="change-btn" disabled>🔄 Change</button>
-                    <button className="reject-btn" onClick={() => handleReject(notif.id)}>❎ Reject</button>
+
+                    <div style={{ marginTop: "10px", display: "flex", gap: "10px", alignItems: "center" }}>
+                      <button className="accept-btn" onClick={() => openLocationModal(notif, "change")}>
+                        <MdCheckBox style={{ fontSize: '22px', verticalAlign: 'middle', position: 'relative', top: '-1px', marginRight: '5px' }} />
+                        Accept
+                      </button>
+
+                      <button className="change-btn" disabled>
+                        <MdAutorenew style={{ fontSize: '22px', verticalAlign: 'middle', position: 'relative', top: '-1px', marginRight: '5px' }} />
+                        Change
+                      </button>
+
+                      <button className="reject-btn" onClick={() => handleReject(notif.id)}>
+                        <MdCancel style={{ fontSize: '22px', verticalAlign: 'middle', position: 'relative', top: '-1px', marginRight: '5px' }} />
+                        Reject
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))

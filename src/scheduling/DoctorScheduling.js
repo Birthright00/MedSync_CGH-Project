@@ -7,6 +7,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import '../styles/DoctorScheduler.css';
 import API_BASE_URL from '../apiConfig';
+import { generateWalkaboutBlocks } from '../components/generateWalkabouts';
 
 
 const localizer = momentLocalizer(moment);
@@ -38,7 +39,10 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         changeReason: s.change_reason,
       };
     });
-    setEvents(mappedEvents);
+
+    // Walkabout Blocks & Trimming
+    const walkaboutBlocks = generateWalkaboutBlocks(mappedEvents);
+    setEvents([...mappedEvents, ...walkaboutBlocks]);
   }, [sessions]);
 
   const parseDateAndTime = (dateStr, timeStr) => {
@@ -95,6 +99,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
   };
 
   const handleSelectEvent = (event, e) => {
+    if (event.title === "Walkabout") return; // 🚫 no popup for walkabout
     const popupWidth = 300, popupHeight = 300;
     const viewportWidth = window.innerWidth, viewportHeight = window.innerHeight;
     let x = e.clientX + 10, y = e.clientY + 10;
@@ -169,10 +174,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       change_type = 'title_changed';
       change_reason = 'Tutorial title updated by Education Office';
     } */
-    else {
-      setSelectedEvent(null); // no changes
-      return;
-    }
+  
 
     setUndoStack(prev => [...prev, { before: selectedEvent, after: updatedEvent, change_type: change_type, change_reason: change_reason, }]);
     setRedoStack([]); // clear redo on every new action
@@ -209,6 +211,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
 
   const handleDelete = async () => {
+    if (selectedEvent.title === "Walkabout") return; // 🚫 don't delete walkabout
     if (window.confirm(`Delete "${selectedEvent.title}"?`)) {
       setUndoStack(prev => [...prev, { before: selectedEvent, after: null, change_type: 'deleted', change_reason: 'Deleted by user', }]);
       setRedoStack([]);
@@ -229,6 +232,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
 
   const moveEvent = async ({ event, start, end }) => {
+    if (event.title === "Walkabout") return; // 🚫 prevent dragging walkabout
     const updatedEvent = {
       ...event,
       start,
@@ -265,6 +269,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
 
   const resizeEvent = async ({ event, start, end }) => {
+    if (event.title === "Walkabout") return; // 🚫 prevent resizing walkabout
     const updatedEvent = {
       ...event,
       start,
@@ -474,9 +479,6 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       </div>
     );
   };
-
-
-
 
   return (
     <>

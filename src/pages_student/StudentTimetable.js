@@ -13,6 +13,7 @@ import API_BASE_URL from '../apiConfig';
 import { getStartEndTime } from './parseTime.js'; // Import the function to parse time
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver'; // also install: npm install file-saver
+import { generateWalkaboutBlocks } from '../components/generateWalkabouts.js';
 
 
 const localizer = momentLocalizer(moment);
@@ -63,7 +64,8 @@ const StudentTimetable = () => {
           };
         });
 
-        setEvents(mappedEvents);
+        const walkaboutBlocks = generateWalkaboutBlocks(mappedEvents);
+        setEvents([...mappedEvents, ...walkaboutBlocks]);
       })
       .catch(err => console.error(err));
   };
@@ -401,11 +403,32 @@ const StudentTimetable = () => {
             <p><strong>Location:</strong> {selectedEvent.location}</p>
             <p><strong>Students:</strong> {selectedEvent.students}</p>
 
-            {["rescheduled", "resized"].includes(selectedEvent.changeType) && (
+            {["rescheduled", "resized"].includes(selectedEvent.changeType) && selectedEvent.originalTime && (
               <div style={{ marginTop: '10px', backgroundColor: '#fff3cd', padding: '10px', borderRadius: '6px' }}>
-                <p><strong>⏱ Originally:</strong> {moment(selectedEvent.originalTime).format('DD/MM/YYYY [at] hh:mm A')}</p>
+                <p><strong>⏱ Originally:</strong> {
+                  (() => {
+                    const original = selectedEvent.originalTime;
+
+                    // Case 1: Already formatted string with date and time range
+                    const rangeRegex = /^\d{1,2} \w+ \d{4} \d{1,2}:\d{2}(AM|PM) - \d{1,2}:\d{2}(AM|PM)$/i;
+                    if (rangeRegex.test(original)) {
+                      return original;
+                    }
+
+                    // Case 2: Single ISO string (e.g., "2025-07-04T16:30")
+                    const isoParsed = moment(original, moment.ISO_8601, true);
+                    if (isoParsed.isValid()) {
+                      const formattedDate = isoParsed.format("D MMMM YYYY");
+                      const formattedTime = isoParsed.format("h:mmA");
+                      return `${formattedDate} ${formattedTime}`;
+                    }
+
+                    return "Unavailable";
+                  })()
+                }</p>
               </div>
             )}
+
 
             <button
               onClick={() => setSelectedEvent(null)}

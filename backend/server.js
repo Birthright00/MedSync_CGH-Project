@@ -1728,10 +1728,40 @@ app.get("/api/scheduling/change_request", verifyToken, requireRole("management")
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// Post Request From Staff Side to Management Side
+// -------------------------------------------------------------------------------------------------------------//
+app.post("/api/scheduling/request-change-from-staff", verifyToken, requireRole("staff"), (req, res) => {
+  const { session_name, from_name, original_session, new_session, students, reason, from_email } = req.body;
+
+  db.query(`
+  INSERT INTO parsed_emails (type, session_name, from_name, from_email, original_session, new_session, reason, students)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`, [
+    "change_request",
+    session_name,
+    from_name || "Unknown",          // ✅ from frontend
+    from_email || req.user.email,
+    original_session || "Unknown",   // ✅ from frontend
+    new_session || "Unknown",
+    reason || "No reason provided.",
+    students || ""
+  ], (err, result) => {
+    if (err) {
+      console.error("❌ Error saving change request:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+    res.json({ message: "Change request submitted." });
+  });
+
+});
+
+
+
+// -------------------------------------------------------------------------------------------------------------//
 // For calling of database to add sessions inside if accepted
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/api/scheduling/add-to-timetable", verifyToken, requireRole("management"), (req, res) => {
-  const { session_name, name, date, time, location, students, doctor_email} = req.body;
+  const { session_name, name, date, time, location, students, doctor_email } = req.body;
 
   if (!session_name || !name || !date || !time || !doctor_email) {
     return res.status(400).json({ error: "Missing required fields." });
@@ -1743,7 +1773,7 @@ app.post("/api/scheduling/add-to-timetable", verifyToken, requireRole("managemen
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
-  const values = [session_name, name, date, time, location || "", students || "",  doctor_email];
+  const values = [session_name, name, date, time, location || "", students || "", doctor_email];
 
   db.query(insertQuery, values, (err, result) => {
     if (err) {
@@ -1755,6 +1785,34 @@ app.post("/api/scheduling/add-to-timetable", verifyToken, requireRole("managemen
   });
 });
 
+// -------------------------------------------------------------------------------------------------------------//
+// For replacing original session when change request is accepted
+// -------------------------------------------------------------------------------------------------------------//
+app.patch("/api/scheduling/replace-session/:id", verifyToken, requireRole("management"), (req, res) => {
+  const { session_name, name, date, time, location, students, doctor_email } = req.body;
+  const sessionId = req.params.id;
+
+  if (!session_name || !name || !date || !time || !doctor_email) {
+    return res.status(400).json({ error: "Missing required fields." });
+  }
+
+  const updateQuery = `
+    UPDATE scheduled_sessions
+    SET session_name = ?, name = ?, date = ?, time = ?, location = ?, students = ?, doctor_email = ?
+    WHERE id = ?
+  `;
+
+  const values = [session_name, name, date, time, location || "", students || "", doctor_email, sessionId];
+
+  db.query(updateQuery, values, (err, result) => {
+    if (err) {
+      console.error("Error updating session:", err);
+      return res.status(500).json({ error: "Failed to update session." });
+    }
+
+    res.status(200).json({ message: "Session successfully updated." });
+  });
+});
 
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST to fetch scheduled sessions for timetable display
@@ -1764,7 +1822,7 @@ app.get("/api/scheduling/timetable", verifyToken, (req, res) => {
   const userEmail = req.user.email;
 
   let query = `
-    SELECT id, session_name, name, date, time, location, students, change_type, original_time, change_reason, is_read
+    SELECT id, session_name, name, date, time, location, students, change_type, original_time, change_reason, is_read, doctor_email
   `;
 
   if (userRole === "staff") {

@@ -49,7 +49,7 @@ const StudentHomePage = () => {
                     return {
                         session_id: item.id,
                         subject: `${item.session_name}`,
-                        name:  `${item.name}`,
+                        name: `${item.name}`,
                         day: day,
                         date: item.date,
                         start_time: start,
@@ -108,15 +108,31 @@ const StudentHomePage = () => {
             currentTime.toLocaleDateString("en-SG", { weekday: "long" }).toLowerCase()
     );
 
-    const upcomingEvents = timetableData.filter((entry) => {
-        const todayDate = new Date();
-        const weekdays = {
-            sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
-            thursday: 4, friday: 5, saturday: 6
-        };
-        const eventDay = weekdays[entry.day.toLowerCase()];
-        return eventDay >= todayDate.getDay();
-    }).slice(0, 3); // limit to 3 upcoming events
+    const upcomingEvents = (() => {
+        const now = new Date();
+
+        const sorted = timetableData
+            .filter(entry => {
+                const eventDateTime = moment(`${entry.date} ${entry.start_time}`, [
+                    "D MMMM YYYY h:mmA", "DD MMMM YYYY h:mmA"
+                ]);
+                return eventDateTime.isValid() && eventDateTime.toDate() > now;
+            })
+            .sort((a, b) => {
+                const aDate = moment(`${a.date} ${a.start_time}`, ["D MMMM YYYY h:mmA", "DD MMMM YYYY h:mmA"]).toDate();
+                const bDate = moment(`${b.date} ${b.start_time}`, ["D MMMM YYYY h:mmA", "DD MMMM YYYY h:mmA"]).toDate();
+                return aDate - bDate;
+            });
+
+        const groupedByDate = {};
+        for (const event of sorted) {
+            if (!groupedByDate[event.date]) groupedByDate[event.date] = [];
+            groupedByDate[event.date].push(event);
+        }
+
+        // Get sessions for next 3 days that have sessions
+        return Object.values(groupedByDate).slice(0, 3).flat();
+    })();
 
     const changeNotifications = timetableData
         .filter((item) => {
@@ -146,11 +162,31 @@ const StudentHomePage = () => {
         })
         .map((item, idx) => {
             console.log("item.start_time:", item.start_time);
-            const originalDate = new Date(item.original_time);
             const newDate = new Date(item.date);
 
-            const formattedOriginalDate = originalDate.toLocaleDateString("en-SG");
-            const formattedOriginalTime = originalDate.toLocaleTimeString("en-SG", { hour: '2-digit', minute: '2-digit', hour12: true });
+            let formattedOriginalDate = "Not available";
+            let formattedOriginalTime = "Not available";
+
+            if (item.original_time) {
+                const isoFormat = moment(item.original_time, moment.ISO_8601, true);
+                if (isoFormat.isValid()) {
+                    // Handle ISO format e.g., 2025-07-04T16:30
+                    formattedOriginalDate = isoFormat.format("DD/MM/YYYY");
+                    formattedOriginalTime = isoFormat.format("h:mmA");
+                } else {
+                    // Handle human-readable format e.g., "27 June 2025 8:30AM - 12:00PM"
+                    const [originalDateStr, originalTimeRange] = item.original_time.split(/(?<=\d{4})\s+/);
+                    const originalStart = originalTimeRange?.split("-")[0]?.trim();
+
+                    const originalMoment = moment(`${originalDateStr} ${originalStart}`, ["D MMMM YYYY h:mmA", "DD MMMM YYYY h:mmA"]);
+                    if (originalMoment.isValid()) {
+                        formattedOriginalDate = originalMoment.format("DD/MM/YYYY");
+                        formattedOriginalTime = originalMoment.format("h:mmA");
+                    }
+                }
+            }
+
+
 
             const formattedNewDate = newDate.toLocaleDateString("en-SG");
             // Split time range

@@ -386,6 +386,7 @@ const StudentTimetable = () => {
           onClick={() => setSelectedEvent(null)}
         >
           <div
+            className="fade-in"
             style={{
               background: 'white',
               padding: '30px',
@@ -457,6 +458,7 @@ const StudentTimetable = () => {
           onClick={() => setShowExportModal(false)}
         >
           <div
+            className="fade-in"
             style={{ background: 'white', padding: '20px', borderRadius: '10px', width: '300px' }}
             onClick={(e) => e.stopPropagation()}
           >

@@ -3,12 +3,15 @@ import { Calendar, Views, momentLocalizer } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import moment from 'moment';
 import axios from 'axios';
+import "../styles/stafftimetable.css";
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import API_BASE_URL from '../apiConfig';
 import StaffNavbar from './StaffNavbar';
 import { getStartEndTime } from '../pages_student/parseTime';
 import { generateWalkaboutBlocks } from '../components/generateWalkabouts';
+import { CSSTransition } from 'react-transition-group';
+
 
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
@@ -20,6 +23,7 @@ const StaffTimetable = () => {
     const modalRef = useRef(null);
     const [calendarView, setCalendarView] = useState(Views.WORK_WEEK);
     const [calendarDate, setCalendarDate] = useState(new Date());
+    
 
     const fetchTimetable = async () => {
         const token = localStorage.getItem('token');
@@ -287,94 +291,58 @@ const StaffTimetable = () => {
             </div>
 
             {editForm && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-                    backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
-                    justifyContent: 'center', alignItems: 'center', zIndex: 1000,
-                    fontFamily: "'Nunito', sans-serif"
-                }}>
-                    <div ref={modalRef} style={{
-                        background: '#fff',
-                        padding: '30px 30px',
-                        borderRadius: '12px',
-                        width: '90%',
-                        maxWidth: '500px',
-                        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '16px'
+                <div className="modal-backdrop">
+                    <div style={{
+                        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                        backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+                        justifyContent: 'center', alignItems: 'center', zIndex: 1000,
+                        fontFamily: "'Nunito', sans-serif"
                     }}>
-                        <h2 style={{ fontWeight: '700', marginBottom: '0px' }}>Request Session Change</h2>
+                        <div ref={modalRef} className="modal-content" style={{
+                            background: '#fff',
+                            padding: '30px 30px',
+                            borderRadius: '12px',
+                            width: '90%',
+                            maxWidth: '500px',
+                            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '16px'
+                        }}>
+                            <h2 style={{ fontWeight: '700', marginBottom: '0px' }}>Request Session Change</h2>
 
-                        <div>
-                            <label style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>Session Title</label>
-                            <input
-                                value={editForm.title}
-                                readOnly
-                                disabled
-                                style={{
-                                    width: '95%',
-                                    padding: '10px',
-                                    fontSize: '15px',
-                                    borderRadius: '8px',
-                                    border: '1px solid #ccc',
-                                    backgroundColor: '#f3f3f3'
-                                }}
-                            />
-                        </div>
-
-                        <div>
-                            <label style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>Date</label>
-                            <input
-                                type="date"
-                                value={editForm.start?.split("T")[0]}
-                                onChange={(e) => {
-                                    const date = e.target.value;
-                                    setEditForm({
-                                        ...editForm,
-                                        start: `${date}T${editForm.start.split("T")[1]}`,
-                                        end: `${date}T${editForm.end.split("T")[1]}`,
-                                    });
-                                }}
-                                style={{
-                                    width: '95%',
-                                    padding: '10px',
-                                    fontSize: '15px',
-                                    borderRadius: '8px',
-                                    border: '1px solid #ccc'
-                                }}
-                            />
-                        </div>
-
-                        <div>
-                            <label style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>Time</label>
-                            <div style={{ display: 'flex', gap: '10px' }}>
+                            <div>
+                                <label style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>Session Title</label>
                                 <input
-                                    type="time"
-                                    value={editForm.start.split("T")[1]}
-                                    onChange={(e) => {
-                                        const time = e.target.value;
-                                        const date = editForm.start.split("T")[0];
-                                        setEditForm({ ...editForm, start: `${date}T${time}` });
-                                    }}
+                                    value={editForm.title}
+                                    readOnly
+                                    disabled
                                     style={{
-                                        flex: 2,
+                                        width: '95%',
                                         padding: '10px',
                                         fontSize: '15px',
                                         borderRadius: '8px',
-                                        border: '1px solid #ccc'
+                                        border: '1px solid #ccc',
+                                        backgroundColor: '#f3f3f3'
                                     }}
                                 />
+                            </div>
+
+                            <div>
+                                <label style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>Date</label>
                                 <input
-                                    type="time"
-                                    value={editForm.end.split("T")[1]}
+                                    type="date"
+                                    value={editForm.start?.split("T")[0]}
                                     onChange={(e) => {
-                                        const time = e.target.value;
-                                        const date = editForm.end.split("T")[0];
-                                        setEditForm({ ...editForm, end: `${date}T${time}` });
+                                        const date = e.target.value;
+                                        setEditForm({
+                                            ...editForm,
+                                            start: `${date}T${editForm.start.split("T")[1]}`,
+                                            end: `${date}T${editForm.end.split("T")[1]}`,
+                                        });
                                     }}
                                     style={{
-                                        flex: 2,
+                                        width: '95%',
                                         padding: '10px',
                                         fontSize: '15px',
                                         borderRadius: '8px',
@@ -382,60 +350,98 @@ const StaffTimetable = () => {
                                     }}
                                 />
                             </div>
-                        </div>
 
-                        <div>
-                            <label style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>
-                                Reason for Change (optional)
-                            </label>
-                            <textarea
-                                value={editForm.changeReason}
-                                onChange={(e) => setEditForm({ ...editForm, changeReason: e.target.value })}
-                                placeholder="Any additional information or special requests..."
-                                style={{
-                                    width: '95%',
-                                    minHeight: '60px',
-                                    padding: '10px',
-                                    fontSize: '14px',
-                                    borderRadius: '8px',
-                                    border: '1px solid #ccc',
-                                    resize: 'vertical'
-                                }}
-                            />
-                        </div>
+                            <div>
+                                <label style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>Time</label>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <input
+                                        type="time"
+                                        value={editForm.start.split("T")[1]}
+                                        onChange={(e) => {
+                                            const time = e.target.value;
+                                            const date = editForm.start.split("T")[0];
+                                            setEditForm({ ...editForm, start: `${date}T${time}` });
+                                        }}
+                                        style={{
+                                            flex: 2,
+                                            padding: '10px',
+                                            fontSize: '15px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #ccc'
+                                        }}
+                                    />
+                                    <input
+                                        type="time"
+                                        value={editForm.end.split("T")[1]}
+                                        onChange={(e) => {
+                                            const time = e.target.value;
+                                            const date = editForm.end.split("T")[0];
+                                            setEditForm({ ...editForm, end: `${date}T${time}` });
+                                        }}
+                                        style={{
+                                            flex: 2,
+                                            padding: '10px',
+                                            fontSize: '15px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #ccc'
+                                        }}
+                                    />
+                                </div>
+                            </div>
 
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            marginTop: '10px'
-                        }}>
-                            <button
-                                onClick={handleRequestChange}
-                                style={{
-                                    backgroundColor: '#007bff',
-                                    color: 'white',
-                                    padding: '10px 20px',
-                                    borderRadius: '8px',
-                                    border: 'none',
-                                    fontWeight: '600',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                Request Change
-                            </button>
-                            <button
-                                onClick={() => setEditForm(null)}
-                                style={{
-                                    padding: '10px 20px',
-                                    borderRadius: '8px',
-                                    backgroundColor: '#f0f0f0',
-                                    border: '1px solid #ccc',
-                                    fontWeight: '600',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                Cancel
-                            </button>
+                            <div>
+                                <label style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>
+                                    Reason for Change (optional)
+                                </label>
+                                <textarea
+                                    value={editForm.changeReason}
+                                    onChange={(e) => setEditForm({ ...editForm, changeReason: e.target.value })}
+                                    placeholder="Any additional information or special requests..."
+                                    style={{
+                                        width: '95%',
+                                        minHeight: '60px',
+                                        padding: '10px',
+                                        fontSize: '14px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #ccc',
+                                        resize: 'vertical'
+                                    }}
+                                />
+                            </div>
+
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                marginTop: '10px'
+                            }}>
+                                <button
+                                    onClick={handleRequestChange}
+                                    style={{
+                                        backgroundColor: '#007bff',
+                                        color: 'white',
+                                        padding: '10px 20px',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        fontWeight: '600',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Request Change
+                                </button>
+                                <button
+                                    onClick={() => setEditForm(null)}
+                                    style={{
+                                        padding: '10px 20px',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#f0f0f0',
+                                        border: '1px solid #ccc',
+                                        fontWeight: '600',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

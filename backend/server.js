@@ -1975,6 +1975,57 @@ app.patch('/api/scheduling/mark-as-read/:id', (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// ------------------- BLOCKED DATES LOGIC -------------------
+// -------------------------------------------------------------------------------------------------------------//
+
+// ------------------- Updating Blocked Dates Via EXCEL -------------------
+app.post("/api/scheduling/update-blocked-dates", (req, res) => {
+  const { blocked_dates } = req.body;
+
+  if (!Array.isArray(blocked_dates)) {
+    return res.status(400).json({ error: "Invalid format" });
+  }
+
+  const insertNext = (index) => {
+    if (index >= blocked_dates.length) {
+      return res.status(200).json({ message: "Blocked dates updated" });
+    }
+
+    const { date, remark } = blocked_dates[index];
+    const query = `
+      INSERT INTO blocked_dates (date, remark) 
+      VALUES (?, ?) 
+      ON DUPLICATE KEY UPDATE remark = ?
+    `;
+
+    db.query(query, [date, remark, remark], (err) => {
+      if (err) {
+        console.error("❌ DB error inserting blocked date:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      insertNext(index + 1);
+    });
+  };
+
+  insertNext(0);
+});
+
+// ------------------- Retrieving Blocked Dates from Database (blocked_dates) -------------------
+app.get("/api/scheduling/get-blocked-dates", (req, res) => {
+  const q = "SELECT date, remark FROM blocked_dates";
+  db.query(q, (err, data) => {
+    if (err) {
+      console.error("❌ Failed to fetch blocked dates:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+    return res.json({ blocked_dates: data }); // [{ date: "2025-07-11" }, ...]
+  });
+});
+
+
+
+// -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start
 // -------------------------------------------------------------------------------------------------------------//
 db.connect((err) => {

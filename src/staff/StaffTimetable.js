@@ -23,7 +23,7 @@ const StaffTimetable = () => {
     const modalRef = useRef(null);
     const [calendarView, setCalendarView] = useState(Views.WORK_WEEK);
     const [calendarDate, setCalendarDate] = useState(new Date());
-
+    
 
     const fetchTimetable = async () => {
         const token = localStorage.getItem('token');
@@ -137,13 +137,6 @@ const StaffTimetable = () => {
                 }
             }
 
-            const startHour = new Date(editForm.start).getHours();
-            const endHour = new Date(editForm.end).getHours();
-
-            if (startHour < 8 || endHour > 18 || startHour >= endHour) {
-                alert("⛔ Please choose a time between 8:00 AM and 6:00 PM.");
-                return;
-            }
 
             const requestBody = {
                 type: "change_request",

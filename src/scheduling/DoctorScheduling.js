@@ -6,8 +6,10 @@ import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import '../styles/DoctorScheduler.css';
+import * as XLSX from 'xlsx';
 import API_BASE_URL from '../apiConfig';
 import { generateWalkaboutBlocks } from '../components/generateWalkabouts';
+import { parseBlockedDates } from '../components/parseBlockedDates';
 
 
 const localizer = momentLocalizer(moment);
@@ -20,8 +22,46 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
+  const [blockedDates, setBlockedDates] = useState([]);
   const modalRef = useRef(null);
+  const fileInputRef = useRef(null);
 
+  const isSameDay = (d1, d2) => {
+    return d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate();
+  };
+
+  const isDateBlocked = (date) => {
+    return blockedDates.some(b => isSameDay(b.start, date));
+  };
+
+
+  useEffect(() => {
+    const fetchBlockedDates = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/scheduling/get-blocked-dates`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
+
+        const dates = res.data.blocked_dates.map(entry => {
+          const dateOnly = new Date(entry.date);
+          // Important: force start at 00:00 and end at 23:59 so it's visible on calendar
+          return {
+            start: new Date(dateOnly.setHours(0, 0, 0, 0)),
+            end: new Date(dateOnly.setHours(23, 59, 59, 999)),
+            remark: entry.remark
+          };
+        });
+
+        setBlockedDates(dates);
+      } catch (err) {
+        console.error("❌ Failed to fetch blocked dates", err);
+      }
+    };
+
+    fetchBlockedDates();
+  }, []);
 
   useEffect(() => {
     const mappedEvents = sessions.map((s, index) => {
@@ -39,11 +79,22 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         changeReason: s.change_reason,
       };
     });
-
     // Walkabout Blocks & Trimming
-    const walkaboutBlocks = generateWalkaboutBlocks(mappedEvents);
-    setEvents([...mappedEvents, ...walkaboutBlocks]);
-  }, [sessions]);
+    const walkaboutBlocks = generateWalkaboutBlocks(mappedEvents).filter(w => {
+      return !blockedDates.some(b => isSameDay(w.start, b.start));
+    });
+
+
+    const blockedDateEvents = blockedDates.map((d, idx) => ({
+      id: `blocked-${idx}`,
+      title: d.remark?.trim() ? d.remark : 'Blocked',
+      start: d.start,
+      end: d.end,
+      isBlocked: true,
+    }));
+
+    setEvents([...mappedEvents, ...walkaboutBlocks, ...blockedDateEvents]);
+  }, [sessions, blockedDates]);
 
   const parseDateAndTime = (dateStr, timeStr) => {
     const [day, monthName, year] = dateStr.split(' ');
@@ -122,6 +173,27 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     return months[monthStr.toLowerCase()] ?? 0;
   };
 
+  const handleExcelUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const blockedDates = await parseBlockedDates(file); // ✅ use raw file
+      console.log("📤 Sending blocked dates to backend:", blockedDates);
+
+      await axios.post(`${API_BASE_URL}/api/scheduling/update-blocked-dates`, {
+        blocked_dates: blockedDates,
+      });
+
+      alert("✅ Blocked dates updated");
+    } catch (err) {
+      console.error("❌ Failed to update blocked dates", err);
+      alert("❌ Error updating blocked dates");
+    }
+  };
+
+
+
 
   const handleSelectEvent = (event, e) => {
     if (event.title === "Walkabout") return; // 🚫 no popup for walkabout
@@ -162,6 +234,13 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
   }, [selectedEvent]);
 
   const handleSave = async () => {
+    const newStart = new Date(form.start);
+    const newEnd = new Date(form.end);
+    if (isDateBlocked(newStart) || isDateBlocked(newEnd)) {
+      alert("⛔ Cannot schedule session on a blocked date.");
+      return;
+    }
+
     const updatedEvent = {
       ...selectedEvent,
       title: form.title,
@@ -177,7 +256,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       moment(selectedEvent.end).toISOString() !== moment(form.end).toISOString();
     const doctorChanged = selectedEvent.doctor !== form.doctor;
     const titleChanged = selectedEvent.title !== form.title;
-    
+
     const startHour = new Date(form.start).getHours();
     const endHour = new Date(form.end).getHours();
 
@@ -266,6 +345,11 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
 
   const moveEvent = async ({ event, start, end }) => {
+    if (isDateBlocked(start) || isDateBlocked(end)) {
+      alert("⛔ Cannot move event to a blocked date.");
+      return;
+    }
+
     if (event.title === "Walkabout") return; // 🚫 prevent dragging walkabout
     const updatedEvent = {
       ...event,
@@ -303,6 +387,11 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
 
   const resizeEvent = async ({ event, start, end }) => {
+    if (isDateBlocked(start) || isDateBlocked(end)) {
+      alert("⛔ Cannot resize event into a blocked date.");
+      return;
+    }
+
     if (event.title === "Walkabout") return; // 🚫 prevent resizing walkabout
     const updatedEvent = {
       ...event,
@@ -338,17 +427,34 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     }
   };
 
-  const eventStyleGetter = (event) => ({
-    style: {
-      backgroundColor: event.color || '#3174ad',
-      borderRadius: '4px',
-      opacity: event.isPast ? 0.6 : 0.9,
-      color: 'white',
-      border: 'none',
-      display: 'block',
-      cursor: event.isPast ? 'not-allowed' : 'pointer'
+  const eventStyleGetter = (event) => {
+    if (event.isBlocked) {
+      return {
+        style: {
+          backgroundColor: '#bdbdbd',
+          color: 'white',
+          fontStyle: 'italic',
+          pointerEvents: 'none',
+          border: '1px solid #888',
+          opacity: 0.8,
+        }
+      };
     }
-  });
+
+    return {
+      style: {
+        backgroundColor: event.color || '#3174ad',
+        borderRadius: '4px',
+        opacity: event.isPast ? 0.6 : 0.9,
+        color: 'white',
+        border: 'none',
+        display: 'block',
+        cursor: event.isPast ? 'not-allowed' : 'pointer',
+      }
+    };
+  };
+
+
 
   const handleUndo = async () => {
     if (undoStack.length === 0) {
@@ -516,6 +622,22 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
   return (
     <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px' }}>
+        <h3></h3>
+        <div>
+          <label htmlFor="upload-csv-btn" style={{ backgroundColor: '#4CAF50', color: 'white', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>
+            Upload Excel for Blocked Dates
+          </label>
+          <input
+            id="upload-csv-btn"
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx"
+            style={{ display: 'none' }}
+            onChange={handleExcelUpload}
+          />
+        </div>
+      </div>
       <div style={{ height: '70vh', padding: '0px' }}>
         <DnDCalendar
           localizer={localizer}

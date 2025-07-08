@@ -262,7 +262,14 @@ const DoctorScheduler = () => {
         </div>
 
         <div className="timetable-box">
-          <h1 style={{ textAlign: 'center', margin: '20px 0' }}>📅 Timetable</h1>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', margin: '20px 0' }}>
+            <img
+              src={require('../images/medsync-cgh.png')}
+              alt="MedSync"
+              style={{ height: '60px', objectFit: 'contain' }}
+            />
+          </div>
+
           <DoctorScheduling sessions={timetableSessions} refreshSessions={fetchAllData} />
         </div>
       </div>

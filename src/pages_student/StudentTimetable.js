@@ -10,7 +10,7 @@ import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import StudentNavbar from "./studentnavbar.js";
 import '../styles/studenttimetable.css';
 import API_BASE_URL from '../apiConfig';
-import { getStartEndTime } from './parseTime.js'; // Import the function to parse time
+import { getStartEndTime, getBlockedTimeRange } from './parseTime.js';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver'; // also install: npm install file-saver
 import { generateWalkaboutBlocks } from '../components/generateWalkabouts.js';
@@ -29,6 +29,25 @@ const StudentTimetable = () => {
   const [exportEndDate, setExportEndDate] = useState('');
   const [calendarView, setCalendarView] = useState(Views.WORK_WEEK);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [blockedDates, setBlockedDates] = useState([]);
+
+  const fetchBlockedDates = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/scheduling/get-blocked-dates`);
+      const formatted = res.data.blocked_dates.map(item => {
+        const [start, end] = getBlockedTimeRange(item.date);
+        return {
+          title: item.remark || "Blocked",
+          start,
+          end,
+          isBlocked: true
+        };
+      });
+      setBlockedDates(formatted);
+    } catch (err) {
+      console.error("Failed to fetch blocked dates", err);
+    }
+  };
 
   const fetchTimetable = () => {
     const token = localStorage.getItem("token");
@@ -64,17 +83,30 @@ const StudentTimetable = () => {
           };
         });
 
-        const walkaboutBlocks = generateWalkaboutBlocks(mappedEvents);
-        setEvents([...mappedEvents, ...walkaboutBlocks]);
+        // Helper to compare just date portion
+        const isSameDay = (d1, d2) => (
+          d1.getFullYear() === d2.getFullYear() &&
+          d1.getMonth() === d2.getMonth() &&
+          d1.getDate() === d2.getDate()
+        );
+
+        // 🛠 Remove walkabouts on blocked days
+        const allWalkabouts = generateWalkaboutBlocks(mappedEvents);
+        const filteredWalkabouts = allWalkabouts.filter(w =>
+          !blockedDates.some(b => isSameDay(new Date(w.start), new Date(b.start)))
+        );
+
+        setEvents([...mappedEvents, ...filteredWalkabouts, ...blockedDates]);
       })
       .catch(err => console.error(err));
   };
 
   useEffect(() => {
-    fetchTimetable();
+    fetchBlockedDates().then(() => fetchTimetable());
     const interval = setInterval(fetchTimetable, 5000);
     return () => clearInterval(interval);
   }, []);
+
 
   const handleSelectEvent = (event) => {
     if (event.isPast) return;   // ✅ Disable click if past
@@ -83,21 +115,38 @@ const StudentTimetable = () => {
 
   const getEventColor = (event) => {
     if (event.isPast) return '#999999';
+    if (event.isBlocked) return '#bdbdbd';
     if (['rescheduled', 'resized'].includes(event.changeType)) return '#D49A00';
     return '#3174ad';
   };
 
-  const eventStyleGetter = (event) => ({
-    style: {
-      backgroundColor: getEventColor(event),
-      borderRadius: '4px',
-      opacity: 0.9,
-      color: 'white',
-      border: 'none',
-      display: 'block',
-      cursor: event.isPast ? 'not-allowed' : 'pointer'
+  const eventStyleGetter = (event) => {
+    if (event.isBlocked) {
+      return {
+        style: {
+          backgroundColor: '#bdbdbd',
+          borderLeft: '5px solid #616161',
+          color: 'white',
+          fontStyle: 'italic',
+          pointerEvents: 'none',
+          opacity: 0.8
+        }
+      };
     }
-  });
+
+    return {
+      style: {
+        backgroundColor: getEventColor(event),
+        borderRadius: '4px',
+        opacity: 0.9,
+        color: 'white',
+        border: 'none',
+        display: 'block',
+        cursor: event.isPast ? 'not-allowed' : 'pointer'
+      }
+    };
+  };
+
 
   const exportAsImage = async () => {
     const start = moment(exportStartDate).startOf('day');

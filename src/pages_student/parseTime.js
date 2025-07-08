@@ -1,5 +1,13 @@
 import moment from "moment";
 
+// For blocked dates: Returns start and end as 8AM to 6PM of the given date
+export const getBlockedTimeRange = (dateStr) => {
+  const start = moment(dateStr).set({ hour: 8, minute: 0 }).toDate();
+  const end = moment(dateStr).set({ hour: 18, minute: 0 }).toDate();
+  return [start, end];
+};
+
+
 // Normalizes time strings like '9' → '9AM'
 export const normalizeTime = (timeStr, defaultAmPm = "am") => {
   if (!timeStr) return null;

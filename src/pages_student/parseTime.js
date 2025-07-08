@@ -22,27 +22,29 @@ export const getStartEndTime = (timeString) => {
     if (lower.includes("to")) {
       timeParts = lower.split("to").map((t) => t.trim());
     } else if (lower.includes("-")) {
-      timeParts = timeString.split("-").map((t) => t.trim());
+      timeParts = lower.split("-").map((t) => t.trim());
     } else {
       timeParts = [timeString.trim()];
     }
 
-    startTimeStr = normalizeTime(timeParts[0], "am");
+    // Check if AM/PM appears in either part
+    const suffixFromEnd = timeParts[1]?.match(/am|pm/i)?.[0] || "am";
+
+    const start = moment(normalizeTime(timeParts[0], suffixFromEnd), ["hA", "h:mmA"]);
+    startTimeStr = start.format("h:mmA");
 
     if (timeParts.length > 1) {
-      endTimeStr = normalizeTime(
-        timeParts[1],
-        startTimeStr.includes("PM") ? "pm" : "am"
-      );
+      const end = moment(normalizeTime(timeParts[1]), ["hA", "h:mmA"]);
+      endTimeStr = end.format("h:mmA");
     } else {
-      const startMoment = moment(startTimeStr, ["hA", "h:mmA", "hhA", "hh:mmA"]);
-      const endMoment = startMoment.clone().add(1, "hour");
-      endTimeStr = endMoment.format("h:mmA");
+      const end = start.clone().add(1, "hour");
+      endTimeStr = end.format("h:mmA");
     }
   }
 
   return [startTimeStr, endTimeStr];
 };
+
 
 // NEW: Parses and formats an original_time string
 export const formatOriginalTimeString = (originalTimeStr) => {

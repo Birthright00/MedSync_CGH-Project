@@ -177,6 +177,15 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       moment(selectedEvent.end).toISOString() !== moment(form.end).toISOString();
     const doctorChanged = selectedEvent.doctor !== form.doctor;
     const titleChanged = selectedEvent.title !== form.title;
+    
+    const startHour = new Date(form.start).getHours();
+    const endHour = new Date(form.end).getHours();
+
+    if (startHour < 8 || endHour > 18 || startHour >= endHour) {
+      alert("⛔ Please choose a time between 8:00 AM and 6:00 PM.");
+      return;
+    }
+
 
     let change_type = null;
     let change_reason = "";

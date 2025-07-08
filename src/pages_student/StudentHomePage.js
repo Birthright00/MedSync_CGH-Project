@@ -102,11 +102,10 @@ const StudentHomePage = () => {
     });
     const time = currentTime.toLocaleTimeString("en-SG");
 
-    const todayEvents = timetableData.filter(
-        (entry) =>
-            entry.day.toLowerCase() ===
-            currentTime.toLocaleDateString("en-SG", { weekday: "long" }).toLowerCase()
+    const todayEvents = timetableData.filter((entry) =>
+        moment(entry.date).isSame(currentTime, 'day')
     );
+
 
     const upcomingEvents = (() => {
         const now = new Date();

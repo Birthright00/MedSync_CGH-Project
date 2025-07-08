@@ -1590,6 +1590,36 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
   `;
 
+  // --- Normalize available_slots_timings ---
+  function normalizeAvailableSlots(slots) {
+    const timeOnlyPattern = /^\d{1,2}(\.\d{0,2})?([ap]m)?\s*-\s*\d{1,2}(\.\d{0,2})?([ap]m)?$/i;
+    const datePattern = /^\d{1,2}\s+\w+/; // e.g. 27 Aug
+
+    let defaultTime = null;
+    const cleaned = [];
+
+    for (let i = 0; i < slots.length; i++) {
+      const entry = slots[i].trim();
+
+      if (timeOnlyPattern.test(entry)) {
+        defaultTime = entry;
+        continue;
+      }
+
+      if (defaultTime && datePattern.test(entry)) {
+        cleaned.push(`${entry} ${defaultTime}`);
+      } else {
+        cleaned.push(entry);
+      }
+    }
+
+    return cleaned;
+  }
+
+  const normalizedSlots = Array.isArray(available_slots_timings)
+    ? normalizeAvailableSlots(available_slots_timings)
+    : null;
+
   const values = [
     type,
     session_name,
@@ -1600,7 +1630,7 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
     new_session,
     reason,
     students,
-    Array.isArray(available_slots_timings) ? available_slots_timings.join(", ") : null,
+    normalizedSlots ? normalizedSlots.join(", ") : null,
     notes
   ];
 

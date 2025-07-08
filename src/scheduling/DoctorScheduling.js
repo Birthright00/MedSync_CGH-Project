@@ -52,7 +52,21 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     let startHour = 9, startMinute = 0, endHour = 10, endMinute = 0;
 
     if (timeStr && timeStr !== "-" && timeStr !== "—") {
-      const normalizedTimeStr = timeStr.replace(/\s*-\s*/g, '-').replace(/\s*to\s*/gi, '-').replace(/\./g, ':');
+      let normalizedTimeStr = timeStr.replace(/\s*-\s*/g, '-').replace(/\s*to\s*/gi, '-').replace(/\./g, ':').toLowerCase();
+
+      // Add AM/PM if missing — assume AM unless it's after 12
+      const parts = normalizedTimeStr.split('-');
+      if (!parts[0].includes('am') && !parts[0].includes('pm')) {
+        const startHour = parseInt(parts[0].split(':')[0]);
+        parts[0] += startHour >= 7 && startHour <= 11 ? 'am' : 'pm';
+      }
+      if (parts.length > 1 && !parts[1].includes('am') && !parts[1].includes('pm')) {
+        const endHour = parseInt(parts[1].split(':')[0]);
+        parts[1] += endHour >= 1 && endHour <= 6 ? 'pm' : 'am';
+      }
+
+      normalizedTimeStr = parts.join('-');
+
 
       const rangeMatch = normalizedTimeStr.match(/^(.+?)-(.+)$/);
       if (rangeMatch) {
@@ -92,11 +106,22 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
   const monthStrToNum = (monthStr) => {
     const months = {
-      January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
-      July: 6, August: 7, September: 8, October: 9, November: 10, December: 11
+      jan: 0, january: 0,
+      feb: 1, february: 1,
+      mar: 2, march: 2,
+      apr: 3, april: 3,
+      may: 4,
+      jun: 5, june: 5,
+      jul: 6, july: 6,
+      aug: 7, august: 7,
+      sep: 8, september: 8,
+      oct: 9, october: 9,
+      nov: 10, november: 10,
+      dec: 11, december: 11,
     };
-    return months[monthStr] ?? 0;
+    return months[monthStr.toLowerCase()] ?? 0;
   };
+
 
   const handleSelectEvent = (event, e) => {
     if (event.title === "Walkabout") return; // 🚫 no popup for walkabout
@@ -174,7 +199,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       change_type = 'title_changed';
       change_reason = 'Tutorial title updated by Education Office';
     } */
-  
+
 
     setUndoStack(prev => [...prev, { before: selectedEvent, after: updatedEvent, change_type: change_type, change_reason: change_reason, }]);
     setRedoStack([]); // clear redo on every new action

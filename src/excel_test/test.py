@@ -1,4 +1,5 @@
 from openpyxl import load_workbook
+from openpyxl.utils.datetime import from_excel
 import re
 from datetime import datetime
 import csv
@@ -14,14 +15,19 @@ for row in ws.iter_rows():
     for cell in row:
         if isinstance(cell.value, datetime):
             date_cells[cell.coordinate] = cell.value
+        elif isinstance(cell.value, (int, float)):
+            try:
+                dt = from_excel(cell.value, wb.epoch)
+                date_cells[cell.coordinate] = dt
+            except Exception:
+                pass
 
-# Flatten to datetime list
 calendar_dates = list(date_cells.values())
 
 # Month mapping for text matching
 month_map = {
     'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Sept': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
 }
 
 linked_results = []
@@ -37,63 +43,54 @@ def find_matching_dates_in_range(start_day, end_day, month, year_guess, remark_t
                 "remark_cell": remark_cell
             })
 
-# Go through all remark cells (column H)
-# Go through all remark cells (column H)
+# Process each remark cell in column H
 for row in ws.iter_rows():
     cell = row[7]  # Column H
     if cell.value and isinstance(cell.value, str):
-        # Normalize for safety (handles weird dash types, invisible chars)
+        # Normalize and clean text
         text = unicodedata.normalize("NFKC", cell.value.strip())
-
-        # 🔧 Remove leading date portion like "27 Mar 26 Fri, " from remark
+        text = re.sub(r'[\u2013\u2014\u2212]', '-', text)  # Normalize dashes
+        # Remove leading date formats like "12 Sept", "12 Sept 2025", "12 Sept Fri", etc.
         cleaned_text = re.sub(
-            r'^[\s,:–\-]*'                       # leading space/comma/colon/dash
-            r'(?:'                               # non-capturing group for date/weekday
-            r'\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)'
-            r'(?:\s+\d{2,4})?(?:\s+\w{3})?'      # optional year and weekday
-            r'|'
-            r'(Mon|Tue|Wed|Thu|Fri|Sat|Sun)'     # OR weekday alone
-            r')'
-            r'[\s,:–\-]*',                       # trailing punctuation
-            '',
-            text,
-            flags=re.UNICODE
-        )
+    r'^\s*\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec)'
+    r'(?:\s+\d{2,4})?'  # optional year
+    r'(?:\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun))?'  # optional weekday
+    r'[\s,:-]*',
+    '',
+    text,
+    flags=re.UNICODE
+)
+
+
 
 
         if 'HOR Week' not in text and 'CBL Week' not in text:
-            # --- Single date mentions: 27 Jun, 1 Aug
-            single_dates = re.findall(r'\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b', text)
+            # --- Single date mentions
+            single_dates = re.findall(r'\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\b', text)
             for day, month in single_dates:
                 for dt in calendar_dates:
-                    if dt.day == int(day) and dt.strftime('%b') == month:
+                    if dt.day == int(day) and dt.month == month_map[month]:
                         linked_results.append({
                             "date": dt.strftime("%Y-%m-%d"),
                             "remark": cleaned_text,
                             "remark_cell": cell.coordinate
                         })
 
-            # --- Full ranges: 9 Aug to 17 Aug 2025
-            full_range = re.findall(r'(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(?:to|-)\s+(\d{1,2})\s+\2(?:\s+(\d{4}))?', text)
+            # --- Date ranges: 9 Aug to 17 Aug or 12 - 15 Sept
+            date_ranges = re.findall(r'(\d{1,2})\s*-\s*(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)', text)
+            for start_day, end_day, month in date_ranges:
+                year_guess = max(dt.year for dt in calendar_dates if dt.month == month_map[month])
+                find_matching_dates_in_range(int(start_day), int(end_day), month, year_guess, cleaned_text, cell.coordinate)
+
+            # --- Full "X to Y" ranges with repeated month: 9 Aug to 17 Aug
+            full_range = re.findall(r'(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\s+(?:to|-)\s+(\d{1,2})\s+\2(?:\s+(\d{4}))?', text)
             for start_day, month, end_day, year in full_range:
                 year = int(year) if year else datetime.now().year
                 find_matching_dates_in_range(int(start_day), int(end_day), month, year, cleaned_text, cell.coordinate)
 
-            # --- Compact dash: 12–14 Sep or 1–3 Jul
-            dash_range = re.findall(r'(\d{1,2})[\u2013-](\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)', text)
-            for start_day, end_day, month in dash_range:
-                year_guess = max(dt.year for dt in calendar_dates if dt.strftime('%b') == month)
-                find_matching_dates_in_range(int(start_day), int(end_day), month, year_guess, cleaned_text, cell.coordinate)
-
-            # --- Compact single-month: 20 - 21 Oct
-            compact_single_month_range = re.findall(r'(\d{1,2})\s*[\u2013\-]\s*(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)', text)
-            for start_day, end_day, month in compact_single_month_range:
-                year_guess = max(dt.year for dt in calendar_dates if dt.strftime('%b') == month)
-                find_matching_dates_in_range(int(start_day), int(end_day), month, year_guess, cleaned_text, cell.coordinate)
-
-        # --- HOR Week / CBL Week = Block entire row
+        # --- Block entire row if it's a week indicator
         if 'HOR Week' in text or 'CBL Week' in text:
-            for date_cell in row[:7]:  # Mon–Fri cols
+            for date_cell in row[:7]:  # Mon–Fri
                 if isinstance(date_cell.value, datetime):
                     linked_results.append({
                         "date": date_cell.value.strftime("%Y-%m-%d"),
@@ -101,7 +98,7 @@ for row in ws.iter_rows():
                         "remark_cell": cell.coordinate
                     })
 
-# --- De-duplicate results
+# De-duplicate
 seen = set()
 deduped_results = []
 for item in linked_results:
@@ -110,21 +107,21 @@ for item in linked_results:
         seen.add(key)
         deduped_results.append(item)
 
-# --- Sort
+# Sort
 deduped_results.sort(key=lambda x: x['date'])
 
-# --- Output
+# Output
 print("📌 Blocked Dates with Remarks:")
 for item in deduped_results:
     print(f"{item['date']}: {item['remark']} (from {item['remark_cell']})")
 
-# --- Get date-only list
+# Unique date list
 blocked_dates = sorted(set(item['date'] for item in deduped_results))
 print("\n🛑 Unique Blocked Dates:")
 for d in blocked_dates:
     print(f"  {d}")
 
-# --- Export to CSV
+# Export to CSV
 with open("blocked_dates_with_remarks.csv", "w", newline='') as f:
     writer = csv.DictWriter(f, fieldnames=["date", "remark", "remark_cell"])
     writer.writeheader()

@@ -7,15 +7,26 @@ import API_BASE_URL from "../apiConfig";
 
 const CreateNewSession = () => {
     const [doctors, setDoctors] = useState([]);
+    const [students, setStudents] = useState([]);
     const [selectedDoctors, setSelectedDoctors] = useState([]);
+    const [selectedStudents, setSelectedStudents] = useState([]);
     const [filterDept, setFilterDept] = useState("");
     const [filterDesignation, setFilterDesignation] = useState("");
+    const [filterSchool, setFilterSchool] = useState('');
+    const [filterYear, setFilterYear] = useState('');
 
     useEffect(() => {
+        // Fetch doctors data from the API
         axios
             .get(`${API_BASE_URL}/main_data`)
             .then((res) => setDoctors(res.data))
             .catch((err) => console.error("Error fetching doctors:", err));
+
+        //Fetch students
+        axios
+            .get(`${API_BASE_URL}/students`)
+            .then((res) => setStudents(res.data))
+            .catch((err) => console.error("Error fetching students:", err));
     }, []);
 
     const toggleDoctor = (mcr_number) => {
@@ -26,10 +37,25 @@ const CreateNewSession = () => {
         );
     };
 
+    const toggleStudent = (studentId) => {
+        setSelectedStudents((prev) =>
+            prev.includes(studentId)
+                ? prev.filter((id) => id !== studentId)
+                : [...prev, studentId]
+        );
+    };
+
+
     const filteredDoctors = doctors.filter((doc) => {
         const matchesDept = !filterDept || doc.department === filterDept;
         const matchesDesignation = !filterDesignation || doc.designation === filterDesignation;
         return matchesDept && matchesDesignation;
+    });
+
+    const filteredStudents = students.filter((student) => {
+        const matchesSchool = !filterSchool || student.school === filterSchool;
+        const matchesYear = !filterYear || student.academicYear === filterYear;
+        return matchesSchool && matchesYear;
     });
 
     return (
@@ -107,6 +133,59 @@ const CreateNewSession = () => {
                                                 </h3>
                                                 <p>{doc.department}</p>
                                                 <p>{doc.email}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="form-section">
+                        <h2 className="section-title">
+                            <span className="section-icon">👩‍🎓</span>
+                            Select Students to Include
+                            <span className="selected-count">{selectedStudents.length} selected</span>
+                        </h2>
+
+                        <div className="doctor-filters">
+                            <div className="form-group">
+                                <label>School</label>
+                                <select value={filterSchool} onChange={(e) => setFilterSchool(e.target.value)}>
+                                    <option value="">All Schools</option>
+                                    {[...new Set(students.map((s) => s.school))].map((school) => (
+                                        <option key={school} value={school}>{school}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Academic Year</label>
+                                <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)}>
+                                    <option value="">All Years</option>
+                                    {[...new Set(students.map((s) => s.academicYear))].map((year) => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="students-grid">
+                            {filteredStudents.map((student) => {
+                                const initials = `${student.name?.[0] || ""}${student.name?.split(" ")[1]?.[0] || ""}`.toUpperCase();
+                                const isSelected = selectedStudents.includes(student.id);
+                                return (
+                                    <div
+                                        key={student.id}
+                                        className={`student-card ${isSelected ? "selected" : ""}`}
+                                        onClick={() => toggleStudent(student.id)}
+                                    >
+                                        <div className="student-info">
+                                            <div className="student-avatar">{initials}</div>
+                                            <div className="student-details">
+                                                <h3>{student.name}</h3>
+                                                <p>{student.school}</p>
+                                                <p>{student.academicYear}</p>
+                                                <p>{student.email}</p>
                                             </div>
                                         </div>
                                     </div>

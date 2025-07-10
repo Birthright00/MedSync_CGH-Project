@@ -186,6 +186,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       });
 
       alert("✅ Blocked dates updated");
+      window.location.reload(); 
     } catch (err) {
       console.error("❌ Failed to update blocked dates", err);
       alert("❌ Error updating blocked dates");

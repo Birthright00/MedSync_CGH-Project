@@ -20,14 +20,63 @@ const UploadStudent = () => {
             return;
         }
 
+        const normalizeHeader = (header) => {
+            const firstLine = header.split('\n')[0].trim().toLowerCase().replace(/\.+$/, '');
+
+            const map = {
+                'matric no': 'user_id',
+                'matric no.': 'user_id',
+                'name': 'name',
+                'gender': 'gender',
+                'mobile no.': 'mobile_no',
+                'nus email': 'email',
+                'posting start date': 'start_date',
+                'posting end date': 'end_date',
+                'recess start date': 'recess_start_date',
+                'recess end date': 'recess_end_date',
+            };
+
+            return map[firstLine] || firstLine.replace(/\s+/g, '_');
+        };
+
         const reader = new FileReader();
         reader.onload = async (e) => {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const parsedData = XLSX.utils.sheet_to_json(sheet);
 
-            const requiredFields = ['Matric No', 'Name'];
+            const raw = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            const headers = raw[0].map(normalizeHeader);
+            const rows = raw.slice(1).filter(r => r.some(cell => cell !== undefined && cell !== ''));
+
+            const parsedData = rows.map(row => {
+                const obj = {};
+                headers.forEach((h, i) => {
+                    obj[h] = row[i] ?? '';
+                });
+                return obj;
+            });
+
+            // Fill down merged values (Excel merged cells)
+            const columnsToFillDown = ['start_date', 'end_date', 'recess_start_date', 'recess_end_date'];
+
+            columnsToFillDown.forEach(col => {
+                let lastValue = '';
+                parsedData.forEach(row => {
+                    if (row[col] === undefined || row[col] === '' || row[col] === 'Nil') {
+                        row[col] = lastValue;
+                    } else {
+                        lastValue = row[col];
+                    }
+                });
+            });
+
+
+            console.log("✅ Headers parsed:", headers);
+            console.log("✅ First row parsed:", parsedData[0]);
+
+
+            const requiredFields = ['user_id', 'name', 'gender', 'email', 'start_date', 'end_date'];
             const missingFields = requiredFields.filter(f => !(f in parsedData[0]));
             if (missingFields.length > 0) {
                 alert(`Missing required columns: ${missingFields.join(', ')}`);
@@ -44,12 +93,10 @@ const UploadStudent = () => {
 
                 const result = await response.json();
                 alert(result.message || 'Upload successful!');
-
-                // ✅ Reset state and file input
                 setSelectedFile(null);
                 setSchool('');
                 if (fileInputRef.current) fileInputRef.current.value = '';
-                window.location.reload(); // Optional: for better UX, you can refetch instead
+                window.location.reload();
             } catch (err) {
                 console.error('Upload failed:', err);
                 alert('Upload failed. Please try again.');
@@ -60,6 +107,7 @@ const UploadStudent = () => {
 
         reader.readAsArrayBuffer(selectedFile);
     };
+
 
     return (
         <div className="filter-panel">

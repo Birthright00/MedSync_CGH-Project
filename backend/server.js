@@ -2114,22 +2114,21 @@ app.post('/upload-student-data', async (req, res) => {
 
     const values = students
       .map(student => {
-        const startDate = parseExcelDate(student['Start Date']);
-        const endDate = parseExcelDate(student['End Date']);
-        const recessStart = parseExcelDate(student['Recess Start Date']);
-        const recessEnd = parseExcelDate(student['Recess End Date']);
+        const startDate = parseExcelDate(student.start_date);
+        const endDate = parseExcelDate(student.end_date);
+        const recessStart = parseExcelDate(student.recess_start_date);
+        const recessEnd = parseExcelDate(student.recess_end_date);
 
-        // ❌ Skip if end date is in the past
         if (endDate && new Date(endDate) < today) return null;
 
         const academicYear = getAcademicYear(startDate);
 
         return [
-          student['Matric No'] || '',
-          student['Name'] || '',
-          student['Gender'] || '',
-          student['Mobile No'] || '',
-          student['Email'] || '',
+          student.user_id || '',
+          student.name || '',
+          student.gender || '',
+          student.mobile_no || '',
+          student.email || '',
           startDate,
           endDate,
           recessStart,
@@ -2138,7 +2137,8 @@ app.post('/upload-student-data', async (req, res) => {
           academicYear || ''
         ];
       })
-      .filter(Boolean); // Remove nulls
+      .filter(Boolean);
+
 
 
     db.query(insertQuery, [values], (err) => {

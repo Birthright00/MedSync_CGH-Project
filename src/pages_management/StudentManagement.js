@@ -106,17 +106,27 @@ const StudentData = () => {
                 <div className="content-wrapper">
                     <div className="filter-panel">
                         <div className="filter-title">Filter by Student</div>
-                        {['matricNo', 'name', 'mobile', 'email'].map((field) => (
-                            <div className="filter-group" key={field}>
-                                <label className="filter-label">{field.replace(/^\w/, (c) => c.toUpperCase())}</label>
-                                <input
-                                    type="text"
-                                    className="filter-input"
-                                    value={filters[field]}
-                                    onChange={(e) => updateFilter(field, e.target.value)}
-                                />
-                            </div>
-                        ))}
+                        {['matricNo', 'name', 'mobile', 'email'].map((field) => {
+                            const labelMap = {
+                                matricNo: 'Matric Number',
+                                name: 'Name',
+                                mobile: 'Mobile No',
+                                email: 'Email'
+                            };
+
+                            return (
+                                <div className="filter-group" key={field}>
+                                    <label className="filter-label">{labelMap[field] || field}</label>
+                                    <input
+                                        type="text"
+                                        className="filter-input"
+                                        value={filters[field]}
+                                        onChange={(e) => updateFilter(field, e.target.value)}
+                                    />
+                                </div>
+                            );
+                        })}
+
                         <div className="filter-group">
                             <label className="filter-label">Gender</label>
                             <select

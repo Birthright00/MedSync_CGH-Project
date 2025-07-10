@@ -269,7 +269,7 @@ const LoginPage = () => {
                 <input
                   placeholder={
                     selectedRole === "staff" ? "MCR / SNB" :
-                      selectedRole === "student" ? "Matric No (e.g. A0284226A)" :
+                      selectedRole === "student" ? "Matric No" :
                         "ADID"
                   }
                   value={username}

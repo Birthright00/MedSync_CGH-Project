@@ -2081,9 +2081,20 @@ app.post('/upload-student-data', async (req, res) => {
     });
   }
 
+  // ✅ Academic Year Calculator
+  const getAcademicYear = (date) => {
+    if (!date) return null;
+    const jsDate = new Date(date);
+    const year = jsDate.getFullYear();
+    const month = jsDate.getMonth(); // 0 = Jan, 5 = June
+
+    return month < 5 ? `${year - 1}/${year}` : `${year}/${year + 1}`;
+  };
+
+
   const insertQuery = `
     INSERT INTO student_database (
-      user_id, name, gender, mobile_no, email, start_date, end_date, recess_start_date, recess_end_date, school
+      user_id, name, gender, mobile_no, email, start_date, end_date, recess_start_date, recess_end_date, school, academicYear
     ) VALUES ? 
     ON DUPLICATE KEY UPDATE 
       name = VALUES(name),
@@ -2094,22 +2105,41 @@ app.post('/upload-student-data', async (req, res) => {
       end_date = VALUES(end_date),
       recess_start_date = VALUES(recess_start_date),
       recess_end_date = VALUES(recess_end_date),
-      school = VALUES(school)
+      school = VALUES(school),
+      academicYear = VALUES(academicYear)
   `;
 
   try {
-    const values = students.map(student => [
-      student['Matric No'] || '',
-      student['Name'] || '',
-      student['Gender'] || '',
-      student['Mobile No'] || '',
-      student['Email'] || '',
-      parseExcelDate(student['Start Date']),
-      parseExcelDate(student['End Date']),
-      parseExcelDate(student['Recess Start Date']),
-      parseExcelDate(student['Recess End Date']),
-      school || '',
-    ]);
+    const today = new Date();
+
+    const values = students
+      .map(student => {
+        const startDate = parseExcelDate(student['Start Date']);
+        const endDate = parseExcelDate(student['End Date']);
+        const recessStart = parseExcelDate(student['Recess Start Date']);
+        const recessEnd = parseExcelDate(student['Recess End Date']);
+
+        // ❌ Skip if end date is in the past
+        if (endDate && new Date(endDate) < today) return null;
+
+        const academicYear = getAcademicYear(startDate);
+
+        return [
+          student['Matric No'] || '',
+          student['Name'] || '',
+          student['Gender'] || '',
+          student['Mobile No'] || '',
+          student['Email'] || '',
+          startDate,
+          endDate,
+          recessStart,
+          recessEnd,
+          school || '',
+          academicYear || ''
+        ];
+      })
+      .filter(Boolean); // Remove nulls
+
 
     db.query(insertQuery, [values], (err) => {
       if (err) {
@@ -2134,6 +2164,65 @@ app.get('/students', (req, res) => {
     res.json(results);
   });
 });
+
+
+app.post('/update-student', (req, res) => {
+  const {
+    user_id, name, gender, mobile_no, email,
+    start_date, end_date, recess_start_date, recess_end_date,
+    school, academicYear
+  } = req.body;
+
+  // ✅ Helper to format ISO date to 'YYYY-MM-DD'
+  const formatDate = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (isNaN(date)) return null;
+    return date.toISOString().split('T')[0];
+  };
+
+  const query = `
+    UPDATE student_database SET
+      name = ?, gender = ?, mobile_no = ?, email = ?,
+      start_date = ?, end_date = ?, recess_start_date = ?, recess_end_date = ?,
+      school = ?, academicYear = ?
+    WHERE user_id = ?
+  `;
+
+  db.query(query, [
+    name,
+    gender,
+    mobile_no,
+    email,
+    formatDate(start_date),
+    formatDate(end_date),
+    formatDate(recess_start_date),
+    formatDate(recess_end_date),
+    school,
+    academicYear,
+    user_id
+  ], (err) => {
+    if (err) {
+      console.error('❌ Update Error:', err);
+      return res.status(500).json({ message: 'Failed to update student', error: err });
+    }
+    res.json({ message: 'Student updated successfully' });
+  });
+});
+
+
+
+app.delete('/delete-student/:user_id', (req, res) => {
+  const { user_id } = req.params;
+  db.query('DELETE FROM student_database WHERE user_id = ?', [user_id], (err) => {
+    if (err) {
+      console.error('❌ Delete Error:', err);
+      return res.status(500).json({ message: 'Failed to delete student', error: err });
+    }
+    res.json({ message: 'Student deleted successfully' });
+  });
+});
+
 
 
 // -------------------------------------------------------------------------------------------------------------//

@@ -44,12 +44,12 @@ const UploadStudent = () => {
 
                 const result = await response.json();
                 alert(result.message || 'Upload successful!');
-                
+
                 // ✅ Reset state and file input
                 setSelectedFile(null);
                 setSchool('');
                 if (fileInputRef.current) fileInputRef.current.value = '';
-                
+                window.location.reload(); // Optional: for better UX, you can refetch instead
             } catch (err) {
                 console.error('Upload failed:', err);
                 alert('Upload failed. Please try again.');

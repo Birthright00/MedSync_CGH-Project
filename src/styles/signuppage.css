@@ -1,0 +1,150 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap");
+
+body {
+    font-family: "Montserrat", sans-serif;
+}
+
+.login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+}
+
+.login-page:before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 110%;
+    background-image: url("../images/login-background-img.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    opacity: 0.5;
+    z-index: -1;
+}
+
+.login-div {
+    width: 50vw;
+    max-width: 500px;
+    padding: 30px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.login-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.login-form img {
+    max-width: 80%;
+    height: auto;
+    margin-bottom: 15px;
+}
+
+.login-card {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    /* 2 per row */
+    gap: 10px;
+    width: 100%;
+    justify-items: center;
+    margin-bottom: 20px;
+}
+
+
+.login-button {
+    flex: 1 1 45%;
+    min-width: 80px;
+    height: 110px;
+    padding: 15px;
+    border-radius: 15px;
+    font-size: 14px;
+    background-color: #f8f9fa;
+    transition: all 300ms ease;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-button.selected {
+    background-color: #0083ca;
+    color: white;
+}
+
+.login-button img {
+    max-height: 40px;
+    margin-bottom: 5px;
+}
+
+.username,
+.password {
+    width: 100%;
+    max-width: 400px;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: 1px solid #0083ca;
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.password-container {
+    position: relative;
+    width: 100%;
+}
+
+.form-group {
+    margin-bottom: 0px;
+    /* ↓ Reduce from 20px or more */
+}
+
+.toggle-password-btn {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.toggle-password-img {
+    width: 20px;
+}
+
+.signin_button {
+    font-family: "Montserrat", sans-serif;
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    font-size: 16px;
+    background-color: #0083ca;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 300ms;
+}
+
+.signin_button:hover {
+    background-color: #006bb3;
+}
+
+.card_footer {
+    width: 100%;
+    text-align: center;
+    margin-top: 10px;
+}

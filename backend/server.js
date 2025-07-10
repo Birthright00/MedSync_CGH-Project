@@ -2023,6 +2023,117 @@ app.get("/api/scheduling/get-blocked-dates", (req, res) => {
   });
 });
 
+// -------------------------------------------------------------------------------------------------------------//
+// ------------------- STUDENT DATA AND UPLOADING -------------------
+// -------------------------------------------------------------------------------------------------------------//
+
+// ------------------- Uploading Student Excel Data -------------------
+app.post('/upload-student-data', async (req, res) => {
+  const { students, school } = req.body;
+
+  if (!Array.isArray(students) || students.length === 0) {
+    return res.status(400).json({ message: 'Invalid or empty student data' });
+  }
+
+  // ✅ Robust Date Parser
+  const parseExcelDate = (value) => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+
+    if (typeof value === 'number') {
+      const date = new Date(Math.round((value - 25569) * 86400 * 1000)); // Excel serial date to JS Date
+      return !isNaN(date) ? date : null;
+    }
+
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/,\s*\w{3}$/, '').trim();
+      const monthMap = {
+        Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+        Jul: 6, Aug: 7, Sep: 8, Sept: 8, Oct: 9, Nov: 10, Dec: 11
+      };
+
+      const alphaMatch = cleaned.match(/^(\d{1,2})\/([A-Za-z]{3,4})\/(\d{2})$/);
+      if (alphaMatch) {
+        const [_, day, monthStr, year] = alphaMatch;
+        const fullYear = parseInt(year) + 2000;
+        const date = new Date(fullYear, monthMap[monthStr], parseInt(day));
+        return !isNaN(date) ? date : null;
+      }
+
+      const numericMatch = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (numericMatch) {
+        const [_, day, month, year] = numericMatch;
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        return !isNaN(date) ? date : null;
+      }
+    }
+
+    return null;
+  };
+
+  // ✅ Fill down merged values
+  const fieldsToFill = ['Start Date', 'End Date', 'Recess Start Date', 'Recess End Date'];
+  for (let i = 1; i < students.length; i++) {
+    fieldsToFill.forEach((field) => {
+      if (!students[i][field] && students[i - 1][field]) {
+        students[i][field] = students[i - 1][field];
+      }
+    });
+  }
+
+  const insertQuery = `
+    INSERT INTO student_database (
+      user_id, name, gender, mobile_no, email, start_date, end_date, recess_start_date, recess_end_date, school
+    ) VALUES ? 
+    ON DUPLICATE KEY UPDATE 
+      name = VALUES(name),
+      gender = VALUES(gender),
+      mobile_no = VALUES(mobile_no),
+      email = VALUES(email),
+      start_date = VALUES(start_date),
+      end_date = VALUES(end_date),
+      recess_start_date = VALUES(recess_start_date),
+      recess_end_date = VALUES(recess_end_date),
+      school = VALUES(school)
+  `;
+
+  try {
+    const values = students.map(student => [
+      student['Matric No'] || '',
+      student['Name'] || '',
+      student['Gender'] || '',
+      student['Mobile No'] || '',
+      student['Email'] || '',
+      parseExcelDate(student['Start Date']),
+      parseExcelDate(student['End Date']),
+      parseExcelDate(student['Recess Start Date']),
+      parseExcelDate(student['Recess End Date']),
+      school || '',
+    ]);
+
+    db.query(insertQuery, [values], (err) => {
+      if (err) {
+        console.error('❌ DB Insert Error:', err);
+        return res.status(500).json({ message: 'Database error', error: err });
+      }
+      res.status(200).json({ message: 'Student data uploaded successfully' });
+    });
+  } catch (err) {
+    console.error('❌ Server Error:', err);
+    res.status(500).json({ message: 'Unexpected server error', error: err });
+  }
+});
+
+// ------------------- Displaying Data fromn Student Database on Student Management Screen -------------------
+app.get('/students', (req, res) => {
+  db.query('SELECT * FROM student_database', (err, results) => {
+    if (err) {
+      console.error('❌ Failed to retrieve students:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+    res.json(results);
+  });
+});
 
 
 // -------------------------------------------------------------------------------------------------------------//

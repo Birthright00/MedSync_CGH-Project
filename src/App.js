@@ -20,6 +20,7 @@ import NotificationWatcher from './components/NotificationWatcher';
 import UserManagementLanding from "./user_management/UserManagementLanding";
 import CreateNewSession from './scheduling/CreateNewSession'; // adjust path if needed
 import StaffTimetable from "./staff/StaffTimetable";
+import StudentManagement from "./pages_management/StudentManagement";
 import 'react-toastify/dist/ReactToastify.css';
 import { Toast } from "bootstrap";
 
@@ -48,6 +49,8 @@ function App() {
 
         <Route path="/student-home" element={<StudentHomePage />} />
         <Route exact path="/student-timetable" element={<StudentTimetable />} />
+
+        <Route path="/student-management" element={<StudentManagement />} />
 
         <Route exact path="/timetable" element={
           <ProtectedRoute allowedRoles={["management"]}>

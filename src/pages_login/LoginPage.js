@@ -60,8 +60,8 @@ const LoginPage = () => {
     // SNB number: N or n followed by 5 digits and 1 letter
     const mcrOrSnbPattern = /^[Mm]\d{5}[A-Za-z]$|^[Nn]\d{5}[A-Za-z]$/;
 
-    // For Student: Assuming it follows Management ADID pattern
-    const studentPattern = /^[a-z]+$/; // Adjust this pattern as needed
+    // For Student: Follows its own pattern such that, it i A-Z, a-z, 0-9, and no spaces
+    const studentPattern = /^[A-Z]\d{7}[A-Z]$/; // e.g. A0284226A
     // Note: Adjust the studentPattern based on your actual requirements
 
 
@@ -101,6 +101,8 @@ const LoginPage = () => {
       return;
     }
 
+    const normalizedUsername = selectedRole === 'student' ? username.toUpperCase() : username;
+
     // API Call to Backend for Login
     try {
       const response = await fetch(`${API_BASE_URL}/login`, {
@@ -109,7 +111,7 @@ const LoginPage = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          user_id: username,
+          user_id: normalizedUsername, // Use normalized username for student
           password: password,
           selectedRole: selectedRole,
         }),
@@ -265,7 +267,11 @@ const LoginPage = () => {
             <div className="card-body">
               <div className="form-group">
                 <input
-                  placeholder="MCR / SNB / ADID"
+                  placeholder={
+                    selectedRole === "staff" ? "MCR / SNB" :
+                      selectedRole === "student" ? "Matric No (e.g. A0284226A)" :
+                        "ADID"
+                  }
                   value={username}
                   onChange={(e) => usernameupdate(e.target.value)}
                   className="username"

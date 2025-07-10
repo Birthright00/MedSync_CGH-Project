@@ -19,7 +19,7 @@ const UserManagementLanding = () => {
   const [announcements, setAnnouncements] = useState([]);
 
   const handleDoctor = () => nav("/management-home");
-  const handleStudent = () => nav("/timetable/users-management/students");
+  const handleStudent = () => nav("/student-management");
 
   useEffect(() => {
     const announcementsData = [
@@ -83,7 +83,7 @@ const UserManagementLanding = () => {
           </motion.div>
 
           <motion.div
-            className="data-card nurse-card"
+            className="data-card student-card"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.4 }}

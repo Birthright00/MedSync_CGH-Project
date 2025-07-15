@@ -21,6 +21,8 @@ const StudentData = () => {
     const [entriesPerPage, setEntriesPerPage] = useState(10);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1); // current page number
+
 
 
     const formatDate = (dateStr) => {
@@ -77,7 +79,7 @@ const StudentData = () => {
 
             return matchesGeneric && matchesGender && matchesYear;
         });
-
+        setCurrentPage(1); // Reset to page 1 when filters change
         setFilteredStudents(results);
     };
 
@@ -97,6 +99,12 @@ const StudentData = () => {
     const updateFilter = (field, value) => {
         setFilters((prev) => ({ ...prev, [field]: value }));
     };
+
+    // Compute students for the current page
+    const indexOfLastStudent = currentPage * entriesPerPage;
+    const indexOfFirstStudent = indexOfLastStudent - entriesPerPage;
+    const currentStudents = filteredStudents.slice(indexOfFirstStudent, indexOfLastStudent);
+
 
     return (
         <>
@@ -190,13 +198,13 @@ const StudentData = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredStudents.slice(0, entriesPerPage).map((student, i) => (
+                                {currentStudents.map((student, i) => (
                                     <tr key={student.user_id} onClick={() => {
                                         setSelectedStudent(student);
                                         setShowPopup(true);
                                     }}>
 
-                                        <td>{i + 1}</td>
+                                        <td>{indexOfFirstStudent + i + 1}</td>  
                                         <td className="student-id">{student.user_id}</td>
                                         <td>{student.name}</td>
                                         <td>{student.gender}</td>
@@ -223,13 +231,29 @@ const StudentData = () => {
                                     <button
                                         key={num}
                                         className={`page-button ${entriesPerPage === num ? 'active' : ''}`}
-                                        onClick={() => setEntriesPerPage(num)}
+                                        onClick={() => {
+                                            setEntriesPerPage(num);
+                                            setCurrentPage(1); // Reset to page 1 when page size changes
+                                        }}
                                     >
                                         {num === filteredStudents.length ? 'All' : num}
                                     </button>
                                 ))}
                             </div>
                         </div>
+
+                        <div className="pagination-pages">
+                            {Array.from({ length: Math.ceil(filteredStudents.length / entriesPerPage) }, (_, idx) => (
+                                <button
+                                    key={idx + 1}
+                                    className={`page-button ${currentPage === idx + 1 ? 'active' : ''}`}
+                                    onClick={() => setCurrentPage(idx + 1)}
+                                >
+                                    {idx + 1}
+                                </button>
+                            ))}
+                        </div>
+
                     </div>
                 </div>
             </div>

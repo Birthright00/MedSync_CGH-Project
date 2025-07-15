@@ -295,3 +295,21 @@ select:focus {
 .btn-secondary:hover {
   background: #e0e0e0;
 }
+
+
+.session-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.session-table th,
+.session-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.session-table th {
+  background-color: #f4f4f4;
+}

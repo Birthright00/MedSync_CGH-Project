@@ -14,6 +14,11 @@ const CreateNewSession = () => {
     const [filterDesignation, setFilterDesignation] = useState("");
     const [filterSchool, setFilterSchool] = useState('');
     const [filterYear, setFilterYear] = useState('');
+    const [sessionSlots, setSessionSlots] = useState([
+        { date: '', startTime: '', endTime: '' }
+    ]);
+
+
 
     useEffect(() => {
         // Fetch doctors data from the API
@@ -36,7 +41,7 @@ const CreateNewSession = () => {
                 : [...prev, mcr_number]
         );
     };
-
+    
     const toggleStudent = (studentId) => {
         setSelectedStudents((prev) =>
             prev.includes(studentId)
@@ -45,18 +50,52 @@ const CreateNewSession = () => {
         );
     };
 
-
+    // Filter doctors based on selected filters
+    // ✅ If no department or designation is selected, show all doctors
     const filteredDoctors = doctors.filter((doc) => {
         const matchesDept = !filterDept || doc.department === filterDept;
         const matchesDesignation = !filterDesignation || doc.designation === filterDesignation;
         return matchesDept && matchesDesignation;
     });
 
+    // Filter students based on selected filters and session slots
+    // ✅ If no date is selected, show all students
     const filteredStudents = students.filter((student) => {
         const matchesSchool = !filterSchool || student.school === filterSchool;
         const matchesYear = !filterYear || student.academicYear === filterYear;
-        return matchesSchool && matchesYear;
+
+        const enrollmentStart = new Date(student.start_date);
+        const enrollmentEnd = new Date(student.end_date);
+
+        const hasAnyDateSelected = sessionSlots.some((slot) => slot.date);
+
+        const isAvailableForAnySlot = hasAnyDateSelected
+            ? sessionSlots.some((slot) => {
+                if (!slot.date) return false;
+                const sessionDate = new Date(slot.date);
+                return enrollmentStart <= sessionDate && enrollmentEnd >= sessionDate;
+            })
+            : true; // ✅ No date selected → show all students
+
+        return matchesSchool && matchesYear && isAvailableForAnySlot;
     });
+
+    // Handle changes, adding and removing of session slots in the table
+    const handleSessionChange = (index, field, value) => {
+        const updated = [...sessionSlots];
+        updated[index][field] = value;
+        setSessionSlots(updated);
+    };
+
+    const addSessionSlot = () => {
+        setSessionSlots([...sessionSlots, { date: '', startTime: '', endTime: '' }]);
+    };
+
+    const removeSessionSlot = (index) => {
+        if (sessionSlots.length === 1) return; // Prevent removing the only slot
+        setSessionSlots(sessionSlots.filter((_, i) => i !== index));
+    };
+
 
     return (
         <>
@@ -69,10 +108,63 @@ const CreateNewSession = () => {
 
                 <div className="form-box">
                     {/* Session Name */}
+                    <h2 className="section-title">📅 Session Slot(s)</h2>
                     <div className="form-group">
                         <label htmlFor="sessionName">Session Name</label>
                         <input type="text" id="sessionName" name="sessionName" required />
                     </div>
+
+                    <table className="session-table">
+                        <thead>
+                            <tr>
+                                <th>Session</th>
+                                <th>Date</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sessionSlots.map((slot, index) => (
+                                <tr key={index}>
+                                    <td>{index + 1}</td>
+                                    <td>
+                                        <input
+                                            type="date"
+                                            value={slot.date}
+                                            onChange={(e) => handleSessionChange(index, 'date', e.target.value)}
+                                        />
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="time"
+                                            value={slot.startTime}
+                                            onChange={(e) => handleSessionChange(index, 'startTime', e.target.value)}
+                                        />
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="time"
+                                            value={slot.endTime}
+                                            onChange={(e) => handleSessionChange(index, 'endTime', e.target.value)}
+                                        />
+                                    </td>
+                                    <td>
+                                        {sessionSlots.length > 1 && (
+                                            <button type="button" onClick={() => removeSessionSlot(index)}>❌</button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    <button type="button" onClick={addSessionSlot} className="btn btn-outline">
+                        ➕ Add Session Slot
+                    </button>
+
+
+
 
                     {/* Filters */}
                     <div className="form-section">

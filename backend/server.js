@@ -33,6 +33,7 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import csv from "csv-parser";
+import { readFile } from 'fs/promises';
 
 // -------------------------------------------------------------------------------------------------------------//
 // IMPORTS EXPLANATION
@@ -2154,7 +2155,7 @@ app.post('/upload-student-data', async (req, res) => {
   }
 });
 
-// ------------------- Displaying Data fromn Student Database on Student Management Screen -------------------
+// ------------------- Displaying Data from Student Database on Student Management Screen -------------------
 app.get('/students', (req, res) => {
   db.query('SELECT * FROM student_database', (err, results) => {
     if (err) {
@@ -2224,6 +2225,50 @@ app.delete('/delete-student/:user_id', (req, res) => {
 });
 
 
+// -------------------------------------------------------------------------------------------------------------//
+// Create route to store email session metadata
+// -------------------------------------------------------------------------------------------------------------//
+app.post("/api/email-sessions", (req, res) => {
+  const {
+    session_id,
+    subject,
+    body,
+    to_emails,
+    doctor_mcrs,
+    student_ids,
+    session_name,
+  } = req.body;
+
+  db.query(
+    `INSERT INTO email_sessions 
+      (session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name],
+    (err, results) => {
+      if (err) {
+        console.error("❌ Failed to store email session:", err);
+        return res.status(500).json({ error: "Internal Server Error" });
+      }
+
+      res.status(201).json({ message: "Session email stored successfully." });
+    }
+  );
+});
+
+
+// -------------------------------------------------------------------------------------------------------------//
+// Access Token Calling and Endpoint
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/token", async (req, res) => {
+  try {
+    const data = await readFile('../src/token/access_token.json', 'utf-8');
+    const json = JSON.parse(data);
+    res.json(json);
+  } catch (error) {
+    console.error("Failed to read token:", error);
+    res.status(500).json({ error: "Failed to load token" });
+  }
+});
 
 // -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start

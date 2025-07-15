@@ -102,10 +102,17 @@ const StudentTimetable = () => {
   };
 
   useEffect(() => {
-    fetchBlockedDates().then(() => fetchTimetable());
-    const interval = setInterval(fetchTimetable, 5000);
-    return () => clearInterval(interval);
+    fetchBlockedDates();
   }, []);
+
+  useEffect(() => {
+    if (blockedDates.length > 0) {
+      fetchTimetable();
+      const interval = setInterval(fetchTimetable, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [blockedDates]);
+
 
 
   const handleSelectEvent = (event) => {

@@ -4,10 +4,15 @@ import axios from "axios";
 import Navbar from "../components/Navbar";
 import "../styles/createSession.css";
 import API_BASE_URL from "../apiConfig";
+import { sendEmailViaGraph } from '../utils/sendGraphEmail';
+import { v4 as uuidv4 } from 'uuid';
+
+
 
 const CreateNewSession = () => {
     const [doctors, setDoctors] = useState([]);
     const [students, setStudents] = useState([]);
+    const [sessionName, setSessionName] = useState('');
     const [selectedDoctors, setSelectedDoctors] = useState([]);
     const [selectedStudents, setSelectedStudents] = useState([]);
     const [filterDept, setFilterDept] = useState("");
@@ -17,6 +22,8 @@ const CreateNewSession = () => {
     const [sessionSlots, setSessionSlots] = useState([
         { date: '', startTime: '', endTime: '' }
     ]);
+    const [selectedTemplate, setSelectedTemplate] = useState('');
+
 
 
 
@@ -41,7 +48,7 @@ const CreateNewSession = () => {
                 : [...prev, mcr_number]
         );
     };
-    
+
     const toggleStudent = (studentId) => {
         setSelectedStudents((prev) =>
             prev.includes(studentId)
@@ -96,6 +103,127 @@ const CreateNewSession = () => {
         setSessionSlots(sessionSlots.filter((_, i) => i !== index));
     };
 
+    const formatReadableSession = (dateStr, startTime, endTime) => {
+        if (!dateStr || !startTime || !endTime) return "";
+
+        const date = new Date(dateStr);
+        const formattedDate = date.toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "long",
+            year: "numeric"
+        });
+
+        const formatTime = (t) => {
+            const [h, m] = t.split(":").map(Number);
+            const suffix = h >= 12 ? "pm" : "am";
+            const hour12 = h % 12 === 0 ? 12 : h % 12;
+            return `${hour12}${m !== 0 ? `:${m.toString().padStart(2, "0")}` : ""}${suffix}`;
+        };
+
+        return `${formattedDate} (${formatTime(startTime)}–${formatTime(endTime)})`;
+    };
+
+
+    const generateEmailContent = () => {
+        if (!selectedTemplate) return { subject: '', body: '' };
+
+        if (selectedTemplate === 'tutorial_availability') {
+            const selectedDoctorObjs = doctors.filter((doc) =>
+                selectedDoctors.includes(doc.mcr_number)
+            );
+
+            const selectedStudentObjs = students.filter((s) =>
+                selectedStudents.includes(s.id)
+            );
+
+            const toEmails = selectedDoctorObjs.map((doc) => doc.email).join(', ') || '[No recipient selected]';
+
+            const doctorNames = selectedDoctorObjs
+                .map((doc) => `Dr. ${doc.first_name} ${doc.last_name}`)
+                .join(', ') || '[No doctor selected]';
+
+            const studentNames = selectedStudentObjs
+                .map((s) => `${s.name} (${s.school})`)
+                .join(', ') || '[No students selected]';
+
+            const sessionDetails = sessionSlots
+                .filter((s) => s.date && s.startTime && s.endTime)
+                .map((s, i) => `Session ${i + 1}: ${formatReadableSession(s.date, s.startTime, s.endTime)}`)
+                .join('\n') || '[No session slots selected]';
+
+
+            const subject = `Request for Availability – ${sessionName ? sessionName + " " : ""}Tutorial Session`;
+
+            const body = `Dear ${doctorNames},
+
+We are planning a tutorial session involving the following students:
+${studentNames}.
+
+Here are the proposed session slots:
+${sessionDetails}
+
+Please let us know your availability for the above.
+
+Thank you,
+Education Office`;
+
+            return { subject, body };
+        }
+
+        return { subject: '', body: '' };
+    };
+
+
+    const handleCreateSession = async () => {
+        const sessionId = uuidv4(); // ✅ Generate UUID here
+        const { subject, body } = generateEmailContent();
+
+        if (!subject || !body) {
+            alert("❌ Please complete all required fields and select a valid email template.");
+            return;
+        }
+
+        // ✅ Optional: Load token from API (assuming you have a working endpoint for this)
+        let accessToken = "";
+        try {
+            const res = await axios.get(`${API_BASE_URL}/api/token`);
+            accessToken = res.data.access_token;
+        } catch (error) {
+            alert("❌ Failed to retrieve access token.");
+            console.error(error);
+            return;
+        }
+
+        // ✅ Send the email
+        await sendEmailViaGraph({
+            selectedDoctors,
+            doctors,
+            subject,
+            body,
+            accessToken,
+            sessionId,
+        });
+
+        try {
+            await axios.post(`${API_BASE_URL}/api/email-sessions`, {
+                session_id: sessionId,
+                subject,
+                body,
+                to_emails: selectedDoctors
+                    .map((mcr) => doctors.find((doc) => doc.mcr_number === mcr)?.email)
+                    .filter(Boolean)
+                    .join(','),
+                doctor_mcrs: selectedDoctors.join(','),
+                student_ids: selectedStudents.join(','),
+                session_name: sessionName,
+                created_at: new Date().toISOString()
+            });
+            console.log("✅ Email session metadata saved");
+        } catch (err) {
+            console.error("❌ Failed to save email session metadata:", err);
+        }
+
+    };
 
     return (
         <>
@@ -111,7 +239,14 @@ const CreateNewSession = () => {
                     <h2 className="section-title">📅 Session Slot(s)</h2>
                     <div className="form-group">
                         <label htmlFor="sessionName">Session Name</label>
-                        <input type="text" id="sessionName" name="sessionName" required />
+                        <input
+                            type="text"
+                            id="sessionName"
+                            name="sessionName"
+                            value={sessionName}
+                            onChange={(e) => setSessionName(e.target.value)}
+                            required
+                        />
                     </div>
 
                     <table className="session-table">
@@ -286,6 +421,36 @@ const CreateNewSession = () => {
                         </div>
                     </div>
 
+
+                    <div className="form-section">
+                        <h2 className="section-title">✉️ Email Template</h2>
+
+                        <div className="form-group">
+                            <label>Select Template</label>
+                            <select
+                                value={selectedTemplate}
+                                onChange={(e) => setSelectedTemplate(e.target.value)}
+                            >
+                                <option value="">-- Select an Email Template --</option>
+                                <option value="tutorial_availability">
+                                    📧 Tutorial Session – Ask Availability
+                                </option>
+                                {/* More templates can be added after your meeting */}
+                            </select>
+                        </div>
+
+                        {selectedTemplate && (
+                            <div className="email-preview-box">
+                                <h3>Email Preview</h3>
+                                <pre>{generateEmailContent().body}</pre>
+
+                                {/* Optional: a button to trigger email sending later */}
+                                {/* <button className="btn btn-primary">📤 Send Email</button> */}
+                            </div>
+                        )}
+                    </div>
+
+
                     {/* Action Buttons */}
                     <div className="action-buttons">
                         <button
@@ -293,15 +458,21 @@ const CreateNewSession = () => {
                             type="button"
                             onClick={() => {
                                 setSelectedDoctors([]);
+                                setSelectedStudents([]);
                                 setFilterDept("");
                                 setFilterDesignation("");
+                                setFilterSchool("");
+                                setFilterYear("");
+                                setSessionSlots([{ date: '', startTime: '', endTime: '' }]);
+                                setSelectedTemplate('');
                             }}
                         >
                             Cancel
                         </button>
-                        <button className="btn btn-primary" type="submit">
+                        <button className="btn btn-primary" type="button" onClick={handleCreateSession}>
                             Create Session
                         </button>
+
                     </div>
                 </div>
             </div>

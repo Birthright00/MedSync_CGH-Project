@@ -20,34 +20,38 @@ export const normalizeTime = (timeStr, defaultAmPm = "am") => {
 
 // Extracts and returns start and end time from a time range string
 export const getStartEndTime = (timeString) => {
+  if (!timeString) return [null, null];
+
+  // Remove parentheses and trim
+  timeString = timeString.replace(/[()]/g, "").trim();
+
+  // Replace en dash (–) with normal dash (-)
+  timeString = timeString.replace(/\u2013|\u2014/g, "-");
+
   let startTimeStr = "9AM";
   let endTimeStr;
 
-  if (timeString) {
-    let timeParts;
-    const lower = timeString.toLowerCase();
+  const lower = timeString.toLowerCase();
 
-    if (lower.includes("to")) {
-      timeParts = lower.split("to").map((t) => t.trim());
-    } else if (lower.includes("-")) {
-      timeParts = lower.split("-").map((t) => t.trim());
-    } else {
-      timeParts = [timeString.trim()];
-    }
+  let timeParts;
+  if (lower.includes("to")) {
+    timeParts = lower.split("to").map((t) => t.trim());
+  } else if (lower.includes("-")) {
+    timeParts = lower.split("-").map((t) => t.trim());
+  } else {
+    timeParts = [timeString.trim()];
+  }
 
-    // Check if AM/PM appears in either part
-    const suffixFromEnd = timeParts[1]?.match(/am|pm/i)?.[0] || "am";
+  const suffixFromEnd = timeParts[1]?.match(/am|pm/i)?.[0] || "am";
+  const start = moment(normalizeTime(timeParts[0], suffixFromEnd), ["hA", "h:mmA"]);
+  startTimeStr = start.format("h:mmA");
 
-    const start = moment(normalizeTime(timeParts[0], suffixFromEnd), ["hA", "h:mmA"]);
-    startTimeStr = start.format("h:mmA");
-
-    if (timeParts.length > 1) {
-      const end = moment(normalizeTime(timeParts[1]), ["hA", "h:mmA"]);
-      endTimeStr = end.format("h:mmA");
-    } else {
-      const end = start.clone().add(1, "hour");
-      endTimeStr = end.format("h:mmA");
-    }
+  if (timeParts.length > 1) {
+    const end = moment(normalizeTime(timeParts[1]), ["hA", "h:mmA"]);
+    endTimeStr = end.format("h:mmA");
+  } else {
+    const end = start.clone().add(1, "hour");
+    endTimeStr = end.format("h:mmA");
   }
 
   return [startTimeStr, endTimeStr];

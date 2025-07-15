@@ -81,16 +81,28 @@ const DoctorScheduler = () => {
         const time = timeParts.join(" ").trim() || "";
 
         // Parse original session to match
-        const [originalDatePart, originalTimeRange] = selectedNotif.original_session.split(/(?<=\d{4})\s+/);
+        const [originalDatePart, originalTimeRangeRaw] = selectedNotif.original_session.split(/(?<=\d{4})\s+/);
+        const originalDate = moment(originalDatePart?.trim(), "D MMMM YYYY").format("D MMMM YYYY"); // match session.date format
+        const originalTimeRange = originalTimeRangeRaw?.replace(/[()]/g, ""); // ✅ Remove brackets
 
-        const originalDate = originalDatePart?.trim();
         const originalStartTime = originalTimeRange?.split("-")[0]?.trim().toLowerCase();
+
 
         const matchingSession = timetableSessions.find(session => {
           const sessionName = session.session_name?.trim().toLowerCase();
           const doctorName = session.name?.trim().toLowerCase();
           const sessionDate = session.date?.trim();
-          const sessionStartTime = session.time?.split("-")[0]?.trim().toLowerCase();
+          const sessionStartTime = session.time?.replace(/[()]/g, "").split("-")[0]?.trim().toLowerCase();
+
+          console.log("🔍 Matching against:");
+          console.log("sessionName:", session.session_name?.trim().toLowerCase());
+          console.log("expectedName:", (selectedNotif.original_session_name || selectedNotif.session_name)?.trim().toLowerCase());
+          console.log("doctorName:", session.name?.trim().toLowerCase());
+          console.log("expectedDoctor:", selectedNotif.name?.trim().toLowerCase());
+          console.log("sessionDate:", session.date?.trim());
+          console.log("expectedDate:", originalDate);
+          console.log("sessionStartTime:", sessionStartTime);
+          console.log("expectedTime:", originalStartTime);
 
           return (
             sessionName === (selectedNotif.original_session_name || selectedNotif.session_name)?.trim().toLowerCase() &&
@@ -106,8 +118,15 @@ const DoctorScheduler = () => {
           return;
         }
 
-        const newStart = moment(`${date} ${time.split("-")[0].trim()}`, "D MMMM YYYY h:mmA").toISOString();
-        const newEnd = moment(`${date} ${time.split("-")[1].trim()}`, "D MMMM YYYY h:mmA").toISOString();
+        const timePartsSplit = time.split(/[-–]/); // handles both hyphen and en-dash
+
+        if (timePartsSplit.length < 2) {
+          alert("⚠️ Invalid time format. Please make sure it follows the format like '1pm–2pm'.");
+          return;
+        }
+
+        const newStart = moment(`${date} ${timePartsSplit[0].trim()}`, "D MMMM YYYY h:mmA").toISOString();
+        const newEnd = moment(`${date} ${timePartsSplit[1].trim()}`, "D MMMM YYYY h:mmA").toISOString()
 
         await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${matchingSession.id}`, {
           title: selectedNotif.session_name,

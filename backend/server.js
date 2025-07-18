@@ -198,6 +198,7 @@ app.post("/login", (req, res) => {
         message: "Authentication successful",
         token,
         role: user.role,
+        user_id: user.user_id,
       });
     });
   });
@@ -2030,7 +2031,7 @@ app.get("/api/scheduling/get-blocked-dates", (req, res) => {
 
 // ------------------- Uploading Student Excel Data -------------------
 app.post('/upload-student-data', async (req, res) => {
-  const { students, school } = req.body;
+  const { students, school, yearofstudy, adid } = req.body;
 
   if (!Array.isArray(students) || students.length === 0) {
     return res.status(400).json({ message: 'Invalid or empty student data' });
@@ -2095,7 +2096,7 @@ app.post('/upload-student-data', async (req, res) => {
 
   const insertQuery = `
     INSERT INTO student_database (
-      user_id, name, gender, mobile_no, email, start_date, end_date, recess_start_date, recess_end_date, school, academicYear
+      user_id, name, gender, mobile_no, email, start_date, end_date, recess_start_date, recess_end_date, school, academicYear, yearofstudy, program_name, adid
     ) VALUES ? 
     ON DUPLICATE KEY UPDATE 
       name = VALUES(name),
@@ -2107,7 +2108,10 @@ app.post('/upload-student-data', async (req, res) => {
       recess_start_date = VALUES(recess_start_date),
       recess_end_date = VALUES(recess_end_date),
       school = VALUES(school),
-      academicYear = VALUES(academicYear)
+      academicYear = VALUES(academicYear),
+      yearofstudy = VALUES(yearofstudy),
+      program_name = VALUES(program_name),
+      adid = VALUES(adid)
   `;
 
   try {
@@ -2135,7 +2139,10 @@ app.post('/upload-student-data', async (req, res) => {
           recessStart,
           recessEnd,
           school || '',
-          academicYear || ''
+          academicYear || '',
+          yearofstudy || '',
+          student.program_name || '',
+          adid || ''
         ];
       })
       .filter(Boolean);
@@ -2158,11 +2165,21 @@ app.post('/upload-student-data', async (req, res) => {
 // ------------------- Displaying Data from Student Database on Student Management Screen -------------------
 app.get('/students', (req, res) => {
   db.query('SELECT * FROM student_database', (err, results) => {
-    if (err) {
-      console.error('❌ Failed to retrieve students:', err);
-      return res.status(500).json({ message: 'Database error' });
+    const adid = req.query.adid;
+
+    if (!adid) {
+      return res.status(400).json({ error: "ADID is required to fetch students." });
     }
-    res.json(results);
+
+    const query = 'SELECT * FROM student_database WHERE adid = ?';
+
+    db.query(query, [adid], (err, results) => {
+      if (err) {
+        console.error('❌ Failed to retrieve students:', err);
+        return res.status(500).json({ message: 'Database error' });
+      }
+      res.json(results);
+    });
   });
 });
 

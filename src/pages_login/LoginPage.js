@@ -123,6 +123,8 @@ const LoginPage = () => {
       if (response.ok) {
         // Store the token in localStorage
         localStorage.setItem("token", data.token);
+        localStorage.setItem("adid", data.user_id);
+        console.log("ADID saved:", data.user_id);
 
         // Successful login
         toast.success("Login successful! Welcome Back!");

@@ -5,8 +5,14 @@ import API_BASE_URL from '../apiConfig';
 const UploadStudent = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [school, setSchool] = useState('');
+    const [yearofstudy, setYearOfStudy] = useState('');
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef(); // ✅ Add ref
+
+    const currentUserADID = localStorage.getItem("adid");
+    console.log("ADID in UploadStudent:", currentUserADID);
+
+
 
     const handleFileSelect = (event) => {
         const file = event.target.files[0];
@@ -30,10 +36,13 @@ const UploadStudent = () => {
                 'gender': 'gender',
                 'mobile no.': 'mobile_no',
                 'nus email': 'email',
+                'ntu email': 'email',
+                'duke nus email': 'email',
                 'posting start date': 'start_date',
                 'posting end date': 'end_date',
                 'recess start date': 'recess_start_date',
                 'recess end date': 'recess_end_date',
+                'program': 'program_name',
             };
 
             return map[firstLine] || firstLine.replace(/\s+/g, '_');
@@ -88,7 +97,7 @@ const UploadStudent = () => {
                 const response = await fetch(`${API_BASE_URL}/upload-student-data`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ students: parsedData, school }),
+                    body: JSON.stringify({ students: parsedData, school, yearofstudy, adid: currentUserADID }),
                 });
 
                 const result = await response.json();
@@ -124,6 +133,21 @@ const UploadStudent = () => {
                 <option value="Duke NUS">Duke NUS</option>
                 <option value="NUS YLL">NUS YLL</option>
                 <option value="NTU LKC">NTU LKC</option>
+            </select>
+
+            <label>Select Year Of Study</label>
+            <select
+                className="filter-input"
+                value={yearofstudy}
+                onChange={(e) => setYearOfStudy(e.target.value)}
+                required
+            >
+                <option value="">Select Year Of Study</option>
+                <option value="1">M1</option>
+                <option value="2">M2</option>
+                <option value="3">M3</option>
+                <option value="4">M4</option>
+                <option value="5">M5</option>
             </select>
 
             <input

@@ -19,6 +19,7 @@ const CreateNewSession = () => {
     const [filterDesignation, setFilterDesignation] = useState("");
     const [filterSchool, setFilterSchool] = useState('');
     const [filterYear, setFilterYear] = useState('');
+    const [filterProgram, setFilterProgram] = useState('');
     const [sessionSlots, setSessionSlots] = useState([
         { date: '', startTime: '', endTime: '' }
     ]);
@@ -70,6 +71,7 @@ const CreateNewSession = () => {
     const filteredStudents = students.filter((student) => {
         const matchesSchool = !filterSchool || student.school === filterSchool;
         const matchesYear = !filterYear || student.academicYear === filterYear;
+        const matchesProgram = !filterProgram || student.program_name === filterProgram;
 
         const enrollmentStart = new Date(student.start_date);
         const enrollmentEnd = new Date(student.end_date);
@@ -84,7 +86,7 @@ const CreateNewSession = () => {
             })
             : true; // ✅ No date selected → show all students
 
-        return matchesSchool && matchesYear && isAvailableForAnySlot;
+        return matchesSchool && matchesYear && matchesProgram && isAvailableForAnySlot;
     });
 
     // Handle changes, adding and removing of session slots in the table
@@ -391,6 +393,15 @@ Education Office`;
                                     <option value="">All Years</option>
                                     {[...new Set(students.map((s) => s.academicYear))].map((year) => (
                                         <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Program Name</label>
+                                <select value={filterProgram} onChange={(e) => setFilterProgram(e.target.value)}>
+                                    <option value="">All Programs</option>
+                                    {[...new Set(students.map((s) => s.program_name))].map((program) => (
+                                        <option key={program} value={program}>{program}</option>
                                     ))}
                                 </select>
                             </div>

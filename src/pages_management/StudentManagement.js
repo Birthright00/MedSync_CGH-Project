@@ -16,12 +16,14 @@ const StudentData = () => {
     });
 
     const [currentSchoolFilter, setCurrentSchoolFilter] = useState('all');
+    const [currentProgramFilter, setCurrentProgramFilter] = useState('all');
     const [allStudents, setAllStudents] = useState([]);
     const [filteredStudents, setFilteredStudents] = useState([]);
     const [entriesPerPage, setEntriesPerPage] = useState(10);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
     const [currentPage, setCurrentPage] = useState(1); // current page number
+    const currentUserADID = localStorage.getItem("adid");
 
 
 
@@ -32,7 +34,7 @@ const StudentData = () => {
     };
 
     useEffect(() => {
-        fetch(`${API_BASE_URL}/students`)
+        fetch(`${API_BASE_URL}/students?adid=${currentUserADID}`)
             .then((res) => res.json())
             .then((data) => {
                 setAllStudents(data);
@@ -41,11 +43,11 @@ const StudentData = () => {
             .catch((err) => {
                 console.error('Failed to fetch students:', err);
             });
-    }, []);
+    }, [currentUserADID]);
 
     useEffect(() => {
         filterStudents();
-    }, [filters, currentSchoolFilter]);
+    }, [filters, currentSchoolFilter, currentProgramFilter]);
 
     useEffect(() => {
         if (showPopup) {
@@ -65,6 +67,9 @@ const StudentData = () => {
 
         if (currentSchoolFilter !== 'all') {
             results = results.filter((s) => s.school === currentSchoolFilter);
+        }
+        if (currentProgramFilter !== 'all') {
+            results = results.filter((s) => s.program_name === currentProgramFilter);
         }
 
         results = results.filter((s) => {
@@ -178,6 +183,19 @@ const StudentData = () => {
                             </div>
                         </div>
 
+                        <div className="filter-panel">
+                            <div className="filter-title">Filter by Program Full Name / Specialty</div>
+                            <select
+                                className="filter-input"
+                                value={currentProgramFilter}
+                                onChange={(e) => setCurrentProgramFilter(e.target.value)}
+                            >
+                                <option value="all">All Programs</option>
+                                <option value="General Medicine">General Medicine</option>
+                                <option value="Geriatic Surgery">Geriatic Surgery</option>
+                            </select>
+                        </div>
+
                         <UploadStudent />
                     </div>
 
@@ -186,12 +204,14 @@ const StudentData = () => {
                             <thead>
                                 <tr>
                                     <th>No</th>
+                                    <th>School</th>
+                                    <th>Program</th>
+                                    <th>Year Of Study</th>
                                     <th>Matric No</th>
                                     <th>Name</th>
                                     <th>Gender</th>
                                     <th>Mobile No</th>
                                     <th>Email</th>
-                                    <th>School</th>
                                     <th>Academic Year</th>
                                     <th>Start Date</th>
                                     <th>End Date</th>
@@ -203,14 +223,15 @@ const StudentData = () => {
                                         setSelectedStudent(student);
                                         setShowPopup(true);
                                     }}>
-
-                                        <td>{indexOfFirstStudent + i + 1}</td>  
+                                        <td>{indexOfFirstStudent + i + 1}</td>
+                                        <td>{student.school}</td>
+                                        <td>{student.program_name}</td>
+                                        <td>{student.yearofstudy} </td>
                                         <td className="student-id">{student.user_id}</td>
                                         <td>{student.name}</td>
                                         <td>{student.gender}</td>
                                         <td>{student.mobile_no}</td>
                                         <td className="email">{student.email}</td>
-                                        <td>{student.school}</td>
                                         <td>{student.academicYear || '-'}</td>
                                         <td>{formatDate(student.start_date)}</td>
                                         <td>{formatDate(student.end_date)}</td>

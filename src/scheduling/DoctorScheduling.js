@@ -16,6 +16,10 @@ const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
 
 const DoctorScheduling = ({ sessions, refreshSessions }) => {
+  const [uploadSchool, setUploadSchool] = useState('');
+  const [uploadYear, setUploadYear] = useState('');
+  const [uploadFile, setUploadFile] = useState(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [form, setForm] = useState({ title: '', doctor: '', location: '', start: '', end: '', color: '' });
@@ -173,20 +177,24 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     return months[monthStr.toLowerCase()] ?? 0;
   };
 
-  const handleExcelUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleExcelSubmit = async () => {
+    if (!uploadFile || !uploadSchool || !uploadYear) {
+      alert("Please select file, school, and year.");
+      return;
+    }
 
     try {
-      const blockedDates = await parseBlockedDates(file); // ✅ use raw file
-      console.log("📤 Sending blocked dates to backend:", blockedDates);
+      const blockedDates = await parseBlockedDates(uploadFile); // ✅ use raw file
+      console.log("📤 Sending blocked dates to backend:", blockedDates, uploadSchool, uploadYear);
 
       await axios.post(`${API_BASE_URL}/api/scheduling/update-blocked-dates`, {
         blocked_dates: blockedDates,
+        school: uploadSchool,
+        yearofstudy: uploadYear,
       });
 
       alert("✅ Blocked dates updated");
-      window.location.reload(); 
+      window.location.reload();
     } catch (err) {
       console.error("❌ Failed to update blocked dates", err);
       alert("❌ Error updating blocked dates");
@@ -626,17 +634,12 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px' }}>
         <h3></h3>
         <div>
-          <label htmlFor="upload-csv-btn" style={{ backgroundColor: '#4CAF50', color: 'white', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>
+          <button
+            style={{ backgroundColor: '#4CAF50', color: 'white', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}
+            onClick={() => setShowUploadModal(true)}
+          >
             Upload Excel for Blocked Dates
-          </label>
-          <input
-            id="upload-csv-btn"
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx"
-            style={{ display: 'none' }}
-            onChange={handleExcelUpload}
-          />
+          </button>
         </div>
       </div>
       <div style={{ height: '70vh', padding: '0px' }}>
@@ -690,6 +693,65 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
           </div>
         </div>
       )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center',
+          alignItems: 'center', zIndex: 1000
+        }}>
+          <div style={{
+            background: '#fff', padding: '30px', borderRadius: '12px', width: '90%',
+            maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '15px'
+          }}>
+            <h3>Upload Blocked Dates</h3>
+
+            <label>Excel File:</label>
+            <input
+              type="file"
+              accept=".xlsx"
+              onChange={(e) => setUploadFile(e.target.files[0])}
+            />
+
+            <label>School:</label>
+            <select value={uploadSchool} onChange={e => setUploadSchool(e.target.value)}>
+              <option value="">-- Select School --</option>
+              <option value="DUKE NUS">Duke NUS</option>
+              <option value="NUS YLL">NUS YLL</option>
+              <option value="NTU LKC">NTU LKC</option>
+            </select>
+
+            <label>Year of Study:</label>
+            <select value={uploadYear} onChange={e => setUploadYear(e.target.value)}>
+              <option value="">-- Select Year --</option>
+              <option value="M1">M1</option>
+              <option value="M2">M2</option>
+              <option value="M3">M3</option>
+              <option value="M4">M4</option>
+              <option value="M5">M5</option>
+            </select>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
+              <button
+                style={{ backgroundColor: '#4CAF50', color: '#fff', padding: '8px 16px', borderRadius: '6px' }}
+                disabled={!uploadFile || !uploadSchool || !uploadYear}
+                onClick={handleExcelSubmit}
+              >
+                Upload
+              </button>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                style={{ padding: '8px 16px', borderRadius: '6px', backgroundColor: '#ccc' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
     </>
   );
 };

@@ -1982,7 +1982,7 @@ app.patch('/api/scheduling/mark-as-read/:id', (req, res) => {
 
 // ------------------- Updating Blocked Dates Via EXCEL -------------------
 app.post("/api/scheduling/update-blocked-dates", (req, res) => {
-  const { blocked_dates } = req.body;
+  const { blocked_dates, school, yearofstudy } = req.body;
 
   if (!Array.isArray(blocked_dates)) {
     return res.status(400).json({ error: "Invalid format" });
@@ -1995,12 +1995,12 @@ app.post("/api/scheduling/update-blocked-dates", (req, res) => {
 
     const { date, remark } = blocked_dates[index];
     const query = `
-      INSERT INTO blocked_dates (date, remark) 
-      VALUES (?, ?) 
+      INSERT INTO blocked_dates (date, school, yearofstudy, remark) 
+      VALUES (?, ?, ?, ?) 
       ON DUPLICATE KEY UPDATE remark = ?
     `;
 
-    db.query(query, [date, remark, remark], (err) => {
+    db.query(query, [date, school, yearofstudy, remark, remark], (err) => {
       if (err) {
         console.error("❌ DB error inserting blocked date:", err);
         return res.status(500).json({ error: "Database error" });

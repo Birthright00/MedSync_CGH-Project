@@ -99,6 +99,29 @@ const StudentPopup = ({ student, onClose, onSave, onDelete }) => {
             />
           </div>
 
+          {/* New Field: Year of Study */}
+          <div className="form-group">
+            <label>Year Of Study</label>
+            <input
+              name="yearofstudy"
+              value={formData.yearofstudy || ''}
+              onChange={handleChange}
+              type="text"
+            />
+          </div>
+
+          {/* New Field: Program */}
+          <div className="form-group">
+            <label>Program</label>
+            <input
+              name="program_name"
+              value={formData.program_name || ''}
+              onChange={handleChange}
+              type="text"
+            />
+          </div>
+
+
           <div className="form-group">
             <label>Start Date</label>
             <input

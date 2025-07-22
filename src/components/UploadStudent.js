@@ -4,8 +4,6 @@ import API_BASE_URL from '../apiConfig';
 
 const UploadStudent = () => {
     const [selectedFile, setSelectedFile] = useState(null);
-    const [school, setSchool] = useState('');
-    const [yearofstudy, setYearOfStudy] = useState('');
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef(); // ✅ Add ref
 
@@ -21,8 +19,8 @@ const UploadStudent = () => {
     };
 
     const handleUpload = () => {
-        if (!selectedFile || !school) {
-            alert("Please select a file and a school.");
+        if (!selectedFile) {
+            alert("Please select a file.");
             return;
         }
 
@@ -30,6 +28,9 @@ const UploadStudent = () => {
             const firstLine = header.split('\n')[0].trim().toLowerCase().replace(/\.+$/, '');
 
             const map = {
+                'phase': 'yearofstudy',
+                'posting discipline': 'program_name',
+                'cg': 'cg',
                 'matric no': 'user_id',
                 'matric no.': 'user_id',
                 'name': 'name',
@@ -38,15 +39,39 @@ const UploadStudent = () => {
                 'nus email': 'email',
                 'ntu email': 'email',
                 'duke nus email': 'email',
+                'med school': 'school',
                 'posting start date': 'start_date',
                 'posting end date': 'end_date',
                 'recess start date': 'recess_start_date',
                 'recess end date': 'recess_end_date',
-                'program': 'program_name',
             };
 
             return map[firstLine] || firstLine.replace(/\s+/g, '_');
         };
+
+        const normalizePhase = (phaseValue) => {
+            if (!phaseValue) return '';
+
+            const value = String(phaseValue).trim().toUpperCase();
+
+            const romanToNumber = {
+                'I': 1,
+                'II': 2,
+                'III': 3,
+                'IV': 4,
+                'V': 5
+            };
+
+            let numericPhase = romanToNumber[value] || value;
+
+            // Ensure numericPhase is 1-5
+            if (['1', '2', '3', '4', '5'].includes(String(numericPhase))) {
+                return `M${numericPhase}`;
+            }
+
+            return ''; // fallback if invalid
+        };
+
 
         const reader = new FileReader();
         reader.onload = async (e) => {
@@ -56,6 +81,8 @@ const UploadStudent = () => {
 
             const raw = XLSX.utils.sheet_to_json(sheet, { header: 1 });
             const headers = raw[0].map(normalizeHeader);
+
+            
             const rows = raw.slice(1).filter(r => r.some(cell => cell !== undefined && cell !== ''));
 
             const parsedData = rows.map(row => {
@@ -63,6 +90,12 @@ const UploadStudent = () => {
                 headers.forEach((h, i) => {
                     obj[h] = row[i] ?? '';
                 });
+
+                // Normalize the 'yearofstudy' (phase) column
+                if (obj.yearofstudy) {
+                    obj.yearofstudy = normalizePhase(obj.yearofstudy);
+                }
+
                 return obj;
             });
 
@@ -85,7 +118,7 @@ const UploadStudent = () => {
             console.log("✅ First row parsed:", parsedData[0]);
 
 
-            const requiredFields = ['user_id', 'name', 'gender', 'email', 'start_date', 'end_date'];
+            const requiredFields = ['user_id', 'name', 'gender', 'email', 'start_date', 'end_date', 'cg', 'school', 'program_name', 'yearofstudy'];
             const missingFields = requiredFields.filter(f => !(f in parsedData[0]));
             if (missingFields.length > 0) {
                 alert(`Missing required columns: ${missingFields.join(', ')}`);
@@ -97,13 +130,12 @@ const UploadStudent = () => {
                 const response = await fetch(`${API_BASE_URL}/upload-student-data`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ students: parsedData, school, yearofstudy, adid: currentUserADID }),
+                    body: JSON.stringify({ students: parsedData, adid: currentUserADID }),
                 });
 
                 const result = await response.json();
                 alert(result.message || 'Upload successful!');
                 setSelectedFile(null);
-                setSchool('');
                 if (fileInputRef.current) fileInputRef.current.value = '';
                 window.location.reload();
             } catch (err) {
@@ -121,34 +153,6 @@ const UploadStudent = () => {
     return (
         <div className="filter-panel">
             <div className="filter-title">Upload Student Excel</div>
-
-            <label>Select School</label>
-            <select
-                className="filter-input"
-                value={school}
-                onChange={(e) => setSchool(e.target.value)}
-                required
-            >
-                <option value="">Select School</option>
-                <option value="Duke NUS">Duke NUS</option>
-                <option value="NUS YLL">NUS YLL</option>
-                <option value="NTU LKC">NTU LKC</option>
-            </select>
-
-            <label>Select Year Of Study</label>
-            <select
-                className="filter-input"
-                value={yearofstudy}
-                onChange={(e) => setYearOfStudy(e.target.value)}
-                required
-            >
-                <option value="">Select Year Of Study</option>
-                <option value="1">M1</option>
-                <option value="2">M2</option>
-                <option value="3">M3</option>
-                <option value="4">M4</option>
-                <option value="5">M5</option>
-            </select>
 
             <input
                 ref={fileInputRef} // ✅ Attach ref to input

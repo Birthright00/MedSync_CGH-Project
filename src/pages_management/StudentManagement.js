@@ -13,6 +13,8 @@ const StudentData = () => {
         mobile: '',
         email: '',
         academicYear: '',
+        cg: '',
+        yearOfStudy: '',
     });
 
     const [currentSchoolFilter, setCurrentSchoolFilter] = useState('all');
@@ -81,8 +83,10 @@ const StudentData = () => {
 
             const matchesGender = !filters.gender || s.gender === filters.gender;
             const matchesYear = !filters.academicYear || s.academicYear === filters.academicYear;
+            const matchesYearOfStudy = !filters.yearOfStudy || s.yearofstudy === filters.yearOfStudy;
+            const matchesCG = !filters.cg || s.cg === filters.cg;
 
-            return matchesGeneric && matchesGender && matchesYear;
+            return matchesGeneric && matchesGender && matchesYear && matchesYearOfStudy && matchesCG;
         });
         setCurrentPage(1); // Reset to page 1 when filters change
         setFilteredStudents(results);
@@ -96,6 +100,8 @@ const StudentData = () => {
             mobile: '',
             email: '',
             academicYear: '',
+            cg: '',
+            yearOfStudy: '',
         });
         setCurrentSchoolFilter('all');
         setFilteredStudents(allStudents);
@@ -110,6 +116,31 @@ const StudentData = () => {
     const indexOfFirstStudent = indexOfLastStudent - entriesPerPage;
     const currentStudents = filteredStudents.slice(indexOfFirstStudent, indexOfLastStudent);
 
+    const handleDeleteAllVisible = () => {
+        if (currentStudents.length === 0) {
+            alert("No students to delete.");
+            return;
+        }
+
+        if (window.confirm("Are you sure you want to delete all visible students? This action cannot be undone.")) {
+            const visibleStudentIds = currentStudents.map(student => student.user_id);
+
+            fetch(`${API_BASE_URL}/delete-multiple-students`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_ids: visibleStudentIds }),
+            })
+                .then(res => res.json())
+                .then((data) => {
+                    alert(`Deleted ${data.deletedCount} student(s).`);
+
+                    // Update UI by removing deleted students
+                    setAllStudents(prev => prev.filter(s => !visibleStudentIds.includes(s.user_id)));
+                    setFilteredStudents(prev => prev.filter(s => !visibleStudentIds.includes(s.user_id)));
+                })
+                .catch(err => console.error("Error deleting students:", err));
+        }
+    };
 
     return (
         <>
@@ -160,27 +191,69 @@ const StudentData = () => {
                                 onChange={(e) => updateFilter('academicYear', e.target.value)}
                             >
                                 <option value="">All Years</option>
-                                <option value="2023/2024">2023/2024</option>
-                                <option value="2024/2025">2024/2025</option>
-                                <option value="2025/2026">2025/2026</option>
+                                {Array.from(new Set(allStudents.map(student => student.academicYear)))
+                                    .filter(year => year && year.trim() !== '') // Remove empty/null
+                                    .sort() // Optional: Sort the years
+                                    .map((year, idx) => (
+                                        <option key={idx} value={year}>{year}</option>
+                                    ))}
+                            </select>
+
+                        </div>
+
+                        <div className="filter-group">
+                            <label className="filter-label">Year Of Study</label>
+                            <select
+                                className="filter-input"
+                                value={filters.yearOfStudy}
+                                onChange={(e) => updateFilter('yearOfStudy', e.target.value)}
+                            >
+                                <option value="">All Years</option>
+                                {Array.from(new Set(allStudents.map(student => student.yearofstudy)))
+                                    .filter(year => year && year.trim() !== '')
+                                    .sort()
+                                    .map((year, idx) => (
+                                        <option key={idx} value={year}>{year}</option>
+                                    ))}
                             </select>
                         </div>
+
+                        <div className="filter-group">
+                            <label className="filter-label">CG</label>
+                            <select
+                                className="filter-input"
+                                value={filters.cg}
+                                onChange={(e) => updateFilter('cg', e.target.value)}
+                            >
+                                <option value="">All CGs</option>
+                                {Array.from(new Set(allStudents.map(student => student.cg)))
+                                    .filter(cg => cg && cg.trim() !== '')
+                                    .sort()
+                                    .map((cg, idx) => (
+                                        <option key={idx} value={cg}>{cg}</option>
+                                    ))}
+                            </select>
+                        </div>
+
                     </div>
 
                     <div className="vertical-panel-stack">
                         <div className="filter-panel">
                             <div className="filter-title">Filter by School</div>
                             <div className="school-filter">
-                                {['all', 'Duke NUS', 'NUS YLL', 'NTU LKC'].map((type) => (
-                                    <button
-                                        key={type}
-                                        className={`school-button ${currentSchoolFilter === type ? 'active' : ''}`}
-                                        onClick={() => setCurrentSchoolFilter(type)}
-                                    >
-                                        {type === 'all' ? 'All Schools' : type}
-                                    </button>
-                                ))}
+                                {['all', ...Array.from(new Set(allStudents.map(student => student.school)))
+                                    .filter(school => school && school.trim() !== '')] // Remove empty/null values
+                                    .map((type) => (
+                                        <button
+                                            key={type}
+                                            className={`school-button ${currentSchoolFilter === type ? 'active' : ''}`}
+                                            onClick={() => setCurrentSchoolFilter(type)}
+                                        >
+                                            {type === 'all' ? 'All Schools' : type}
+                                        </button>
+                                    ))}
                             </div>
+
                         </div>
 
                         <div className="filter-panel">
@@ -191,12 +264,24 @@ const StudentData = () => {
                                 onChange={(e) => setCurrentProgramFilter(e.target.value)}
                             >
                                 <option value="all">All Programs</option>
-                                <option value="General Medicine">General Medicine</option>
-                                <option value="Geriatic Surgery">Geriatic Surgery</option>
+                                {Array.from(new Set(allStudents.map(student => student.program_name)))
+                                    .filter(name => name && name.trim() !== '') // Remove empty/null
+                                    .map((program, idx) => (
+                                        <option key={idx} value={program}>{program}</option>
+                                    ))}
                             </select>
+
                         </div>
 
                         <UploadStudent />
+                        <div className="data-table-actions" style={{ marginTop: "1rem" }}>
+                            <button
+                                className="btn btn-delete-all"
+                                onClick={handleDeleteAllVisible}
+                            >
+                                Delete All Visible Students
+                            </button>
+                        </div>
                     </div>
 
                     <div className="data-table">
@@ -207,6 +292,7 @@ const StudentData = () => {
                                     <th>School</th>
                                     <th>Program</th>
                                     <th>Year Of Study</th>
+                                    <th>CG</th>
                                     <th>Matric No</th>
                                     <th>Name</th>
                                     <th>Gender</th>
@@ -219,7 +305,7 @@ const StudentData = () => {
                             </thead>
                             <tbody>
                                 {currentStudents.map((student, i) => (
-                                    <tr key={student.user_id} onClick={() => {
+                                    <tr key={`${student.user_id}-${student.program_name}-${student.start_date}`} onClick={() => {
                                         setSelectedStudent(student);
                                         setShowPopup(true);
                                     }}>
@@ -227,6 +313,7 @@ const StudentData = () => {
                                         <td>{student.school}</td>
                                         <td>{student.program_name}</td>
                                         <td>{student.yearofstudy} </td>
+                                        <td>{student.cg}</td>
                                         <td className="student-id">{student.user_id}</td>
                                         <td>{student.name}</td>
                                         <td>{student.gender}</td>

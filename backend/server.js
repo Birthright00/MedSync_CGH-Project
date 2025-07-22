@@ -2031,7 +2031,7 @@ app.get("/api/scheduling/get-blocked-dates", (req, res) => {
 
 // ------------------- Uploading Student Excel Data -------------------
 app.post('/upload-student-data', async (req, res) => {
-  const { students, school, yearofstudy, adid } = req.body;
+  const { students, adid } = req.body;
 
   if (!Array.isArray(students) || students.length === 0) {
     return res.status(400).json({ message: 'Invalid or empty student data' });
@@ -2095,24 +2095,28 @@ app.post('/upload-student-data', async (req, res) => {
 
 
   const insertQuery = `
-    INSERT INTO student_database (
-      user_id, name, gender, mobile_no, email, start_date, end_date, recess_start_date, recess_end_date, school, academicYear, yearofstudy, program_name, adid
-    ) VALUES ? 
-    ON DUPLICATE KEY UPDATE 
-      name = VALUES(name),
-      gender = VALUES(gender),
-      mobile_no = VALUES(mobile_no),
-      email = VALUES(email),
-      start_date = VALUES(start_date),
-      end_date = VALUES(end_date),
-      recess_start_date = VALUES(recess_start_date),
-      recess_end_date = VALUES(recess_end_date),
-      school = VALUES(school),
-      academicYear = VALUES(academicYear),
-      yearofstudy = VALUES(yearofstudy),
-      program_name = VALUES(program_name),
-      adid = VALUES(adid)
-  `;
+  INSERT INTO student_database (
+    user_id, name, gender, mobile_no, email, start_date, end_date,
+    recess_start_date, recess_end_date, school, academicYear, yearofstudy,
+    cg, program_name, adid
+  ) VALUES ?
+  ON DUPLICATE KEY UPDATE
+    name = VALUES(name),
+    gender = VALUES(gender),
+    mobile_no = VALUES(mobile_no),
+    email = VALUES(email),
+    start_date = VALUES(start_date),
+    end_date = VALUES(end_date),
+    recess_start_date = VALUES(recess_start_date),
+    recess_end_date = VALUES(recess_end_date),
+    school = VALUES(school),
+    academicYear = VALUES(academicYear),
+    yearofstudy = VALUES(yearofstudy),
+    cg = VALUES(cg),
+    program_name = VALUES(program_name),  -- Program name will update if changed
+    adid = VALUES(adid)
+`;
+
 
   try {
     const today = new Date();
@@ -2138,9 +2142,10 @@ app.post('/upload-student-data', async (req, res) => {
           endDate,
           recessStart,
           recessEnd,
-          school || '',
+          student.school || '',
           academicYear || '',
-          yearofstudy || '',
+          student.yearofstudy || '',
+          student.cg || '',
           student.program_name || '',
           adid || ''
         ];
@@ -2188,7 +2193,7 @@ app.post('/update-student', (req, res) => {
   const {
     user_id, name, gender, mobile_no, email,
     start_date, end_date, recess_start_date, recess_end_date,
-    school, academicYear
+    school, academicYear, yearofstudy, cg, program_name
   } = req.body;
 
   // ✅ Helper to format ISO date to 'YYYY-MM-DD'
@@ -2203,8 +2208,8 @@ app.post('/update-student', (req, res) => {
     UPDATE student_database SET
       name = ?, gender = ?, mobile_no = ?, email = ?,
       start_date = ?, end_date = ?, recess_start_date = ?, recess_end_date = ?,
-      school = ?, academicYear = ?
-    WHERE user_id = ?
+      school = ?, academicYear = ?, yearofstudy = ?, cg = ?, program_name = ?
+    WHERE id = ?
   `;
 
   db.query(query, [
@@ -2218,6 +2223,9 @@ app.post('/update-student', (req, res) => {
     formatDate(recess_end_date),
     school,
     academicYear,
+    yearofstudy,
+    cg,
+    program_name,
     user_id
   ], (err) => {
     if (err) {
@@ -2240,6 +2248,27 @@ app.delete('/delete-student/:user_id', (req, res) => {
     res.json({ message: 'Student deleted successfully' });
   });
 });
+
+// ------------------- Bulk Delete Visible Students -------------------
+app.post('/delete-multiple-students', (req, res) => {
+  const { user_ids } = req.body;
+
+  if (!Array.isArray(user_ids) || user_ids.length === 0) {
+    return res.status(400).json({ message: 'No student IDs provided for deletion' });
+  }
+
+  const placeholders = user_ids.map(() => '?').join(',');
+  const query = `DELETE FROM student_database WHERE user_id IN (${placeholders})`;
+
+  db.query(query, user_ids, (err, result) => {
+    if (err) {
+      console.error('❌ Bulk Delete Error:', err);
+      return res.status(500).json({ message: 'Failed to delete students', error: err });
+    }
+    res.json({ message: 'Students deleted successfully', deletedCount: result.affectedRows });
+  });
+});
+
 
 
 // -------------------------------------------------------------------------------------------------------------//

@@ -20,6 +20,119 @@
   color: #555;
 }
 
+/* Session Info and Admin Name Row */
+.session-admin-row {
+  display: flex;
+  gap: 1rem;
+  /* Reduced gap between session table and admin name */
+  align-items: flex-start;
+  margin-top: 0.5rem;
+  /* Reduced top margin */
+  flex-wrap: wrap;
+}
+
+.session-admin-row .session-table-container {
+  flex: 2;
+  min-width: 350px;
+}
+
+.session-admin-row .admin-name-container {
+  flex: 1;
+  min-width: 220px;
+  margin-top: 0;
+  /* Remove extra spacing */
+  padding: 0.5rem 1rem;
+  /* Reduce padding for a tighter fit */
+  background: #f9fcff;
+  border: 1px solid #d0e6ff;
+  border-radius: 10px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+}
+
+.email-preview-box pre {
+  white-space: pre-wrap;   /* Allows line wrapping */
+  word-wrap: break-word;   /* Breaks long words if needed */
+  max-width: 100%;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+
+.admin-name-container label {
+  display: block;
+  font-weight: 600;
+  color: #1976d2;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.admin-name-container select,
+.admin-name-container input {
+  width: 100%;
+  padding: 0.65rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background: #fff;
+}
+
+.admin-name-container select:focus,
+.admin-name-container input:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 4px rgba(33, 150, 243, 0.3);
+  outline: none;
+}
+
+.form-group.inline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.form-group.inline label {
+  font-weight: 600;
+  color: #1976d2;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.form-group.inline>div {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.form-group.inline select,
+.form-group.inline input[type="number"],
+.form-group.inline input[type="text"] {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.65rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+  font-size: 0.95rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-group.inline select:focus,
+.form-group.inline input:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 4px rgba(33, 150, 243, 0.3);
+  outline: none;
+}
+
+.form-group.inline input[type="number"],
+.form-group.inline input[type="text"] {
+  background: #fff;
+}
+
+.form-group.inline select option {
+  padding: 0.4rem;
+}
+
 .form-box {
   background: white;
   padding: 2rem;
@@ -295,7 +408,6 @@ select:focus {
 .btn-secondary:hover {
   background: #e0e0e0;
 }
-
 
 .session-table {
   width: 100%;

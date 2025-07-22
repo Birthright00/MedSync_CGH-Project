@@ -13,8 +13,12 @@ const CreateNewSession = () => {
     const [doctors, setDoctors] = useState([]);
     const [students, setStudents] = useState([]);
     const [sessionName, setSessionName] = useState('');
+    const [customSessionName, setCustomSessionName] = useState('');
     const [selectedDoctors, setSelectedDoctors] = useState([]);
     const [selectedStudents, setSelectedStudents] = useState([]);
+    const [adminName, setAdminName] = useState('');
+    const [sessionCount, setSessionCount] = useState('1'); // Default to 1x
+    const [customSessionCount, setCustomSessionCount] = useState('');
     const [filterDept, setFilterDept] = useState("");
     const [filterDesignation, setFilterDesignation] = useState("");
     const [filterSchool, setFilterSchool] = useState('');
@@ -29,6 +33,7 @@ const CreateNewSession = () => {
 
 
     useEffect(() => {
+        const currentUserADID = localStorage.getItem("adid") || ""; // Fallback to empty string
         // Fetch doctors data from the API
         axios
             .get(`${API_BASE_URL}/main_data`)
@@ -37,7 +42,7 @@ const CreateNewSession = () => {
 
         //Fetch students
         axios
-            .get(`${API_BASE_URL}/students`)
+            .get(`${API_BASE_URL}/students?adid=${currentUserADID}`)
             .then((res) => setStudents(res.data))
             .catch((err) => console.error("Error fetching students:", err));
     }, []);
@@ -125,6 +130,37 @@ const CreateNewSession = () => {
         return `${formattedDate} (${formatTime(startTime)}–${formatTime(endTime)})`;
     };
 
+    const generateStudentGroupSummary = () => {
+        if (selectedStudents.length === 0) return "[No students selected]";
+
+        // Filter selected student objects
+        const selectedStudentObjs = students.filter((s) =>
+            selectedStudents.includes(s.id)
+        );
+
+        // Group by school
+        const schoolYearMap = {};
+        selectedStudentObjs.forEach((s) => {
+            const school = s.school || "Unknown School";
+            const year = s.yearofstudy || "Unknown Year";
+
+            if (!schoolYearMap[school]) {
+                schoolYearMap[school] = new Set();
+            }
+            schoolYearMap[school].add(year);
+        });
+
+        // Format the summary
+        const summary = Object.entries(schoolYearMap)
+            .map(([school, years]) => {
+                return `${school} (${Array.from(years).join(", ")})`;
+            })
+            .join(" + ");
+
+        return summary;
+    };
+
+
 
     const generateEmailContent = () => {
         if (!selectedTemplate) return { subject: '', body: '' };
@@ -154,20 +190,29 @@ const CreateNewSession = () => {
                 .join('\n') || '[No session slots selected]';
 
 
-            const subject = `Request for Availability – ${sessionName ? sessionName + " " : ""}Tutorial Session`;
+            const selectedSessionName = sessionName === 'Other' ? customSessionName : sessionName;
+
+            const finalSessionCount = sessionCount === 'Other' ? customSessionCount : sessionCount;
+
+            const subject = `Request for Availability – ${selectedSessionName ? selectedSessionName + " " : ""}Tutorial Session`;
+
+            const studentGroupSummary = generateStudentGroupSummary();
 
             const body = `Dear ${doctorNames},
 
-We are planning a tutorial session involving the following students:
+We are planning ${finalSessionCount}x ${selectedSessionName}
+tutorial session involving the following students from ${studentGroupSummary}
 ${studentNames}.
 
-Here are the proposed session slots:
+Below are the proposed date availability/session slots:
 ${sessionDetails}
 
-Please let us know your availability for the above.
+Please let us know your availability preferred date/start time for the above.
+Teaching dates are subjected to first come, first served basis, your teaching hours will be logged.
 
 Thank you,
-Education Office`;
+${adminName || "[Admin Name]"}
+Associate Dean’s Office (ADO)`;
 
             return { subject, body };
         }
@@ -239,68 +284,158 @@ Education Office`;
                 <div className="form-box">
                     {/* Session Name */}
                     <h2 className="section-title">📅 Session Slot(s)</h2>
-                    <div className="form-group">
-                        <label htmlFor="sessionName">Session Name</label>
-                        <input
-                            type="text"
-                            id="sessionName"
-                            name="sessionName"
-                            value={sessionName}
-                            onChange={(e) => setSessionName(e.target.value)}
-                            required
-                        />
+                    <div className="form-group inline">
+                        <label>Session Info</label>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            {/* Session Count Dropdown */}
+                            <select
+                                value={sessionCount}
+                                onChange={(e) => setSessionCount(e.target.value)}
+                            >
+                                <option value="1">1x</option>
+                                <option value="2">2x</option>
+                                <option value="3">3x</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            {sessionCount === 'Other' && (
+                                <input
+                                    type="number"
+                                    min="1"
+                                    placeholder="Custom count"
+                                    value={customSessionCount}
+                                    onChange={(e) => setCustomSessionCount(e.target.value)}
+                                />
+                            )}
+
+                            {/* Session Topic Dropdown */}
+                            <select
+                                value={sessionName}
+                                onChange={(e) => setSessionName(e.target.value)}
+                            >
+                                <option value="">-- Select a Topic --</option>
+                                <option value="Endo">Endo</option>
+                                <option value="Derm">Derm</option>
+                                <option value="Infection Diseases">Infection Diseases</option>
+                                <option value="General Medicine">General Medicine</option>
+                                <option value="Radiology">Radiology</option>
+                                <option value="Surgery">Surgery</option>
+                                <option value="Urology">Urology</option>
+                                <option value="Ortho">Ortho</option>
+                                <option value="Sports Medicine">Sports Medicine</option>
+                                <option value="Geriatric">Geriatric</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            {sessionName === 'Other' && (
+                                <input
+                                    type="text"
+                                    placeholder="Custom topic"
+                                    value={customSessionName}
+                                    onChange={(e) => setCustomSessionName(e.target.value)}
+                                />
+                            )}
+                        </div>
                     </div>
 
-                    <table className="session-table">
-                        <thead>
-                            <tr>
-                                <th>Session</th>
-                                <th>Date</th>
-                                <th>Start Time</th>
-                                <th>End Time</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sessionSlots.map((slot, index) => (
-                                <tr key={index}>
-                                    <td>{index + 1}</td>
-                                    <td>
-                                        <input
-                                            type="date"
-                                            value={slot.date}
-                                            onChange={(e) => handleSessionChange(index, 'date', e.target.value)}
-                                        />
-                                    </td>
-                                    <td>
-                                        <input
-                                            type="time"
-                                            value={slot.startTime}
-                                            onChange={(e) => handleSessionChange(index, 'startTime', e.target.value)}
-                                        />
-                                    </td>
-                                    <td>
-                                        <input
-                                            type="time"
-                                            value={slot.endTime}
-                                            onChange={(e) => handleSessionChange(index, 'endTime', e.target.value)}
-                                        />
-                                    </td>
-                                    <td>
-                                        {sessionSlots.length > 1 && (
-                                            <button type="button" onClick={() => removeSessionSlot(index)}>❌</button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'stretch', marginTop: '1rem' }}>
+                        {/* Session Table */}
+                        <div style={{ flex: '2' }}>
+                            <table className="session-table">
+                                <thead>
+                                    <tr>
+                                        <th>Session</th>
+                                        <th>Date</th>
+                                        <th>Start Time</th>
+                                        <th>End Time</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sessionSlots.map((slot, index) => (
+                                        <tr key={index}>
+                                            <td>{index + 1}</td>
+                                            <td>
+                                                <input
+                                                    type="date"
+                                                    value={slot.date}
+                                                    onChange={(e) => handleSessionChange(index, 'date', e.target.value)}
+                                                />
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="time"
+                                                    value={slot.startTime}
+                                                    onChange={(e) => handleSessionChange(index, 'startTime', e.target.value)}
+                                                />
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="time"
+                                                    value={slot.endTime}
+                                                    onChange={(e) => handleSessionChange(index, 'endTime', e.target.value)}
+                                                />
+                                            </td>
+                                            <td>
+                                                {sessionSlots.length > 1 && (
+                                                    <button type="button" onClick={() => removeSessionSlot(index)}>❌</button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
 
-                    <button type="button" onClick={addSessionSlot} className="btn btn-outline">
-                        ➕ Add Session Slot
-                    </button>
+                            <button type="button" onClick={addSessionSlot} className="btn btn-outline">
+                                ➕ Add Session Slot
+                            </button>
+                        </div>
 
-
+                        {/* Admin Name Dropdown */}
+                        <div style={{
+                            flex: '1',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'flex-start',
+                            padding: '0.5rem',
+                            border: '1px solid #d0e6ff',
+                            borderRadius: '10px',
+                            background: '#f9fcff',
+                            height: 'fit-content'
+                        }}>
+                            <label style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#1976d2' }}>Admin Name</label>
+                            <select
+                                value={adminName}
+                                onChange={(e) => setAdminName(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.65rem',
+                                    border: '2px solid #e0e0e0',
+                                    borderRadius: '8px',
+                                    background: '#fff'
+                                }}
+                            >
+                                <option value="">-- Select Admin Name --</option>
+                                <option value="Channe">Channe</option>
+                                <option value="Jeffrey">Jeffrey</option>
+                                <option value="Jennifer">Jennifer</option>
+                                <option value="Rose">Rose</option>
+                                <option value="Custom">Custom</option>
+                            </select>
+                            {adminName === "Custom" && (
+                                <input
+                                    type="text"
+                                    placeholder="Enter custom name"
+                                    value={customSessionName}
+                                    onChange={(e) => setCustomSessionName(e.target.value)}
+                                    style={{
+                                        marginTop: '0.5rem',
+                                        padding: '0.65rem',
+                                        border: '2px solid #e0e0e0',
+                                        borderRadius: '8px'
+                                    }}
+                                />
+                            )}
+                        </div>
+                    </div>
 
 
                     {/* Filters */}
@@ -421,8 +556,8 @@ Education Office`;
                                             <div className="student-avatar">{initials}</div>
                                             <div className="student-details">
                                                 <h3>{student.name}</h3>
-                                                <p>{student.school}</p>
-                                                <p>{student.academicYear}</p>
+                                                <p>{student.school} || {student.academicYear}</p>
+                                                <p>{student.yearofstudy}</p>
                                                 <p>{student.email}</p>
                                             </div>
                                         </div>

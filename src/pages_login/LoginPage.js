@@ -124,7 +124,8 @@ const LoginPage = () => {
         // Store the token in localStorage
         localStorage.setItem("token", data.token);
         localStorage.setItem("adid", data.user_id);
-        console.log("ADID saved:", data.user_id);
+        localStorage.setItem("user_id", data.user_id);  // For student timetable
+        console.log("ID Saved:", data.user_id);
 
         // Successful login
         toast.success("Login successful! Welcome Back!");

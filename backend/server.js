@@ -2209,7 +2209,7 @@ app.post('/update-student', (req, res) => {
       name = ?, gender = ?, mobile_no = ?, email = ?,
       start_date = ?, end_date = ?, recess_start_date = ?, recess_end_date = ?,
       school = ?, academicYear = ?, yearofstudy = ?, cg = ?, program_name = ?
-    WHERE id = ?
+    WHERE user_id = ?
   `;
 
   db.query(query, [
@@ -2268,6 +2268,28 @@ app.post('/delete-multiple-students', (req, res) => {
     res.json({ message: 'Students deleted successfully', deletedCount: result.affectedRows });
   });
 });
+
+
+// -------------------------------------------------------------------------------------------------------------//
+// ------------------- SPECIFIC STUDENT ID TIMETABLE -------------------
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/scheduling/student-timetable/:userId", (req, res) => {
+  const userId = req.params.userId;
+  const query = `
+    SELECT s.*
+    FROM scheduled_sessions s
+    JOIN session_students ss ON ss.scheduled_session_id = s.id
+    WHERE ss.user_id = ?;
+  `;
+  db.query(query, [userId], (err, results) => {
+    if (err) {
+      console.error("❌ Error fetching student timetable:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    res.json(results);
+  });
+});
+
 
 
 

@@ -33,13 +33,14 @@ const StudentHomePage = () => {
         const fetchTimetable = async () => {
             try {
                 const token = localStorage.getItem("token");
+                const userId = localStorage.getItem("user_id");
                 if (!token) {
                     console.log("No token found");
                     return;
                 }
 
-                const response = await axios.get(`${API_BASE_URL}/api/scheduling/timetable`, {
-                    headers: { Authorization: `Bearer ${token}` },
+                const response = await axios.get(`${API_BASE_URL}/api/scheduling/student-timetable/${userId}`,
+                    {headers: { Authorization: `Bearer ${token}` },
                 });
 
                 const mappedData = response.data.map(item => {

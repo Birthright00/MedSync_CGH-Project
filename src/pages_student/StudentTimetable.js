@@ -51,7 +51,8 @@ const StudentTimetable = () => {
 
   const fetchTimetable = () => {
     const token = localStorage.getItem("token");
-    axios.get(`${API_BASE_URL}/api/scheduling/timetable`, {
+    const userId = localStorage.getItem("user_id");
+    axios.get(`${API_BASE_URL}/api/scheduling/student-timetable/${userId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       }
@@ -72,7 +73,6 @@ const StudentTimetable = () => {
             title: `${item.session_name} (${item.name})`,
             start: startDateTime,
             end: endDateTime,
-            // ✅ CHANGED: color based on rescheduled status
             color: ["rescheduled", "resized"].includes(item.change_type) ? "#D49A00" : "#31B5F7",
             location: item.location,
             students: item.students,
@@ -345,15 +345,32 @@ const StudentTimetable = () => {
 
 
   const CustomToolbar = ({ label, onNavigate, onView }) => {
+    const isAgenda = calendarView === Views.AGENDA;
+    const todayDate = moment(calendarDate).format('ddd, MMM DD YYYY'); // format current date
+
     return (
       <div className="rbc-toolbar">
         <span className="rbc-btn-group">
-          <button onClick={() => onNavigate('PREV')}>Prev</button>
+          <button
+            onClick={() => !isAgenda && onNavigate('PREV')}
+            disabled={isAgenda}
+            style={{ opacity: isAgenda ? 0.5 : 1 }}
+          >
+            Prev
+          </button>
           <button onClick={() => onNavigate('TODAY')}>Today</button>
-          <button onClick={() => onNavigate('NEXT')}>Next</button>
+          <button
+            onClick={() => !isAgenda && onNavigate('NEXT')}
+            disabled={isAgenda}
+            style={{ opacity: isAgenda ? 0.5 : 1 }}
+          >
+            Next
+          </button>
         </span>
 
-        <span className="rbc-toolbar-label">{label}</span>
+        <span className="rbc-toolbar-label">
+          {isAgenda ? `Today (${todayDate})` : label}
+        </span>
 
         <span className="rbc-btn-group">
           <button onClick={() => onView('month')}>Month</button>
@@ -363,6 +380,35 @@ const StudentTimetable = () => {
       </div>
     );
   };
+
+  const CustomAgenda = ({ events }) => {
+    return (
+      <table className="rbc-agenda-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Event</th>
+          </tr>
+        </thead>
+        <tbody>
+          {events.map((event, idx) => (
+            <tr key={idx}>
+              <td>
+                {moment(event.start).format('h:mm A')} – {moment(event.end).format('h:mm A')}
+              </td>
+              <td>
+                <strong>{event.title}</strong>
+                {event.location && <div>📍 {event.location}</div>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  };
+
+
+
 
   const CustomEvent = ({ event }) => {
     return (
@@ -409,7 +455,7 @@ const StudentTimetable = () => {
             eventPropGetter={eventStyleGetter}
             components={{
               toolbar: CustomToolbar,   // <-- inject custom toolbar here
-              event: CustomEvent
+              event: CustomEvent,
             }}
           />
         </div>

@@ -25,8 +25,36 @@ const StudentData = () => {
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
     const [currentPage, setCurrentPage] = useState(1); // current page number
+    const [overlappingRows, setOverlappingRows] = useState(new Set());
     const currentUserADID = localStorage.getItem("adid");
 
+    const findOverlaps = (students) => {
+        const overlaps = new Set();
+
+        // Group by user_id
+        const grouped = students.reduce((acc, s) => {
+            acc[s.user_id] = acc[s.user_id] || [];
+            acc[s.user_id].push(s);
+            return acc;
+        }, {});
+
+        Object.values(grouped).forEach(records => {
+            // Sort by start_date
+            records.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+            for (let i = 0; i < records.length - 1; i++) {
+                const current = records[i];
+                const next = records[i + 1];
+
+                if (new Date(current.end_date) >= new Date(next.start_date)) {
+                    overlaps.add(current.user_id + current.start_date);
+                    overlaps.add(next.user_id + next.start_date);
+                }
+            }
+        });
+
+        return overlaps;
+    };
 
 
     const formatDate = (dateStr) => {
@@ -41,6 +69,7 @@ const StudentData = () => {
             .then((data) => {
                 setAllStudents(data);
                 setFilteredStudents(data);
+                setOverlappingRows(findOverlaps(data));
             })
             .catch((err) => {
                 console.error('Failed to fetch students:', err);
@@ -305,10 +334,12 @@ const StudentData = () => {
                             </thead>
                             <tbody>
                                 {currentStudents.map((student, i) => (
-                                    <tr key={`${student.user_id}-${student.program_name}-${student.start_date}`} onClick={() => {
-                                        setSelectedStudent(student);
-                                        setShowPopup(true);
-                                    }}>
+                                    <tr key={`${student.user_id}-${student.program_name}-${student.start_date}`}
+                                        className={overlappingRows.has(student.user_id + student.start_date) ? 'overlap-row' : ''}
+                                        onClick={() => {
+                                            setSelectedStudent(student);
+                                            setShowPopup(true);
+                                        }}>
                                         <td>{indexOfFirstStudent + i + 1}</td>
                                         <td>{student.school}</td>
                                         <td>{student.program_name}</td>

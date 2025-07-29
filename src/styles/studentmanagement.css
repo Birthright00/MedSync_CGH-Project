@@ -377,3 +377,7 @@ tr:hover {
 .btn-delete-all:hover {
   background-color: #c62828;
 }
+
+.overlap-row {
+    background-color: #ffcccc !important; /* light red for overlap */
+}

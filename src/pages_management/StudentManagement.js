@@ -267,6 +267,17 @@ const StudentData = () => {
                     </div>
 
                     <div className="vertical-panel-stack">
+                        {overlappingRows.size > 0 && (
+                            <div className="overlap-alert">
+                                <button
+                                    className="btn btn-overlaps"
+                                    onClick={() => setFilteredStudents(allStudents.filter(s => overlappingRows.has(s.user_id + s.start_date)))}
+                                >
+                                    Show Overlapping Students ({overlappingRows.size})
+                                </button>
+                            </div>
+                        )}
+
                         <div className="filter-panel">
                             <div className="filter-title">Filter by School</div>
                             <div className="school-filter">

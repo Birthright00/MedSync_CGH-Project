@@ -34,7 +34,7 @@
   margin-bottom: 30px;
   display: flex;
   justify-content: center;
-  
+
 }
 
 .date-weather-wrapper {
@@ -45,7 +45,8 @@
   padding: 25px 35px;
   border-radius: 15px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  justify-content: space-between;;
+  justify-content: space-between;
+  ;
 }
 
 .date-time-box h3 {
@@ -61,9 +62,10 @@
   margin: 0;
 }
 
-.time-wrapper{
+.time-wrapper {
   display: inline-block;
-  white-space: nowrap; /* Prevents time splitting into multiple lines */
+  white-space: nowrap;
+  /* Prevents time splitting into multiple lines */
 }
 
 .weather-widget {
@@ -161,11 +163,12 @@
   }
 
   .current-time {
-  font-size: 36px;
-  color: #333;
-  margin: 0;
-  white-space: nowrap;   /* Prevents time splitting into multiple lines */
-}
+    font-size: 36px;
+    color: #333;
+    margin: 0;
+    white-space: nowrap;
+    /* Prevents time splitting into multiple lines */
+  }
 
 
   .weather-widget {
@@ -184,18 +187,21 @@
   justify-content: space-between;
   align-items: center;
   background-color: #fefefe;
-  border-left: 6px solid #FFB703; /* yellow highlight for attention */
+  border-left: 6px solid #FFB703;
+  /* yellow highlight for attention */
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   transition: background 0.3s ease;
   font-family: 'Nunito', sans-serif;
   animation: fadeInUp 0.5s ease forwards;
   opacity: 0;
   transform: translateY(10px);
-  width: 100%; /* ✅ Ensure full width */
-  box-sizing: border-box; /* ✅ Include padding and border in width */
+  width: 100%;
+  /* ✅ Ensure full width */
+  box-sizing: border-box;
+  /* ✅ Include padding and border in width */
 }
 
 .notification-card:hover {
@@ -258,7 +264,7 @@
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   transition: background 0.3s ease;
 }
 
@@ -299,17 +305,36 @@
 
 .mark-as-read-button {
   min-width: 120px;
-    margin-top: 10px;
-    background-color: #4caf50;
-    color: white;
-    padding: 6px 12px;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+  margin-top: 10px;
+  background-color: #4caf50;
+  color: white;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
 .mark-as-read-button:hover {
-    background-color: #388e3c;
+  background-color: #388e3c;
+}
+
+.overlap-alert {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.btn-overlaps {
+  background-color: #ff6666;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+.btn-overlaps:hover {
+  background-color: #ff4c4c;
 }

@@ -29,7 +29,6 @@ system_prompt: |
     "from_name": "...",
     "from_email": "...",
     "to_name": "...",
-    "to_email": "...",
     "original_session": "...",        // only for change_request
     "new_session": "...",             // only for change_request
     "reason": "...",                  // only for change_request
@@ -52,7 +51,6 @@ system_prompt: |
     "from_name": "Dr Lim",
     "from_email": "dr.lim@hospital.sg",
     "to_name": "Scheduler",
-    "to_email": "scheduler@hospital.sg",
     "original_session": "14 July 2pm",
     "new_session": "16 July 4pm",
     "reason": "family emergency",
@@ -68,8 +66,8 @@ system_prompt: |
   To: Med Admin <med-admin@hospital.sg>
 
   I'm available for the following dates:
-  - 10 July (Mon) 2pm
-  - 13 July (Thu) 4pm
+  - 10 July (Mon) 2pm-5pm
+  - 13 July (Thu) 4pm to 6pm
   This is for the Year 2 batch.
 
   Expected Output:
@@ -78,18 +76,18 @@ system_prompt: |
     "from_name": "Dr Tan",
     "from_email": "dr.tan@hospital.sg",
     "to_name": "Med Admin",
-    "to_email": "med-admin@hospital.sg",
     "original_session": null,
     "new_session": null,
     "reason": null,
     "students": "Year 2 batch",
     "available_slots_timings": [
-      "10 July (Mon) 2pm",
-      "13 July (Thu) 4pm"
+      "10 July (Mon) 2pm-5pm",
+      "13 July (Thu) 4pm-6pm"
     ],
     "notes": null
   }
 
   ---
+
 
   Now process the following email:

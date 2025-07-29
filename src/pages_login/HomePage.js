@@ -9,6 +9,8 @@ import nurse from "../images/nurse.png";
 import white_nurse from "../images/nurse_white.png";
 import doctor from "../images/doctor.png";
 import white_doctor from "../images/doctor_white.png";
+import student from "../images/student.png";  
+import white_student from "../images/student_white.png"; 
 
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -43,15 +45,20 @@ const HomePage = () => {
     nav("/nurse-homepage");
   };
 
+  const handleStudent = () => {
+    nav("/student-management");
+  };
+
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [direction, setDirection] = useState(1); // Track animation direction
   const [announcements, setAnnouncements] = useState([]);
   const [isNurseHovered, setIsNurseHovered] = useState(false);
   const [isDoctorHovered, setIsDoctorHovered] = useState(false);
+  const [isStudentHovered, setIsStudentHovered] = useState(false);
 
   useEffect(() => {
     const announcementsData = [
-      { id: 1, message: "System maintenance scheduled for Dec 16." },
+      { id: 1, message: "System maintenance scheduled for Sep 5." },
     ];
     setAnnouncements(announcementsData);
   }, []);
@@ -137,6 +144,24 @@ const HomePage = () => {
             />
             <h2>Nurse Data</h2>
             <p>Access nurse records and shift schedules.</p>
+          </motion.div>
+
+          <motion.div
+            className="data-card student-card"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            onClick={handleStudent}
+            onMouseEnter={() => setIsStudentHovered(true)}
+            onMouseLeave={() => setIsStudentHovered(false)}
+          >
+            <img
+              src={isStudentHovered ? white_student : student}
+              alt="Student"
+              className="card-icon"
+            />
+            <h2>Student Data</h2>
+            <p>Manage student profiles, timetables, and assignments.</p>
           </motion.div>
         </div>{" "}
         <motion.div

@@ -7,6 +7,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FaPlus, FaTimes, FaPaperPlane } from "react-icons/fa";
 import { confirmAlert } from "react-confirm-alert";
+import API_BASE_URL from '../apiConfig';
 import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 
@@ -56,7 +57,7 @@ const AddNewContract = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `http://localhost:3001/contracts/${mcr_number}`,
+        `${API_BASE_URL}/contracts/${mcr_number}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -98,7 +99,7 @@ const AddNewContract = () => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          `http://localhost:3001/contracts/${mcr_number}/${value}`,
+          `${API_BASE_URL}/contracts/${mcr_number}/${value}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -170,7 +171,7 @@ const AddNewContract = () => {
       };
 
       await axios.post(
-        `http://localhost:3001/contracts/${mcr_number}`,
+        `${API_BASE_URL}/contracts/${mcr_number}`,
         contractData,
         {
           headers: { Authorization: `Bearer ${token}` },

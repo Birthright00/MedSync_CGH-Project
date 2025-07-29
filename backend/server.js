@@ -33,6 +33,7 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import csv from "csv-parser";
+import { readFile } from 'fs/promises';
 
 // -------------------------------------------------------------------------------------------------------------//
 // IMPORTS EXPLANATION
@@ -69,7 +70,12 @@ const restrictToReadOnlyforHR = (req, res, next) => {
 // -------------------------------------------------------------------------------------------------------------//
 app.use(express.json()); // Parse incoming JSON requests, so you can access req.body in POST requests when the data is sent in JSON format.
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded data
-app.use(cors()); //Enables CORS, allowing cross-origin requests from browsers e.g. 3000 for frontend, 3001 for backend
+app.use(cors({
+  origin: "*",  // Allow all origins (for development only)
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // -------------------------------------------------------------------------------------------------------------//
 // DATABASE CONNECTION SETUP
@@ -113,6 +119,16 @@ const verifyToken = (req, res, next) => {
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
+};
+
+// Middleware to restrict access by role
+const requireRole = (role) => {
+  return (req, res, next) => {
+    if (!req.user || req.user.role !== role) {
+      return res.status(403).json({ message: "Access Denied: Insufficient role permissions" });
+    }
+    next();
+  };
 };
 
 // -------------------------------------------------------------------------------------------------------------//
@@ -182,6 +198,7 @@ app.post("/login", (req, res) => {
         message: "Authentication successful",
         token,
         role: user.role,
+        user_id: user.user_id,
       });
     });
   });
@@ -191,22 +208,38 @@ app.post("/login", (req, res) => {
 // REGISTRATION ROUTE (For Development Purposes Only)
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/register", (req, res) => {
-  const q =
-    "INSERT INTO user_data (user_id, email, user_password, role) VALUES (?, ?, ?, ?)";
+  const { user_id, email, password, role } = req.body;
 
-  bcrypt.hash(req.body.password.toString(), 10, (err, hash) => {
-    if (err)
-      return res.status(500).json({ error: "Error hashing your password" });
+  // First, check if the user_id already exists
+  const checkQuery = "SELECT * FROM user_data WHERE user_id = ?";
+  db.query(checkQuery, [user_id], (err, results) => {
+    if (err) return res.status(500).json({ error: "Database error" });
 
-    const values = [req.body.user_id, req.body.email, hash, req.body.role];
+    if (results.length > 0) {
+      return res.status(409).json({ message: "User already exists." });
+    }
 
-    db.query(q, values, (err, data) => {
-      if (err) return res.status(500).json({ error: err });
+    // Proceed with hashing and inserting new user
+    bcrypt.hash(password.toString(), 10, (err, hash) => {
+      if (err)
+        return res.status(500).json({ error: "Error hashing your password" });
 
-      return res.status(201).json({ message: "User has been created" });
+      const insertQuery =
+        "INSERT INTO user_data (user_id, email, user_password, role) VALUES (?, ?, ?, ?)";
+      const values = [user_id, email, hash, role];
+
+      db.query(insertQuery, values, (err, data) => {
+        if (err)
+          return res
+            .status(500)
+            .json({ error: "Error creating user in the database" });
+
+        return res.status(201).json({ message: "User has been created" });
+      });
     });
   });
 });
+
 
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST FROM main_data TABLE
@@ -1541,7 +1574,6 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
     session_name,
     from_name,
     from_email,
-    to_name,
     to_email,
     original_session,
     new_session,
@@ -1553,25 +1585,54 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
 
   const insertQuery = `
     INSERT INTO parsed_emails (
-      type, session_name, from_name, from_email, to_name, to_email,
+      type, session_name, from_name, from_email, to_email, 
       original_session, new_session, reason, students,
       available_slots_timings, notes, received_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
   `;
+
+  // --- Normalize available_slots_timings ---
+  function normalizeAvailableSlots(slots) {
+    const timeOnlyPattern = /^\d{1,2}(\.\d{0,2})?([ap]m)?\s*-\s*\d{1,2}(\.\d{0,2})?([ap]m)?$/i;
+    const datePattern = /^\d{1,2}\s+\w+/; // e.g. 27 Aug
+
+    let defaultTime = null;
+    const cleaned = [];
+
+    for (let i = 0; i < slots.length; i++) {
+      const entry = slots[i].trim();
+
+      if (timeOnlyPattern.test(entry)) {
+        defaultTime = entry;
+        continue;
+      }
+
+      if (defaultTime && datePattern.test(entry)) {
+        cleaned.push(`${entry} ${defaultTime}`);
+      } else {
+        cleaned.push(entry);
+      }
+    }
+
+    return cleaned;
+  }
+
+  const normalizedSlots = Array.isArray(available_slots_timings)
+    ? normalizeAvailableSlots(available_slots_timings)
+    : null;
 
   const values = [
     type,
     session_name,
     from_name,
     from_email,
-    to_name,
     to_email,
     original_session,
     new_session,
     reason,
     students,
-    Array.isArray(available_slots_timings) ? available_slots_timings.join(", ") : null,
+    normalizedSlots ? normalizedSlots.join(", ") : null,
     notes
   ];
 
@@ -1588,12 +1649,14 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST to call for scheduling data and displaying it as notifications for type = availability
 // -------------------------------------------------------------------------------------------------------------//
-app.get("/api/scheduling/availability-notifications", (req, res) => {
+app.get("/api/scheduling/availability-notifications", verifyToken, requireRole("management"), (req, res) => {
   const query = `
     SELECT
+      id,
       session_name,
-      from_name AS doctor,
-      to_name,
+      from_name AS name,
+      from_email,
+      to_email,
       students,
       available_slots_timings,
       received_at
@@ -1614,24 +1677,32 @@ app.get("/api/scheduling/availability-notifications", (req, res) => {
         : [];
 
       const available_dates = slotStrings.map(slot => {
-        const match = slot.trim().match(/^(.+?)\s+(\d{1,2}(?::\d{2})?\s?(?:am|pm|AM|PM))$/);
-        if (match) {
-          return {
-            date: match[1].trim(),  // e.g., "11 June"
-            time: match[2].trim()   // e.g., "11am"
-          };
-        } else {
-          return {
-            date: slot.trim(),
-            time: null
-          };
+        // Normalize ordinals: 9th → 9
+        slot = slot.replace(/(\d+)(st|nd|rd|th)/gi, '$1');
+
+        // Regex: extract date + time
+        const match = slot.match(/^(\d{1,2}\s+\w+(?:\s+\d{4})?)\s+(.+)$/);
+        if (!match) {
+          return { date: slot.trim(), time: null };
         }
+
+        let datePart = match[1].trim();
+        let timePart = match[2].trim();
+
+        // If year missing, append current year
+        if (!/\d{4}/.test(datePart)) {
+          const currentYear = new Date().getFullYear();
+          datePart += ` ${currentYear}`;
+        }
+
+        return { date: datePart, time: timePart };
       });
 
-
       return {
+        id: entry.id,
         session_name: entry.session_name || null,
-        doctor: entry.doctor,
+        name: entry.name,
+        from_email: entry.from_email || null,
         students: entry.students || null,
         available_dates
       };
@@ -1642,15 +1713,18 @@ app.get("/api/scheduling/availability-notifications", (req, res) => {
 });
 
 
+
 // -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST to call for scheduling data and displaying it as notifications for type = change_request
 // -------------------------------------------------------------------------------------------------------------//
-app.get("/api/scheduling/change_request", (req, res) => {
+app.get("/api/scheduling/change_request", verifyToken, requireRole("management"), (req, res) => {
   const query = `
     SELECT
+      id,
       session_name,
-      from_name AS doctor,
-      to_name,
+      from_name AS name,
+      from_email,
+      to_email,
       original_session,
       new_session,
       reason,
@@ -1668,9 +1742,11 @@ app.get("/api/scheduling/change_request", (req, res) => {
     }
 
     const transformed = results.map(entry => ({
+      id: entry.id,
       session_name: entry.session_name || null,
-      doctor: entry.doctor,
-      to_name: entry.to_name || null,
+      name: entry.name,
+      from_email: entry.from_email || null,
+      to_email: entry.to_email || null,
       students: entry.students || null,
       original_session: entry.original_session || null,
       new_session: entry.new_session || null,
@@ -1683,6 +1759,664 @@ app.get("/api/scheduling/change_request", (req, res) => {
   });
 });
 
+// -------------------------------------------------------------------------------------------------------------//
+// Post Request From Staff Side to Management Side
+// -------------------------------------------------------------------------------------------------------------//
+app.post("/api/scheduling/request-change-from-staff", verifyToken, requireRole("staff"), (req, res) => {
+  const { session_name, from_name, original_session, new_session, students, reason, from_email } = req.body;
+
+  db.query(`
+  INSERT INTO parsed_emails (type, session_name, from_name, from_email, original_session, new_session, reason, students)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`, [
+    "change_request",
+    session_name,
+    from_name || "Unknown",          // ✅ from frontend
+    from_email || req.user.email,
+    original_session || "Unknown",   // ✅ from frontend
+    new_session || "Unknown",
+    reason || "No reason provided.",
+    students || ""
+  ], (err, result) => {
+    if (err) {
+      console.error("❌ Error saving change request:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+    res.json({ message: "Change request submitted." });
+  });
+
+});
+
+
+
+// -------------------------------------------------------------------------------------------------------------//
+// For calling of database to add sessions inside if accepted
+// -------------------------------------------------------------------------------------------------------------//
+app.post("/api/scheduling/add-to-timetable", verifyToken, requireRole("management"), (req, res) => {
+  const { session_name, name, date, time, location, students, doctor_email } = req.body;
+
+  if (!session_name || !name || !date || !time || !doctor_email) {
+    return res.status(400).json({ error: "Missing required fields." });
+  }
+
+  const insertQuery = `
+    INSERT INTO scheduled_sessions 
+    (session_name, name, date, time, location, students, doctor_email) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  const values = [session_name, name, date, time, location || "", students || "", doctor_email];
+
+  db.query(insertQuery, values, (err, result) => {
+    if (err) {
+      console.error("Error inserting into timetable:", err);
+      return res.status(500).json({ error: "Failed to insert session." });
+    }
+    const sessionId = result.insertId;
+    console.log(`✅ Session inserted with ID: ${sessionId}`);
+
+    // If no students are provided, we can skip
+    if (!students) {
+      return res.status(201).json({ message: "Session added (no students)." });
+    }
+
+    // Split students and clean names
+    const studentNames = students.split(",").map((n) =>
+      n.replace(/\(.*?\)/g, "").trim()
+    );
+
+    const unmatched = [];
+    const insertMappings = [];
+
+    studentNames.forEach((studentName) => {
+      db.query("SELECT user_id FROM student_database WHERE name = ?", [studentName], (err, rows) => {
+        if (err) {
+          console.error("Error fetching student ID:", err);
+          return;
+        }
+
+        if (rows.length > 0) {
+          const userId = rows[0].user_id;
+          db.query(
+            "INSERT INTO session_students (scheduled_session_id, user_id) VALUES (?, ?)",
+            [sessionId, userId],
+            (err2) => {
+              if (err2) {
+                console.error(`Error mapping ${studentName} to session:`, err2);
+              } else {
+                console.log(`✅ Linked ${studentName} (ID ${userId}) to session ${sessionId}`);
+              }
+            }
+          );
+        } else {
+          unmatched.push(studentName);
+          console.warn(`⚠ No match found for student: ${studentName}`);
+        }
+      });
+    });
+
+    res.status(201).json({
+      message: "Session added to timetable.",
+      session_id: sessionId,
+      unmatched_students: unmatched
+    });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// For replacing original session when change request is accepted
+// -------------------------------------------------------------------------------------------------------------//
+app.patch("/api/scheduling/replace-session/:id", verifyToken, requireRole("management"), (req, res) => {
+  const { session_name, name, date, time, location, students, doctor_email } = req.body;
+  const sessionId = req.params.id;
+
+  if (!session_name || !name || !date || !time || !doctor_email) {
+    return res.status(400).json({ error: "Missing required fields." });
+  }
+
+  const updateQuery = `
+    UPDATE scheduled_sessions
+    SET session_name = ?, name = ?, date = ?, time = ?, location = ?, students = ?, doctor_email = ?
+    WHERE id = ?
+  `;
+
+  const values = [session_name, name, date, time, location || "", students || "", doctor_email, sessionId];
+
+  db.query(updateQuery, values, (err, result) => {
+    if (err) {
+      console.error("Error updating session:", err);
+      return res.status(500).json({ error: "Failed to update session." });
+    }
+
+    res.status(200).json({ message: "Session successfully updated." });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// GET REQUEST to fetch scheduled sessions for timetable display
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/scheduling/timetable", verifyToken, (req, res) => {
+  const userRole = req.user.role;
+  const userEmail = req.user.email;
+
+  let query = `
+    SELECT id, session_name, name, date, time, location, students, change_type, original_time, change_reason, is_read, doctor_email
+  `;
+
+  if (userRole === "staff") {
+    query += `, doctor_email`;
+  }
+
+  query += ` FROM scheduled_sessions`;
+
+  const params = [];
+
+  if (userRole === "staff" && userEmail) {
+    query += ` WHERE doctor_email = ?`;
+    params.push(userEmail);
+  }
+
+  query += ` ORDER BY date ASC, time ASC`;
+
+  db.query(query, params, (err, results) => {
+    if (err) {
+      console.error("Error fetching scheduled sessions:", err);
+      return res.status(500).json({ error: "Failed to fetch timetable data." });
+    }
+
+    res.status(200).json(results);
+  });
+});
+
+
+
+// ✅ DELETE from scheduled_sessions (timetable)
+app.delete("/api/scheduling/delete-scheduled-session/:id", verifyToken, requireRole("management"), (req, res) => {
+  const { id } = req.params;
+
+  const deleteQuery = `DELETE FROM scheduled_sessions WHERE id = ?`;
+
+  db.query(deleteQuery, [id], (err, result) => {
+    if (err) {
+      console.error("Error deleting scheduled session:", err);
+      return res.status(500).json({ error: "Failed to delete scheduled session." });
+    }
+    res.status(200).json({ message: "Scheduled session deleted successfully." });
+  });
+});
+
+
+// ✅ DELETE from parsed_emails after accepting
+app.delete("/api/scheduling/parsed-email/:id", (req, res) => {
+  const { id } = req.params;
+  db.query("DELETE FROM parsed_emails WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Failed to delete parsed email:", err);
+      return res.status(500).json({ error: "Failed to delete parsed email." });
+    }
+    res.status(200).json({ message: "Parsed email deleted successfully." });
+  });
+});
+
+/* For Updating scheduled sessions in the timetable */
+app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
+  const { id } = req.params;
+  const { title, doctor, location, start, end, original_time, change_type, change_reason, is_read } = req.body;
+
+  // Helper function to format date
+  function formatDate(dateStr) {
+    const dateObj = new Date(dateStr);
+    const options = { day: '2-digit', month: 'long', year: 'numeric' };
+    return dateObj.toLocaleDateString('en-GB', options);
+  }
+
+  // Helper function to format time
+  function formatTime(dateStr) {
+    const date = new Date(dateStr);
+    let hour = date.getHours();
+    const minute = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hour >= 12 ? 'pm' : 'am';
+    hour = hour % 12 || 12;
+    return `${hour}:${minute}${ampm}`;
+  }
+
+  const dateStr = formatDate(start);  // e.g. "12 June 2025"
+  const timeStr = `${formatTime(start)} - ${formatTime(end)}`;  // e.g. "9:00am - 10:00am"
+
+  try {
+    // 1. Fetch all students linked to this scheduled_session_id
+    const [studentsResult] = await db
+      .promise()
+      .query(
+        `
+        SELECT s.name
+        FROM session_students ss
+        JOIN student_database s ON ss.user_id = s.user_id
+        WHERE ss.scheduled_session_id = ?
+        `,
+        [id]
+      );
+
+    // 2. Convert user_ids to names (comma-separated)
+    const studentsString = studentsResult.map((row) => row.name).join(", ");
+
+    console.log("Updating session:", { id, title, doctor, location, dateStr, timeStr, studentsString, original_time, change_type, change_reason });
+
+    // 3. Update the scheduled_sessions table
+    const [updateResult] = await db
+      .promise()
+      .query(
+        `
+        UPDATE scheduled_sessions
+        SET session_name = ?, name = ?, date = ?, time = ?, location = ?, students = ?, original_time = ?, change_type = ?, change_reason = ?, is_read = 0
+        WHERE id = ?
+        `,
+        [
+          title,
+          doctor,
+          dateStr,
+          timeStr,
+          location,
+          studentsString,
+          original_time || null,
+          change_type || null,
+          change_reason || null,
+          id
+        ]
+      );
+
+    res.json({ message: "Session updated successfully" });
+  } catch (err) {
+    console.error("Failed to update session:", err);
+    return res.status(500).json({ error: "Failed to update session" });
+  }
+});
+
+// Marking Notification as Read
+app.patch('/api/scheduling/mark-as-read/:id', (req, res) => {
+  const sessionId = req.params.id;
+
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Missing session ID' });
+  }
+
+  const query = 'UPDATE scheduled_sessions SET is_read = 1 WHERE id = ?';
+
+  db.query(query, [sessionId], (err, result) => {
+    if (err) {
+      console.error('❌ DB error:', err);
+      return res.status(500).json({ error: 'Failed to mark as read' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    res.json({ success: true, message: 'Session marked as read' });
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// ------------------- BLOCKED DATES LOGIC -------------------
+// -------------------------------------------------------------------------------------------------------------//
+
+// ------------------- Updating Blocked Dates Via EXCEL -------------------
+app.post("/api/scheduling/update-blocked-dates", (req, res) => {
+  const { blocked_dates, school, yearofstudy } = req.body;
+
+  if (!Array.isArray(blocked_dates)) {
+    return res.status(400).json({ error: "Invalid format" });
+  }
+
+  const insertNext = (index) => {
+    if (index >= blocked_dates.length) {
+      return res.status(200).json({ message: "Blocked dates updated" });
+    }
+
+    const { date, remark } = blocked_dates[index];
+    const query = `
+      INSERT INTO blocked_dates (date, school, yearofstudy, remark) 
+      VALUES (?, ?, ?, ?) 
+      ON DUPLICATE KEY UPDATE remark = ?
+    `;
+
+    db.query(query, [date, school, yearofstudy, remark, remark], (err) => {
+      if (err) {
+        console.error("❌ DB error inserting blocked date:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      insertNext(index + 1);
+    });
+  };
+
+  insertNext(0);
+});
+
+// ------------------- Retrieving Blocked Dates from Database (blocked_dates) -------------------
+app.get("/api/scheduling/get-blocked-dates", (req, res) => {
+  const q = "SELECT date, remark FROM blocked_dates";
+  db.query(q, (err, data) => {
+    if (err) {
+      console.error("❌ Failed to fetch blocked dates:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+    return res.json({ blocked_dates: data }); // [{ date: "2025-07-11" }, ...]
+  });
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// ------------------- STUDENT DATA AND UPLOADING -------------------
+// -------------------------------------------------------------------------------------------------------------//
+
+// ------------------- Uploading Student Excel Data -------------------
+app.post('/upload-student-data', async (req, res) => {
+  const { students, adid } = req.body;
+
+  if (!Array.isArray(students) || students.length === 0) {
+    return res.status(400).json({ message: 'Invalid or empty student data' });
+  }
+
+  // ✅ Robust Date Parser
+  const parseExcelDate = (value) => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+
+    if (typeof value === 'number') {
+      const date = new Date(Math.round((value - 25569) * 86400 * 1000)); // Excel serial date to JS Date
+      return !isNaN(date) ? date : null;
+    }
+
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/,\s*\w{3}$/, '').trim();
+      const monthMap = {
+        Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+        Jul: 6, Aug: 7, Sep: 8, Sept: 8, Oct: 9, Nov: 10, Dec: 11
+      };
+
+      const alphaMatch = cleaned.match(/^(\d{1,2})\/([A-Za-z]{3,4})\/(\d{2})$/);
+      if (alphaMatch) {
+        const [_, day, monthStr, year] = alphaMatch;
+        const fullYear = parseInt(year) + 2000;
+        const date = new Date(fullYear, monthMap[monthStr], parseInt(day));
+        return !isNaN(date) ? date : null;
+      }
+
+      const numericMatch = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (numericMatch) {
+        const [_, day, month, year] = numericMatch;
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        return !isNaN(date) ? date : null;
+      }
+    }
+
+    return null;
+  };
+
+  // ✅ Fill down merged values
+  const fieldsToFill = ['Start Date', 'End Date', 'Recess Start Date', 'Recess End Date'];
+  for (let i = 1; i < students.length; i++) {
+    fieldsToFill.forEach((field) => {
+      if (!students[i][field] && students[i - 1][field]) {
+        students[i][field] = students[i - 1][field];
+      }
+    });
+  }
+
+  // ✅ Academic Year Calculator
+  const getAcademicYear = (date) => {
+    if (!date) return null;
+    const jsDate = new Date(date);
+    const year = jsDate.getFullYear();
+    const month = jsDate.getMonth(); // 0 = Jan, 5 = June
+
+    return month < 5 ? `${year - 1}/${year}` : `${year}/${year + 1}`;
+  };
+
+
+  const insertQuery = `
+  INSERT INTO student_database (
+    user_id, name, gender, mobile_no, email, start_date, end_date,
+    recess_start_date, recess_end_date, school, academicYear, yearofstudy,
+    cg, program_name, adid
+  ) VALUES ?
+  ON DUPLICATE KEY UPDATE
+    name = VALUES(name),
+    gender = VALUES(gender),
+    mobile_no = VALUES(mobile_no),
+    email = VALUES(email),
+    start_date = VALUES(start_date),
+    end_date = VALUES(end_date),
+    recess_start_date = VALUES(recess_start_date),
+    recess_end_date = VALUES(recess_end_date),
+    school = VALUES(school),
+    academicYear = VALUES(academicYear),
+    yearofstudy = VALUES(yearofstudy),
+    cg = VALUES(cg),
+    program_name = VALUES(program_name),  -- Program name will update if changed
+    adid = VALUES(adid)
+`;
+
+
+  try {
+    const today = new Date();
+
+    const values = students
+      .map(student => {
+        const startDate = parseExcelDate(student.start_date);
+        const endDate = parseExcelDate(student.end_date);
+        const recessStart = parseExcelDate(student.recess_start_date);
+        const recessEnd = parseExcelDate(student.recess_end_date);
+
+        if (endDate && new Date(endDate) < today) return null;
+
+        const academicYear = getAcademicYear(startDate);
+
+        return [
+          student.user_id || '',
+          student.name || '',
+          student.gender || '',
+          student.mobile_no || '',
+          student.email || '',
+          startDate,
+          endDate,
+          recessStart,
+          recessEnd,
+          student.school || '',
+          academicYear || '',
+          student.yearofstudy || '',
+          student.cg || '',
+          student.program_name || '',
+          adid || ''
+        ];
+      })
+      .filter(Boolean);
+
+
+
+    db.query(insertQuery, [values], (err) => {
+      if (err) {
+        console.error('❌ DB Insert Error:', err);
+        return res.status(500).json({ message: 'Database error', error: err });
+      }
+      res.status(200).json({ message: 'Student data uploaded successfully' });
+    });
+  } catch (err) {
+    console.error('❌ Server Error:', err);
+    res.status(500).json({ message: 'Unexpected server error', error: err });
+  }
+});
+
+// ------------------- Displaying Data from Student Database on Student Management Screen -------------------
+app.get('/students', (req, res) => {
+  db.query('SELECT * FROM student_database', (err, results) => {
+    const adid = req.query.adid;
+
+    if (!adid) {
+      return res.status(400).json({ error: "ADID is required to fetch students." });
+    }
+
+    const query = 'SELECT * FROM student_database WHERE adid = ?';
+
+    db.query(query, [adid], (err, results) => {
+      if (err) {
+        console.error('❌ Failed to retrieve students:', err);
+        return res.status(500).json({ message: 'Database error' });
+      }
+      res.json(results);
+    });
+  });
+});
+
+
+app.post('/update-student', (req, res) => {
+  const {
+    id, name, gender, mobile_no, email,
+    start_date, end_date, recess_start_date, recess_end_date,
+    school, academicYear, yearofstudy, cg, program_name
+  } = req.body;
+
+  // ✅ Helper to format ISO date to 'YYYY-MM-DD'
+  const formatDate = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (isNaN(date)) return null;
+    return date.toISOString().split('T')[0];
+  };
+
+  const query = `
+    UPDATE student_database SET
+      name = ?, gender = ?, mobile_no = ?, email = ?,
+      start_date = ?, end_date = ?, recess_start_date = ?, recess_end_date = ?,
+      school = ?, academicYear = ?, yearofstudy = ?, cg = ?, program_name = ?
+    WHERE id = ?
+  `;
+
+  db.query(query, [
+    name,
+    gender,
+    mobile_no,
+    email,
+    formatDate(start_date),
+    formatDate(end_date),
+    formatDate(recess_start_date),
+    formatDate(recess_end_date),
+    school,
+    academicYear,
+    yearofstudy,
+    cg,
+    program_name,
+    id
+  ], (err) => {
+    if (err) {
+      console.error('❌ Update Error:', err);
+      return res.status(500).json({ message: 'Failed to update student', error: err });
+    }
+    res.json({ message: 'Student updated successfully' });
+  });
+});
+
+
+
+app.delete('/delete-student/:user_id', (req, res) => {
+  const { user_id } = req.params;
+  db.query('DELETE FROM student_database WHERE user_id = ?', [user_id], (err) => {
+    if (err) {
+      console.error('❌ Delete Error:', err);
+      return res.status(500).json({ message: 'Failed to delete student', error: err });
+    }
+    res.json({ message: 'Student deleted successfully' });
+  });
+});
+
+// ------------------- Bulk Delete Visible Students -------------------
+app.post('/delete-multiple-students', (req, res) => {
+  const { user_ids } = req.body;
+
+  if (!Array.isArray(user_ids) || user_ids.length === 0) {
+    return res.status(400).json({ message: 'No student IDs provided for deletion' });
+  }
+
+  const placeholders = user_ids.map(() => '?').join(',');
+  const query = `DELETE FROM student_database WHERE user_id IN (${placeholders})`;
+
+  db.query(query, user_ids, (err, result) => {
+    if (err) {
+      console.error('❌ Bulk Delete Error:', err);
+      return res.status(500).json({ message: 'Failed to delete students', error: err });
+    }
+    res.json({ message: 'Students deleted successfully', deletedCount: result.affectedRows });
+  });
+});
+
+
+// -------------------------------------------------------------------------------------------------------------//
+// ------------------- SPECIFIC STUDENT ID TIMETABLE -------------------
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/scheduling/student-timetable/:userId", (req, res) => {
+  const userId = req.params.userId;
+  const query = `
+    SELECT s.*
+    FROM scheduled_sessions s
+    JOIN session_students ss ON ss.scheduled_session_id = s.id
+    WHERE ss.user_id = ?;
+  `;
+  db.query(query, [userId], (err, results) => {
+    if (err) {
+      console.error("❌ Error fetching student timetable:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    res.json(results);
+  });
+});
+
+
+
+
+// -------------------------------------------------------------------------------------------------------------//
+// Create route to store email session metadata
+// -------------------------------------------------------------------------------------------------------------//
+app.post("/api/email-sessions", (req, res) => {
+  const {
+    session_id,
+    subject,
+    body,
+    to_emails,
+    doctor_mcrs,
+    student_ids,
+    session_name,
+  } = req.body;
+
+  db.query(
+    `INSERT INTO email_sessions 
+      (session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name],
+    (err, results) => {
+      if (err) {
+        console.error("❌ Failed to store email session:", err);
+        return res.status(500).json({ error: "Internal Server Error" });
+      }
+
+      res.status(201).json({ message: "Session email stored successfully." });
+    }
+  );
+});
+
+
+// -------------------------------------------------------------------------------------------------------------//
+// Access Token Calling and Endpoint
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/token", async (req, res) => {
+  try {
+    const data = await readFile('../src/token/access_token.json', 'utf-8');
+    const json = JSON.parse(data);
+    res.json(json);
+  } catch (error) {
+    console.error("Failed to read token:", error);
+    res.status(500).json({ error: "Failed to load token" });
+  }
+});
 
 // -------------------------------------------------------------------------------------------------------------//
 // Database connection and Server Start
@@ -1695,6 +2429,8 @@ db.connect((err) => {
   }
 });
 
-app.listen(process.env.PORT || 3001, () => {
-  console.log("Connection Successful. Backend server is running!");
+const PORT = process.env.PORT || 3001;
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Connection Successful. Backend server is running on port ${PORT}`);
 });

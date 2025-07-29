@@ -1,5 +1,5 @@
 import "../styles/staffdetailpage.css";
-import Navbar from "./Navbar";
+import StaffNavbar from "../staff/StaffNavbar";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -14,6 +14,8 @@ import AddNewContract from "./AddNewContract";
 import AddNewPostings from "./AddNewPostings";
 import StaffDetails from "./StaffDetails";
 import AddNewNonInst from "./AddNewNonInst";
+import API_BASE_URL from '../apiConfig';
+
 
 const StaffDetailPage = () => {
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,7 +93,7 @@ const StaffDetailPage = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `http://localhost:3001/contracts/${mcr_number}`,
+        `${API_BASE_URL}/contracts/${mcr_number}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -134,7 +136,7 @@ const StaffDetailPage = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `http://localhost:3001/postings?mcr_number=${mcr_number}`,
+        `${API_BASE_URL}/postings?mcr_number=${mcr_number}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -158,7 +160,7 @@ const StaffDetailPage = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `http://localhost:3001/non_institutional/${mcr_number}`,
+        `${API_BASE_URL}/non_institutional/${mcr_number}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -218,7 +220,7 @@ const StaffDetailPage = () => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          `http://localhost:3001/contracts/${mcr_number}`,
+          `${API_BASE_URL}/contracts/${mcr_number}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -246,7 +248,7 @@ const StaffDetailPage = () => {
       );
 
       await axios.put(
-        "http://localhost:3001/postings/update",
+        `${API_BASE_URL}/postings/update`,
         {
           postings: updatedPostings,
           recalculateTrainingHours: true, // Flag to trigger recalculation
@@ -287,7 +289,7 @@ const StaffDetailPage = () => {
     });
 
     try {
-      await axios.put("http://localhost:3001/contracts/update-fte", {
+      await axios.put(`${API_BASE_URL}/contracts/update-fte`, {
         fteUpdates,
       });
       toast.success("FTE values updated successfully.");
@@ -307,7 +309,7 @@ const StaffDetailPage = () => {
     <>
       {" "}
       <ToastContainer />
-      <Navbar homeRoute="/management-home" />
+      <StaffNavbar homeRoute="/management-home" />
       <motion.div
         className="staff-detail-page"
         initial={{ opacity: 0 }}

@@ -8,6 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { confirmAlert } from "react-confirm-alert"; // Import the confirmation alert library
 import "react-confirm-alert/src/react-confirm-alert.css";
+import API_BASE_URL from '../apiConfig';
 import React from "react";
 
 const StaffDetails = () => {
@@ -75,7 +76,7 @@ const StaffDetails = () => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          `http://localhost:3001/staff/${mcr_number}`,
+          `${API_BASE_URL}/staff/${mcr_number}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -126,7 +127,7 @@ const StaffDetails = () => {
       };
 
       await axios.put(
-        `http://localhost:3001/staff/${mcr_number}`,
+        `${API_BASE_URL}/staff/${mcr_number}`,
         dataToSubmit,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -171,7 +172,7 @@ const StaffDetails = () => {
           onClick: async () => {
             try {
               const token = localStorage.getItem("token");
-              await axios.delete(`http://localhost:3001/staff/${mcr_number}`, {
+              await axios.delete(`${API_BASE_URL}/staff/${mcr_number}`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
 
@@ -234,7 +235,7 @@ const StaffDetails = () => {
             try {
               const token = localStorage.getItem("token");
               await axios.put(
-                `http://localhost:3001/restore/${mcr_number}`,
+                `${API_BASE_URL}/restore/${mcr_number}`,
                 {},
                 {
                   headers: { Authorization: `Bearer ${token}` },

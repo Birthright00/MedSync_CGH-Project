@@ -7,6 +7,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FaPlus, FaTimes, FaPaperPlane } from "react-icons/fa";
 import { confirmAlert } from "react-confirm-alert";
+import API_BASE_URL from '../apiConfig';
 import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 import handleExcelUpload from "./handleExcelUpload";
@@ -63,7 +64,7 @@ const AddNewNonInstitutionalActivity = () => {
     const fetchUserDetails = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get(`http://localhost:3001/staff/${mcr_number}`, {
+        const response = await axios.get(`${API_BASE_URL}/staff/${mcr_number}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUserDetails(response.data); // Contains first_name, last_name, department
@@ -150,7 +151,7 @@ const AddNewNonInstitutionalActivity = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        `http://localhost:3001/non_institutional`,
+        `${API_BASE_URL}/non_institutional`,
         newActivity,
         {
           headers: { Authorization: `Bearer ${token}` },

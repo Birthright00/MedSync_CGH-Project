@@ -6,20 +6,26 @@
   height: 100vh;
   position: relative;
   display: flex;
-  flex-direction: column; /* Stack elements vertically */
-  align-items: center; /* Center elements horizontally */
+  flex-direction: column;
+  /* Stack elements vertically */
+  align-items: center;
+  /* Center elements horizontally */
   padding: 20px;
-  gap: 10px; /* Space between stacked elements */
+  gap: 10px;
+  /* Space between stacked elements */
   color: #0083ca;
 }
 
 .home-page h1 {
   position: relative;
   display: flex;
-  flex-direction: column; /* Stack elements vertically */
-  align-items: center; /* Center elements horizontally */
+  flex-direction: column;
+  /* Stack elements vertically */
+  align-items: center;
+  /* Center elements horizontally */
   font-size: 25px;
 }
+
 .home-page:before {
   content: "";
   position: absolute;
@@ -52,13 +58,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: center; /* Spread items evenly */
+  padding: 20px 10px; /* Add padding for consistent spacing */
+  box-sizing: border-box; /* Ensure padding doesn't break the height */
   cursor: pointer;
   transition: transform 0.2s ease-in-out;
   will-change: transform, opacity;
   box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px,
-    rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
+              rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
 }
+
 
 .data-card h2 {
   margin-top: 10px;
@@ -70,7 +79,13 @@
   font-size: 16px;
   color: #0083ca;
   margin: 10px 20px;
+  text-align: center;
+  height: 60px; /* Force same height for all card descriptions */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
 
 .card-icon {
   width: 100px;
@@ -103,23 +118,29 @@
   }
 
   .data-card {
-    width: 90%; /* Make the cards take full width on smaller screens */
+    width: 90%;
+    /* Make the cards take full width on smaller screens */
     height: auto;
   }
+
   .announcement-panel {
     top: 10px;
     right: 10px;
-    width: 90%; /* Adjust width for mobile screens */
+    width: 90%;
+    /* Adjust width for mobile screens */
   }
+
   .quote-carousel {
     width: 90%;
     font-size: 16px;
   }
+
   .quote-container {
     width: 90%;
     font-size: 16px;
   }
 }
+
 /* ################################################# */
 /* Quote Carousel Styling */
 /* ################################################# */
@@ -138,6 +159,6 @@
     rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;
   color: #0083ca;
   font-style: italic;
-  overflow: hidden; /* Ensure content stays within bounds */
+  overflow: hidden;
+  /* Ensure content stays within bounds */
 }
-

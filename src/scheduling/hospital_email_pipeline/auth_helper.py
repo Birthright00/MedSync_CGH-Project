@@ -1,10 +1,14 @@
 import msal
+import os
+import json
 import configparser
 
 def get_token_from_device_flow():
     # Read config
     config = configparser.ConfigParser()
-    config.read("config.cfg")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(current_dir, "config.cfg")
+    config.read(config_path)
 
     client_id = config["azure"]["clientId"]
     tenant_id = config["azure"]["tenantId"]
@@ -25,6 +29,14 @@ def get_token_from_device_flow():
 
     if "access_token" in result:
         print("✅ Authentication successful.")
+        
+        # ✅ Save to src/token/access_token.json
+        token_path = os.path.abspath(os.path.join(current_dir, "..", "..", "token", "access_token.json"))
+        os.makedirs(os.path.dirname(token_path), exist_ok=True)
+
+        with open(token_path, "w") as f:
+            json.dump({"access_token": result["access_token"]}, f)
+
         return result["access_token"]
     else:
         raise Exception(f"❌ Failed to acquire token: {result}")

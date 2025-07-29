@@ -28,7 +28,7 @@ const CsvUpload = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:3001/upload", {
+      const response = await fetch(`${API_BASE_URL}/upload`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

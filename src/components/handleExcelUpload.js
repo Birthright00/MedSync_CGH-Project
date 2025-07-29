@@ -1,6 +1,7 @@
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { toast } from "react-toastify";
+import API_BASE_URL from '../apiConfig';
 
 const handleExcelUpload = (file, currentUser) => {
   return new Promise(async (resolve, reject) => {
@@ -62,7 +63,7 @@ const handleExcelUpload = (file, currentUser) => {
         const token = localStorage.getItem("token");
 
         const response = await axios.post(
-          "http://localhost:3001/upload-non-institutional",
+          `${API_BASE_URL}/upload-non-institutional`,
           { data: validRows },
           {
             headers: {

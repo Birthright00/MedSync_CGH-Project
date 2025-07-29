@@ -3,13 +3,14 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
+import API_BASE_URL from '../apiConfig';
 
 // Components Imports
 import Footer from "../components/footer";
 
 // CSS Imports
 import "react-toastify/dist/ReactToastify.css";
-import "../styles/loginpage.css";
+import "../styles/signuppage.css";
 
 // Images Imports
 import logo from "../images/cgh_logo.png";
@@ -19,6 +20,8 @@ import show_pw from "../images/show_pw.png";
 import hide_pw from "../images/hide_pw.png";
 import hr from "../images/hr.png";
 import hr_white from "../images/hr_white.png";
+import student from "../images/student.png";
+import white_student from "../images/student_white.png";
 
 const SignUpPage = () => {
   const nav = useNavigate();
@@ -28,9 +31,27 @@ const SignUpPage = () => {
   const [selectedRole, setSelectedRole] = useState(null); // State to track selected role
   const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
   // console.log("Selected role:", selectedRole);
-  const validateMCRNumber = (mcrNumber) => {
-    const mcrPattern = /^[Mm]\d{5}[A-Za-z]$/;
-    return mcrPattern.test(mcrNumber); // Returns true if it matches, false otherwise
+  const validateUsername = (username, role) => {
+    // Management (ADID): lowercase alphabets only (no spaces, numbers, or uppercase letters)
+    const adidPattern = /^[a-z]+$/;
+
+    // Staff (MCR or SNB):
+    // MCR: M or m + 5 digits + 1 letter (e.g. M12345A)
+    // SNB: N or n + 5 digits + 1 letter (e.g. N54321B)
+    const mcrOrSnbPattern = /^[Mm]\d{5}[A-Za-z]$|^[Nn]\d{5}[A-Za-z]$/;
+
+    // Student: A followed by 7 digits and ending with a capital letter (e.g. A0284226A)
+    const studentPattern = /^[A-Z]\d{7}[A-Z]$/;
+
+    // HR: follow same rule as management (only lowercase alphabets)
+    const hrPattern = /^[a-z]+$/;
+
+    if (role === "management") return adidPattern.test(username);
+    if (role === "staff") return mcrOrSnbPattern.test(username);
+    if (role === "student") return studentPattern.test(username);
+    if (role === "hr") return hrPattern.test(username);
+
+    return false;
   };
 
   const validatePassword = (password) => {
@@ -102,6 +123,27 @@ const SignUpPage = () => {
     // Comment out this part for easier account creation
     // ----------------------------------------------------------------------------------------//
 
+    // ----------------------------------------------------------------------------------------//
+    // Comment out this part for easier account creation
+    // ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
+    // ----------------------------------------------------------------------------------------//
+    if (!validateUsername(username, selectedRole)) {
+      let message = "Invalid username format.";
+
+      if (selectedRole === "management")
+        message = "ADID must contain only lowercase letters with no spaces.";
+      else if (selectedRole === "staff")
+        message = "Staff ID must be M/N followed by 5 digits and a letter (e.g. M12345A).";
+      else if (selectedRole === "student")
+        message = "Matric No must be in the format A followed by 7 digits and 1 uppercase letter (e.g. A0284226A).";
+      else if (selectedRole === "hr")
+        message = "HR ID must contain only lowercase letters.";
+
+      toast.error(message);
+      return;
+    }
+
+
     if (password !== cfrmpassword) {
       toast.warn("Passwords do not match");
       return;
@@ -109,7 +151,7 @@ const SignUpPage = () => {
 
     // API Call to Backend for Signup
     try {
-      const response = await fetch("http://localhost:3001/register", {
+      const response = await fetch(`${API_BASE_URL}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -153,9 +195,8 @@ const SignUpPage = () => {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className={`login-button ${
-                  selectedRole === "management" ? "selected" : ""
-                }`}
+                className={`login-button ${selectedRole === "management" ? "selected" : ""
+                  }`}
                 type="button"
                 onClick={() => setSelectedRole("management")}
               >
@@ -165,21 +206,32 @@ const SignUpPage = () => {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className={`login-button ${
-                  selectedRole === "staff" ? "selected" : ""
-                }`}
+                className={`login-button ${selectedRole === "staff" ? "selected" : ""
+                  }`}
                 type="button"
                 onClick={() => setSelectedRole("staff")}
               >
                 <img src={staff} alt="staff" />
                 Staff
               </motion.button>
+
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className={`login-button ${
-                  selectedRole === "hr" ? "selected" : ""
-                }`}
+                className={`login-button ${selectedRole === "student" ? "selected" : ""
+                  }`}
+                type="button"
+                onClick={() => setSelectedRole("student")}
+              >
+                <img src={student} alt="student" />
+                Student
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className={`login-button ${selectedRole === "hr" ? "selected" : ""
+                  }`}
                 type="button"
                 onClick={() => setSelectedRole("hr")}
               >
@@ -191,12 +243,19 @@ const SignUpPage = () => {
             <div className="card-body">
               <div className="form-group">
                 <input
-                  placeholder="Enter MCR Number"
+                  placeholder={
+                    selectedRole === "student"
+                      ? "Enter Matric No (e.g. A*******A)"
+                      : selectedRole === "management" || selectedRole === "staff"
+                        ? "Enter MCR / ADID (e.g. M*****A)"
+                        : "Enter HR ID"
+                  }
                   value={username}
                   onChange={(e) => usernameupdate(e.target.value)}
                   className="username"
                   type="text"
                 />
+
               </div>
               <div className="form-group">
                 <div className="password-container">

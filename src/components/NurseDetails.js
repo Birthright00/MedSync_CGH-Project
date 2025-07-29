@@ -7,6 +7,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { confirmAlert } from "react-confirm-alert"; // Import the confirmation alert library
+import API_BASE_URL from '../apiConfig';
 import "react-confirm-alert/src/react-confirm-alert.css";
 import React from "react";
 
@@ -57,7 +58,7 @@ const NurseDetails = () => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          `http://localhost:3001/nurse/${snb_number}`,
+          `${API_BASE_URL}/nurse/${snb_number}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -109,7 +110,7 @@ const NurseDetails = () => {
       };
 
       await axios.put(
-        `http://localhost:3001/main_data_nurses/${snb_number}`, // Updated API endpoint
+        `${API_BASE_URL}/main_data_nurses/${snb_number}`, // Updated API endpoint
         dataToSubmit,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -148,7 +149,7 @@ const NurseDetails = () => {
             try {
               const token = localStorage.getItem("token");
               await axios.delete(
-                `http://localhost:3001/main_data_nurses/${snb_number}`,
+                `${API_BASE_URL}/main_data_nurses/${snb_number}`,
                 {
                   headers: { Authorization: `Bearer ${token}` },
                 }

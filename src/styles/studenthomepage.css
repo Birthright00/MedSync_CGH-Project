@@ -1,0 +1,340 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap');
+
+
+.student-home-page {
+  width: 100vw;
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  color: #0083ca;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.student-home-page:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("../images/login-background-img.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.4;
+  z-index: -1;
+}
+
+/* ==================== TOP BAR ==================== */
+.top-bar {
+  width: 90%;
+  max-width: 1400px;
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: center;
+
+}
+
+.date-weather-wrapper {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 25px 35px;
+  border-radius: 15px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  justify-content: space-between;
+  ;
+}
+
+.date-time-box h3 {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+  min-width: 300px;
+  color: #0083ca;
+}
+
+.current-time {
+  font-size: 50px;
+  color: #333;
+  margin: 0;
+}
+
+.time-wrapper {
+  display: inline-block;
+  white-space: nowrap;
+  /* Prevents time splitting into multiple lines */
+}
+
+.weather-widget {
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: #0083ca;
+}
+
+.weather-widget-icon {
+  font-size: 50px;
+  color: #0083ca;
+}
+
+/* ==================== MAIN GRID ==================== */
+
+.home-grid {
+  display: flex;
+  justify-content: space-between;
+  width: 90%;
+  max-width: 1400px;
+  gap: 40px;
+}
+
+.notification-panel,
+.right-panel {
+  flex: 1;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.notification-panel h4,
+.right-panel h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 22px;
+  color: #0083ca;
+}
+
+.notification-panel ul,
+.events-list {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.notification-panel li,
+.events-list li {
+  margin-bottom: 12px;
+  font-size: 16px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upcoming-header {
+  margin-top: 20px;
+  font-size: 20px;
+  color: #0056b3;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 1024px) {
+  .top-bar {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .home-grid {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .weather-widget {
+    justify-content: flex-end;
+    display: flex;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .date-weather-wrapper {
+    flex-direction: column;
+    text-align: center;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .current-time {
+    font-size: 36px;
+    color: #333;
+    margin: 0;
+    white-space: nowrap;
+    /* Prevents time splitting into multiple lines */
+  }
+
+
+  .weather-widget {
+    justify-content: center;
+  }
+}
+
+.notification-panel,
+.right-panel {
+  padding: 20px;
+}
+
+/* For Notification Cards */
+.notification-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fefefe;
+  border-left: 6px solid #FFB703;
+  /* yellow highlight for attention */
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: background 0.3s ease;
+  font-family: 'Nunito', sans-serif;
+  animation: fadeInUp 0.5s ease forwards;
+  opacity: 0;
+  transform: translateY(10px);
+  width: 100%;
+  /* ✅ Ensure full width */
+  box-sizing: border-box;
+  /* ✅ Include padding and border in width */
+}
+
+.notification-card:hover {
+  background-color: #fff6e5;
+}
+
+.notification-header {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.notification-details {
+  text-align: right;
+  font-size: 13px;
+  color: #444;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-wrap: nowrap;
+}
+
+.notification-details .label {
+  font-weight: bold;
+  color: #0077cc;
+}
+
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notification-header {
+  font-size: 16px;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+
+.label {
+  font-weight: bold;
+}
+
+
+/* For Upcoming Events */
+.events-list {
+  list-style: none;
+  padding: 0;
+}
+
+.event-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8f9fc;
+  border-left: 6px solid #31B5F7;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: background 0.3s ease;
+}
+
+.event-card:hover {
+  background-color: #eef7fc;
+}
+
+.event-left {
+  flex: 1;
+}
+
+.event-left strong {
+  font-size: 16px;
+  color: #333;
+}
+
+.event-left p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #555;
+}
+
+.event-right {
+  text-align: right;
+}
+
+.event-time {
+  font-weight: 500;
+  font-size: 14px;
+  display: block;
+  color: #0077cc;
+}
+
+.event-location {
+  font-size: 13px;
+  color: #666;
+}
+
+.mark-as-read-button {
+  min-width: 120px;
+  margin-top: 10px;
+  background-color: #4caf50;
+  color: white;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.mark-as-read-button:hover {
+  background-color: #388e3c;
+}
+
+.overlap-alert {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.btn-overlaps {
+  background-color: #ff6666;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+.btn-overlaps:hover {
+  background-color: #ff4c4c;
+}

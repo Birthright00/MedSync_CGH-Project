@@ -1,112 +1,280 @@
-.notifications-tab {
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+/* ################################################# */
+/* Doctor Scheduler Page Styling */
+/* ################################################# */
+.doctor-scheduler-page {
+  position: relative;
+  min-height: 100vh;
+  padding: 20px;
+  background-image: url("../images/login-background-img.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
-/* Card container */
+.doctor-scheduler-page::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  z-index: -1;
+}
+
+/* Grid layout */
+.doctor-scheduler-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.notification-box {
+  background-color: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.timetable-box {
+  grid-column: span 2;
+  background-color: white;
+  padding: 30px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-top: 20px;
+}
+
+/* Popup Modal Styling */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-box {
+  background: #fff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  width: 400px;
+}
+
+.confirm-btn {
+  padding: 8px 20px;
+  background: #2e7d32;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
+
+.cancel-btn {
+  padding: 8px 20px;
+  background: #e53935;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
+
+
+/* ################################################# */
+/* Response Card Styling */
+/* ################################################# */
 .response-card {
-  background-color: #fff;
-  border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-  transition: box-shadow 0.3s ease;
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .response-card:hover {
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
 }
 
-/* Header */
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 10px;
 }
 
 .doctor-name {
-  font-weight: bold;
-  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
 }
 
 .status-badge {
-  padding: 0.3rem 0.7rem;
-  border-radius: 0.5rem;
-  font-size: 0.75rem;
+  padding: 6px 14px;
+  border-radius: 24px;
+  font-size: 12px;
   font-weight: 600;
-  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .status-badge.responded {
-  background-color: #3b82f6; /* blue */
+  background: linear-gradient(to right, #c8f7dc, #b2f5ca);
+  color: #137547;
 }
 
-/* Details */
+.status-badge.pending {
+  background: linear-gradient(to right, #ffe8cc, #ffd6a1);
+  color: #ff8f00;
+}
+
+
 .session-details {
-  margin-bottom: 1rem;
-  font-size: 0.95rem;
-  line-height: 1.5;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.4;
 }
 
-.detail-label {
-  font-weight: 600;
-}
-
-.detail-value {
-  margin-left: 0.3rem;
-}
-
-/* Available Date Slots */
 .date-slots {
+  margin-top: 8px;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 1rem 0;
+  gap: 10px;
 }
 
 .date-slot {
-  border: 1px solid #ccc;
-  border-radius: 0.75rem;
-  padding: 0.8rem 1rem;
-  background-color: #f9f9f9;
-  min-width: 150px;
-  text-align: center;
-  transition: background-color 0.3s ease;
-}
-
-.date-slot:hover {
-  background-color: #f1f5f9;
-}
-
-.date-slot-content .date-text {
+  background-color: #eef6ff;
+  padding: 16px 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 14px;
+  color: #1954a3;
 }
 
-.date-slot-content .time-text {
-  font-size: 0.85rem;
-  color: #555;
+
+
+.date-slot-content {
+  font-size: 13px;
+  color: #0066cc;
 }
 
-/* Action Buttons */
-.action-buttons {
-  margin-top: 1rem;
-  text-align: right;
-}
-
-.primary-button {
-  padding: 0.5rem 1.2rem;
-  background-color: #10b981; /* teal */
-  color: white;
+/* ################################################# */
+/* Buttons inside response cards */
+/* ################################################# */
+.response-card button {
+  margin-top: 16px;
+  margin-right: 12px;
+  padding: 12px 24px;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 10px;
+  font-size: 15px;
   font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+  transition: all 0.2s ease-in-out;
 }
 
-.primary-button:hover {
-  background-color: #059669;
+.response-card button.accept-btn {
+  background-color: #2e7d32;
+  color: #fff;
 }
+
+.response-card button.accept-btn:hover {
+  background-color: #226427;
+}
+
+.response-card button.change-btn {
+  background-color: #ffb300;
+  color: #fff;
+}
+
+.response-card button.change-btn:hover {
+  background-color: #e89a00;
+}
+
+.response-card button.reject-btn {
+  background-color: #e53935; /* Strong red */
+  color: #fff;
+}
+
+.response-card button.reject-btn:hover {
+  background-color: #c62828; /* Darker red on hover */
+}
+
+
+
+.rbc-event {
+  border-radius: 8px !important;
+  font-weight: 500;
+}
+
+
+/* No notification message styling */
+.no-notifications {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 50px 0;
+}
+
+.no-notifications-image {
+  width: 80px;   /* smaller size */
+  height: auto;
+  margin-right: 15px; /* gap between image and text */
+}
+
+.no-notifications-text {
+  font-size: 20px;
+  font-weight: 500;
+  color: #333;
+}
+
+.edit-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+
+/* ################################################# */
+/* Responsive Adjustments */
+/* ################################################# */
+@media (max-width: 900px) {
+  .doctor-scheduler-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .timetable-box {
+    grid-column: span 1;
+  }
+}
+
+/* ################################################# */
+/* Fade in Animations */
+/* ################################################# */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+

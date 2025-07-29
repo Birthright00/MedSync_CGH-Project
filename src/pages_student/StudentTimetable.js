@@ -381,10 +381,6 @@ const StudentTimetable = () => {
     );
   };
 
-  
-
-
-
   const CustomEvent = ({ event }) => {
     return (
       <div>
@@ -397,6 +393,18 @@ const StudentTimetable = () => {
       </div>
     );
   };
+
+  const CustomAgendaEvent = ({ event }) => (
+    <tr>
+      <td>
+        <div style={{ fontWeight: "600", fontSize: "16px", color: "#333" }}>{event.title}</div>
+        {event.location && (
+          <div style={{ fontSize: "13px", color: "#666", marginTop: "3px" }}>📍 {event.location}</div>
+        )}
+      </td>
+    </tr>
+  );
+
 
 
   return (
@@ -430,7 +438,10 @@ const StudentTimetable = () => {
             eventPropGetter={eventStyleGetter}
             components={{
               toolbar: CustomToolbar,   // <-- inject custom toolbar here
-              event: CustomEvent
+              event: CustomEvent,
+              agenda: {
+                event: CustomAgendaEvent
+              }
             }}
           />
         </div>

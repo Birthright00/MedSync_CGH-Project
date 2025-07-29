@@ -154,3 +154,67 @@
 }
 
 
+/* Hide Date column in agenda view */
+.rbc-agenda-view table th:first-child {
+  display: none;
+}
+
+
+/* Hide only the date column cells */
+.rbc-agenda-date-cell {
+  display: none !important;
+}
+
+
+/* Card-style Agenda View */
+.rbc-agenda-view table {
+  display: block;
+  border: none;
+}
+
+.rbc-agenda-view thead {
+  display: none; /* Hide header */
+}
+
+.rbc-agenda-view tbody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rbc-agenda-view tr {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+  padding: 15px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rbc-agenda-view tr:hover {
+  transform: translateY(-2px);
+  box-shadow: rgba(0, 0, 0, 0.2) 0px 6px 16px;
+}
+
+.rbc-agenda-view td {
+  border: none;
+  padding: 5px 0;
+  font-size: 15px;
+  color: #333;
+}
+
+/* Force clear color for agenda time column */
+.rbc-agenda-view td:first-child {
+  color: #333 !important;
+  font-weight: bold;
+  font-size: 15px;
+  width: 120px;
+  vertical-align: middle;
+}
+
+
+.rbc-agenda-view td:last-child {
+  margin-top: 3px;
+  color: #555;
+}

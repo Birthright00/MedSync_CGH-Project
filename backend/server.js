@@ -2271,7 +2271,7 @@ app.get('/students', (req, res) => {
 
 app.post('/update-student', (req, res) => {
   const {
-    user_id, name, gender, mobile_no, email,
+    id, name, gender, mobile_no, email,
     start_date, end_date, recess_start_date, recess_end_date,
     school, academicYear, yearofstudy, cg, program_name
   } = req.body;
@@ -2289,7 +2289,7 @@ app.post('/update-student', (req, res) => {
       name = ?, gender = ?, mobile_no = ?, email = ?,
       start_date = ?, end_date = ?, recess_start_date = ?, recess_end_date = ?,
       school = ?, academicYear = ?, yearofstudy = ?, cg = ?, program_name = ?
-    WHERE user_id = ?
+    WHERE id = ?
   `;
 
   db.query(query, [
@@ -2306,7 +2306,7 @@ app.post('/update-student', (req, res) => {
     yearofstudy,
     cg,
     program_name,
-    user_id
+    id
   ], (err) => {
     if (err) {
       console.error('❌ Update Error:', err);

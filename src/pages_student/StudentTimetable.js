@@ -348,28 +348,26 @@ const StudentTimetable = () => {
     const isAgenda = calendarView === Views.AGENDA;
     const todayDate = moment(calendarDate).format('ddd, MMM DD YYYY'); // format current date
 
+    // Check if calendarDate is today
+    const isToday = moment(calendarDate).isSame(moment(), 'day');
+
     return (
       <div className="rbc-toolbar">
         <span className="rbc-btn-group">
-          <button
-            onClick={() => !isAgenda && onNavigate('PREV')}
-            disabled={isAgenda}
-            style={{ opacity: isAgenda ? 0.5 : 1 }}
-          >
+          <button onClick={() => onNavigate('PREV')}>
             Prev
           </button>
-          <button onClick={() => onNavigate('TODAY')}>Today</button>
-          <button
-            onClick={() => !isAgenda && onNavigate('NEXT')}
-            disabled={isAgenda}
-            style={{ opacity: isAgenda ? 0.5 : 1 }}
-          >
+          <button onClick={() => onNavigate('TODAY')}>
+            Today
+          </button>
+          <button onClick={() => onNavigate('NEXT')}>
             Next
           </button>
+
         </span>
 
         <span className="rbc-toolbar-label">
-          {isAgenda ? `Today (${todayDate})` : label}
+          {isAgenda ? (isToday ? `Today (${todayDate})` : todayDate) : label}
         </span>
 
         <span className="rbc-btn-group">
@@ -425,7 +423,30 @@ const StudentTimetable = () => {
             }
             onView={view => setCalendarView(view)}
             date={calendarDate}
-            onNavigate={date => setCalendarDate(date)}
+            onNavigate={(newDate, view, action) => {
+              let date = newDate;
+
+              if (calendarView === Views.AGENDA) {
+                if (action === 'NEXT') {
+                  date = moment(calendarDate).add(1, 'day');
+                  while (date.day() === 0 || date.day() === 6) { // Skip weekends
+                    date.add(1, 'day');
+                  }
+                } else if (action === 'PREV') {
+                  date = moment(calendarDate).subtract(1, 'day');
+                  while (date.day() === 0 || date.day() === 6) { // Skip weekends
+                    date.subtract(1, 'day');
+                  }
+                } else {
+                  date = moment(newDate);
+                }
+                setCalendarDate(date.toDate());
+              } else {
+                setCalendarDate(newDate);
+              }
+            }}
+
+
             views={['month', 'work_week', 'agenda']}
             min={new Date(1970, 1, 1, 8, 0)}
             max={new Date(1970, 1, 1, 18, 0)}

@@ -173,7 +173,8 @@
 }
 
 .rbc-agenda-view thead {
-  display: none; /* Hide header */
+  display: none;
+  /* Hide header */
 }
 
 .rbc-agenda-view tbody {
@@ -217,4 +218,13 @@
 .rbc-agenda-view td:last-child {
   margin-top: 3px;
   color: #555;
+}
+
+/* Center timing in agenda view */
+.rbc-agenda-view .rbc-agenda-time-cell {
+  text-align: center !important;
+  vertical-align: middle !important;
+  font-weight: 600;
+  color: #333;
+  font-size: 15px;
 }

@@ -1812,8 +1812,54 @@ app.post("/api/scheduling/add-to-timetable", verifyToken, requireRole("managemen
       console.error("Error inserting into timetable:", err);
       return res.status(500).json({ error: "Failed to insert session." });
     }
+    const sessionId = result.insertId;
+    console.log(`✅ Session inserted with ID: ${sessionId}`);
 
-    res.status(201).json({ message: "Session successfully added to timetable." });
+    // If no students are provided, we can skip
+    if (!students) {
+      return res.status(201).json({ message: "Session added (no students)." });
+    }
+
+    // Split students and clean names
+    const studentNames = students.split(",").map((n) =>
+      n.replace(/\(.*?\)/g, "").trim()
+    );
+
+    const unmatched = [];
+    const insertMappings = [];
+
+    studentNames.forEach((studentName) => {
+      db.query("SELECT user_id FROM student_database WHERE name = ?", [studentName], (err, rows) => {
+        if (err) {
+          console.error("Error fetching student ID:", err);
+          return;
+        }
+
+        if (rows.length > 0) {
+          const userId = rows[0].user_id;
+          db.query(
+            "INSERT INTO session_students (scheduled_session_id, user_id) VALUES (?, ?)",
+            [sessionId, userId],
+            (err2) => {
+              if (err2) {
+                console.error(`Error mapping ${studentName} to session:`, err2);
+              } else {
+                console.log(`✅ Linked ${studentName} (ID ${userId}) to session ${sessionId}`);
+              }
+            }
+          );
+        } else {
+          unmatched.push(studentName);
+          console.warn(`⚠ No match found for student: ${studentName}`);
+        }
+      });
+    });
+
+    res.status(201).json({
+      message: "Session added to timetable.",
+      session_id: sessionId,
+      unmatched_students: unmatched
+    });
   });
 });
 
@@ -1937,19 +1983,53 @@ app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
   const dateStr = formatDate(start);  // e.g. "12 June 2025"
   const timeStr = `${formatTime(start)} - ${formatTime(end)}`;  // e.g. "9:00am - 10:00am"
 
-  console.log("Updating session:", { id, title, doctor, location, dateStr, timeStr, original_time, change_type, change_reason, is_read });
+  try {
+    // 1. Fetch all students linked to this scheduled_session_id
+    const [studentsResult] = await db
+      .promise()
+      .query(
+        `
+        SELECT s.name
+        FROM session_students ss
+        JOIN student_database s ON ss.user_id = s.user_id
+        WHERE ss.scheduled_session_id = ?
+        `,
+        [id]
+      );
 
-  db.query(`
-    UPDATE scheduled_sessions
-    SET session_name = ?, name = ?, date = ?, time = ?, location = ?, original_time = ?, change_type = ?, change_reason = ?, is_read = 0
-    WHERE id = ?
-  `, [title, doctor, dateStr, timeStr, location, original_time || null, change_type || null, change_reason || null, id], (err, result) => {
-    if (err) {
-      console.error("Failed to update session:", err);
-      return res.status(500).json({ error: "Failed to update session" });
-    }
+    // 2. Convert user_ids to names (comma-separated)
+    const studentsString = studentsResult.map((row) => row.name).join(", ");
+
+    console.log("Updating session:", { id, title, doctor, location, dateStr, timeStr, studentsString, original_time, change_type, change_reason });
+
+    // 3. Update the scheduled_sessions table
+    const [updateResult] = await db
+      .promise()
+      .query(
+        `
+        UPDATE scheduled_sessions
+        SET session_name = ?, name = ?, date = ?, time = ?, location = ?, students = ?, original_time = ?, change_type = ?, change_reason = ?, is_read = 0
+        WHERE id = ?
+        `,
+        [
+          title,
+          doctor,
+          dateStr,
+          timeStr,
+          location,
+          studentsString,
+          original_time || null,
+          change_type || null,
+          change_reason || null,
+          id
+        ]
+      );
+
     res.json({ message: "Session updated successfully" });
-  });
+  } catch (err) {
+    console.error("Failed to update session:", err);
+    return res.status(500).json({ error: "Failed to update session" });
+  }
 });
 
 // Marking Notification as Read

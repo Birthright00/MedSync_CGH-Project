@@ -381,32 +381,7 @@ const StudentTimetable = () => {
     );
   };
 
-  const CustomAgenda = ({ events }) => {
-    return (
-      <table className="rbc-agenda-table">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Event</th>
-          </tr>
-        </thead>
-        <tbody>
-          {events.map((event, idx) => (
-            <tr key={idx}>
-              <td>
-                {moment(event.start).format('h:mm A')} – {moment(event.end).format('h:mm A')}
-              </td>
-              <td>
-                <strong>{event.title}</strong>
-                {event.location && <div>📍 {event.location}</div>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    );
-  };
-
+  
 
 
 
@@ -455,7 +430,7 @@ const StudentTimetable = () => {
             eventPropGetter={eventStyleGetter}
             components={{
               toolbar: CustomToolbar,   // <-- inject custom toolbar here
-              event: CustomEvent,
+              event: CustomEvent
             }}
           />
         </div>

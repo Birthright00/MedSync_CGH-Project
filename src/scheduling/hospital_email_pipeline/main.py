@@ -45,6 +45,32 @@ while True:
                     structured_data["from_name"] = fields["from_name"]
                     structured_data["from_email"] = fields["from_email"]
                     structured_data["to_email"] = fields["to_email"]
+                    
+                    # Robustly derive available_slots_timings from original_session + new_session
+                    if structured_data.get("type", "").strip().lower() == "availability":
+                        original = structured_data.get("original_session", "").strip()
+                        new_time = structured_data.get("new_session", "").strip()
+
+                        print("📅 original_session:", original)
+                        print("⏰ new_session:", new_time)
+
+                        if original and new_time:
+                            import re
+                            # Normalize common unicode dashes to simple hyphen
+                            original_cleaned = original.replace("\u2013", "-").replace("\u2014", "-").replace("\u2015", "-").strip()
+
+                            # Extract everything before the first opening parenthesis
+                            match = re.match(r"^(.*?)\s*\(", original_cleaned)
+                            extracted_date = match.group(1).strip() if match else None
+
+                            if extracted_date:
+                                structured_data["available_slots_timings"] = [f"{extracted_date} ({new_time})"]
+                                print("✅ Overwrote available_slots_timings:", structured_data["available_slots_timings"])
+                            else:
+                                print("❌ Could not extract date from cleaned original_session:", original_cleaned)
+                        else:
+                            print("⚠️ original_session or new_session missing")
+
 
                     print("📦 Final structured data to send to backend:")
                     print(json.dumps(structured_data, indent=2))

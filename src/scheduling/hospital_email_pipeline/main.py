@@ -26,43 +26,7 @@ while True:
     try:
         emails = get_emails(access_token)
         for email in emails:
-            route_info = detect_route(email)
-            if route_info["route"] == "reply":
-                print(f"📨 Reply with session ID {route_info['session_id']} detected.")
-    
-                # ✅ You can now fetch from DB based on session_id and parse the body to determine "yes/no"
-                from_name = email["from"]["emailAddress"]["name"]
-                from_email = email["from"]["emailAddress"]["address"]
-                body = email.get("body", {}).get("content", "")
-
-                # You can simplify/clean the body if needed
-                # Analyze for yes/no/maybe keywords (you can improve this later)
-                lowered = body.lower()
-                if "yes" in lowered or "available" in lowered:
-                    status = "available"
-                elif "no" in lowered or "not available" in lowered:
-                    status = "not_available"
-                else:
-                    status = "unknown"
-
-                structured_data = {
-                    "type": "reply",
-                    "session_id": route_info["session_id"],
-                    "from_name": from_name,
-                    "from_email": from_email,
-                    "status": status,
-                    "raw_text": body,
-                }
-
-                print("📦 Final reply-based structured data:")
-                print(json.dumps(structured_data, indent=2))
-
-                code, response = post_structured_data(structured_data)
-                print(f"✅ Sent to backend: {code} - {response}")
-                mark_email_as_read(email['id'], access_token)
-
-            # ✅ NORMAL (non-reply) EMAIL FLOW
-            elif should_process_email(email):
+            if should_process_email(email):
                 fields = extract_relevant_fields(email)
                 print("📬 Extracted Fields:")
                 for k, v in fields.items():

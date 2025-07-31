@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Calendar, Views, momentLocalizer } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import moment from 'moment';
+import Select from "react-select";
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import '../styles/DoctorScheduler.css';
@@ -22,11 +23,12 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [form, setForm] = useState({ title: '', doctor: '', location: '', start: '', end: '', color: '' });
+  const [form, setForm] = useState({ title: '', doctor: '', location: '', start: '', end: '', color: '', students: [] });
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [blockedDates, setBlockedDates] = useState([]);
+  const [allStudentNames, setAllStudentNames] = useState([]);
   const modalRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -66,6 +68,27 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
     fetchBlockedDates();
   }, []);
+
+  useEffect(() => {
+    const fetchAllStudents = async () => {
+      const adid = localStorage.getItem("adid"); // ✅ move here
+      if (!adid) return;
+
+      try {
+        const res = await axios.get(`${API_BASE_URL}/students`, {
+          params: { adid }
+        });
+
+        const names = res.data.map(student => student.name).filter(Boolean);
+        setAllStudentNames(names);
+      } catch (err) {
+        console.error("❌ Failed to fetch student names:", err);
+      }
+    };
+
+    fetchAllStudents();
+  }, []);
+
 
   useEffect(() => {
     const mappedEvents = sessions.map((s, index) => {
@@ -216,17 +239,40 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
   };
 
   useEffect(() => {
-    if (selectedEvent) {
-      setForm({
-        title: selectedEvent.title,
-        doctor: selectedEvent.doctor,
-        location: selectedEvent.location,
-        start: moment(selectedEvent.start).format('YYYY-MM-DDTHH:mm'),
-        end: moment(selectedEvent.end).format('YYYY-MM-DDTHH:mm'),
-        color: selectedEvent.color || '#3174ad',
-      });
-    }
+    const fetchAndSetForm = async () => {
+      if (!selectedEvent) return;
+
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/scheduling/get-students-for-session/${selectedEvent.id}`);
+        const students = res.data.students || [];
+
+        setForm({
+          title: selectedEvent.title,
+          doctor: selectedEvent.doctor,
+          location: selectedEvent.location,
+          start: moment(selectedEvent.start).format('YYYY-MM-DDTHH:mm'),
+          end: moment(selectedEvent.end).format('YYYY-MM-DDTHH:mm'),
+          color: selectedEvent.color || '#3174ad',
+          students: [...new Set(students.map(s => s.trim()))] // ✅ Ensure uniqueness and no empty string
+        });
+      } catch (err) {
+        console.error("❌ Failed to fetch students for session:", err);
+        setForm({
+          title: selectedEvent.title,
+          doctor: selectedEvent.doctor,
+          location: selectedEvent.location,
+          start: moment(selectedEvent.start).format('YYYY-MM-DDTHH:mm'),
+          end: moment(selectedEvent.end).format('YYYY-MM-DDTHH:mm'),
+          color: selectedEvent.color || '#3174ad',
+          students: []
+        });
+      }
+    };
+
+    fetchAndSetForm();
   }, [selectedEvent]);
+
+
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -314,20 +360,39 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         change_type: change_type,
         change_reason: change_reason,
         is_read: 0,  // 👈 reset to unread
+        students: form.students.join(", ")
       },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         }
       );
 
-      setSelectedEvent(null);
-      if (refreshSessions) {
-        await refreshSessions();
-      }
-    } catch (err) {
-      console.error("❌ Failed to update backend:", err);
-      alert("Failed to save changes to database.");
-    }
+        // ✅ Re-fetch updated students from backend
+  const res = await axios.get(`${API_BASE_URL}/api/scheduling/get-students-for-session/${selectedEvent.id}`);
+  const updatedStudents = res.data.students || [];
+
+  // ✅ Update frontend state with latest data
+  setForm((prev) => ({
+    ...prev,
+    students: [...new Set(updatedStudents.map((s) => s.trim()))]
+  }));
+
+  // ✅ Optional update to selectedEvent if it's reused
+  setSelectedEvent(prev => ({
+    ...prev,
+    students: updatedStudents.join(", ")
+  }));
+
+  // ✅ Refresh calendar if needed
+  if (refreshSessions) {
+    await refreshSessions();
+  }
+
+  setSelectedEvent(null); // close modal
+} catch (err) {
+  console.error("❌ Failed to update backend:", err);
+  alert("Failed to save changes to database.");
+}
   };
 
 
@@ -672,13 +737,50 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       </div>
 
       {selectedEvent && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', overflowY: 'auto', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div ref={modalRef} style={{ background: '#fff', padding: '30px 40px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 0 20px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h2>Edit Event</h2>
             <label>Title:</label>
             <input className="edit-input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
             <label>Doctor:</label>
             <input className="edit-input" value={form.doctor} onChange={e => setForm({ ...form, doctor: e.target.value })} />
+            <label>Students:</label>
+            <div className="student-chips-scrollable" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {form.students.map((name, index) => (
+                <div key={index} className="chip" style={{
+                  padding: '5px 10px', background: '#d0e6ff', borderRadius: '15px',
+                  display: 'flex', alignItems: 'center', gap: '6px'
+                }}>
+                  {name}
+                  <button
+                    type="button"
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+                    onClick={() => {
+                      const updated = form.students.filter((_, i) => i !== index);
+                      setForm({ ...form, students: updated });
+                    }}
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <Select
+              isMulti
+              placeholder="Add students..."
+              options={
+                (allStudentNames || [])
+                  .filter(name => !form.students.includes(name))
+                  .map(name => ({ value: name, label: name }))
+              }
+              onChange={(selectedOptions) => {
+                const selectedNames = selectedOptions.map(o => o.value);
+                const combined = [...new Set([...form.students, ...selectedNames])];
+                setForm({ ...form, students: combined });
+              }}
+            />
+
             <label>Location:</label>
             <input className="edit-input" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} />
             <label>Start Time:</label>

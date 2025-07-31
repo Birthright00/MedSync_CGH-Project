@@ -1961,7 +1961,7 @@ app.delete("/api/scheduling/parsed-email/:id", (req, res) => {
 /* For Updating scheduled sessions in the timetable */
 app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
   const { id } = req.params;
-  const { title, doctor, location, start, end, original_time, change_type, change_reason, is_read } = req.body;
+  const { title, doctor, location, start, end, original_time, change_type, change_reason, is_read, students } = req.body;
 
   // Helper function to format date
   function formatDate(dateStr) {
@@ -1984,33 +1984,42 @@ app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
   const timeStr = `${formatTime(start)} - ${formatTime(end)}`;  // e.g. "9:00am - 10:00am"
 
   try {
-    // 1. Fetch all students linked to this scheduled_session_id
-    const [studentsResult] = await db
+    let studentsString = students;
+
+    if (!studentsString) {
+      // Fallback to fetching from session_students if not supplied from frontend
+      const [studentsResult] = await db
+        .promise()
+        .query(
+          `SELECT s.name
+         FROM session_students ss
+         JOIN student_database s ON ss.user_id = s.user_id
+         WHERE ss.scheduled_session_id = ?`,
+          [id]
+        );
+      studentsString = studentsResult.map((row) => row.name).join(", ");
+    }
+
+    console.log("Updating session:", {
+      id,
+      title,
+      doctor,
+      location,
+      dateStr,
+      timeStr,
+      studentsString,
+      original_time,
+      change_type,
+      change_reason,
+    });
+
+    // Step 1: Update the scheduled_sessions table
+    await db
       .promise()
       .query(
-        `
-        SELECT s.name
-        FROM session_students ss
-        JOIN student_database s ON ss.user_id = s.user_id
-        WHERE ss.scheduled_session_id = ?
-        `,
-        [id]
-      );
-
-    // 2. Convert user_ids to names (comma-separated)
-    const studentsString = studentsResult.map((row) => row.name).join(", ");
-
-    console.log("Updating session:", { id, title, doctor, location, dateStr, timeStr, studentsString, original_time, change_type, change_reason });
-
-    // 3. Update the scheduled_sessions table
-    const [updateResult] = await db
-      .promise()
-      .query(
-        `
-        UPDATE scheduled_sessions
-        SET session_name = ?, name = ?, date = ?, time = ?, location = ?, students = ?, original_time = ?, change_type = ?, change_reason = ?, is_read = 0
-        WHERE id = ?
-        `,
+        `UPDATE scheduled_sessions
+       SET session_name = ?, name = ?, date = ?, time = ?, location = ?, students = ?, original_time = ?, change_type = ?, change_reason = ?, is_read = ?
+       WHERE id = ?`,
         [
           title,
           doctor,
@@ -2021,16 +2030,65 @@ app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
           original_time || null,
           change_type || null,
           change_reason || null,
-          id
+          is_read ?? 0,
+          id,
         ]
       );
 
+    // Step 2: Update the session_students table
+    // a) Clear existing mappings
+    await db.promise().query(`DELETE FROM session_students WHERE scheduled_session_id = ?`, [id]);
+
+    // b) Insert new mappings
+    const studentNamesArray = (studentsString || '').split(',').map(name => name.trim());
+    for (const name of studentNamesArray) {
+      if (!name) continue;
+
+      const [studentRows] = await db
+        .promise()
+        .query(`SELECT user_id FROM student_database WHERE name = ?`, [name]);
+
+      if (studentRows.length > 0) {
+        const user_id = studentRows[0].user_id;
+
+        await db
+          .promise()
+          .query(`INSERT INTO session_students (scheduled_session_id, user_id) VALUES (?, ?)`, [id, user_id]);
+      }
+    }
+
     res.json({ message: "Session updated successfully" });
+
   } catch (err) {
-    console.error("Failed to update session:", err);
+    console.error("❌ Failed to update session:", err);
     return res.status(500).json({ error: "Failed to update session" });
   }
+
 });
+
+
+// 📌 GET student names from session_students for a given scheduled_session_id
+app.get("/api/scheduling/get-students-for-session/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [results] = await db
+      .promise()
+      .query(
+        `SELECT s.name FROM session_students ss 
+         JOIN student_database s ON ss.user_id = s.user_id 
+         WHERE ss.scheduled_session_id = ?`,
+        [id]
+      );
+
+    const studentNames = results.map((row) => row.name);
+    res.json({ students: studentNames });
+  } catch (err) {
+    console.error("❌ Failed to fetch students for session:", err);
+    res.status(500).json({ error: "Failed to fetch students for session" });
+  }
+});
+
 
 // Marking Notification as Read
 app.patch('/api/scheduling/mark-as-read/:id', (req, res) => {

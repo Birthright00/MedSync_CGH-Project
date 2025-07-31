@@ -47,9 +47,9 @@ while True:
                     structured_data["to_email"] = fields["to_email"]
                     
                     # Robustly derive available_slots_timings from original_session + new_session
-                    if structured_data.get("type", "").strip().lower() == "availability":
-                        original = structured_data.get("original_session", "").strip()
-                        new_time = structured_data.get("new_session", "").strip()
+                    if (structured_data.get("type") or "").strip().lower() == "availability":
+                        original = (structured_data.get("original_session") or "").strip()
+                        new_time = (structured_data.get("new_session") or "").strip()
 
                         print("📅 original_session:", original)
                         print("⏰ new_session:", new_time)

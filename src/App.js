@@ -21,6 +21,7 @@ import UserManagementLanding from "./user_management/UserManagementLanding";
 import CreateNewSession from './scheduling/CreateNewSession'; // adjust path if needed
 import StaffTimetable from "./staff/StaffTimetable";
 import StudentManagement from "./pages_management/StudentManagement";
+import DoctorSessionBooking from "./scheduling/doctor_sessionbooking/DoctorSessionBooking";
 import 'react-toastify/dist/ReactToastify.css';
 import { Toast } from "bootstrap";
 
@@ -73,13 +74,15 @@ function App() {
             title="Create New Session"
           />
         } /> */}
-        
+
         <Route path="/timetable/users-management" element={<UserManagementLanding />} />
 
 
         {/* For Staff */}
         <Route exact path="/staff-timetable" element={<StaffTimetable />} />
 
+        {/* Doctor Session Booking */}
+        <Route path="/doctor-availability/respond" element={<DoctorSessionBooking />} />
 
       </Routes>
     </div>

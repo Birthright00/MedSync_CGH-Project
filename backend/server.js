@@ -2407,6 +2407,89 @@ app.post('/delete-multiple-students', (req, res) => {
   });
 });
 
+// -------------------------------------------------------------------------------------------------------------//
+// ------------------- DOCTOR LINK FOR AVAILABILITY INSTEAD OF EMAILING REPLY -------------------
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/email-sessions/:sessionId", (req, res) => {
+  const sessionId = req.params.sessionId;
+
+  const query = "SELECT * FROM email_sessions WHERE session_id = ?";
+  db.query(query, [sessionId], (err, results) => {
+    if (err) {
+      console.error("❌ DB error:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    const session = results[0];
+
+    let slots = [];
+    try {
+      slots = JSON.parse(session.available_slots_json || '[]');
+    } catch (e) {
+      console.error("❌ Error parsing available_slots_json:", e);
+    }
+
+    res.json({ ...session, slots }); // ✅ Now includes parsed slots array
+  });
+});
+
+app.patch("/api/scheduling/parsed-email/:session_id/update-availability", async (req, res) => {
+  const { session_id } = req.params;
+  const { selected_slots, mcr_number } = req.body;
+
+  if (!Array.isArray(selected_slots) || selected_slots.length === 0 || !mcr_number) {
+    return res.status(400).json({ error: "Missing or invalid inputs." });
+  }
+
+  try {
+    // Step 1: Validate session exists and MCR is allowed
+    const [emailSessionRows] = await db.promise().query(
+      "SELECT doctor_mcrs FROM email_sessions WHERE session_id = ?",
+      [session_id]
+    );
+
+    if (emailSessionRows.length === 0) {
+      return res.status(404).json({ error: "Invalid session link." });
+    }
+
+    const allowedMCRs = emailSessionRows[0].doctor_mcrs
+      .split(',')
+      .map(m => m.trim());
+
+    if (!allowedMCRs.includes(mcr_number.trim())) {
+      return res.status(403).json({ error: "This MCR is not authorized for this session." });
+    }
+
+    // Step 2: Format selected slots
+    const formattedSlots = selected_slots
+      .map(slot => `${slot.date} ${slot.start}–${slot.end}`)
+      .join(', ');
+
+    // ✅ Step 3: Update parsed_emails using session_id instead of session_name
+    const [updateResult] = await db.promise().query(
+      `UPDATE parsed_emails
+       SET available_slots_timings = ?, notes = ?
+       WHERE session_id = ? AND type = 'availability'`,
+      [formattedSlots, mcr_number, session_id]
+    );
+
+    if (updateResult.affectedRows === 0) {
+      return res.status(404).json({ error: "Matching availability session not found." });
+    }
+
+    res.json({ message: "✅ Availability updated successfully." });
+
+  } catch (err) {
+    console.error("❌ Error updating availability:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+
 
 // -------------------------------------------------------------------------------------------------------------//
 // ------------------- SPECIFIC STUDENT ID TIMETABLE -------------------
@@ -2443,13 +2526,14 @@ app.post("/api/email-sessions", (req, res) => {
     doctor_mcrs,
     student_ids,
     session_name,
+    available_slots_json,
   } = req.body;
 
   db.query(
     `INSERT INTO email_sessions 
-      (session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name],
+      (session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name, available_slots_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name, available_slots_json,],
     (err, results) => {
       if (err) {
         console.error("❌ Failed to store email session:", err);

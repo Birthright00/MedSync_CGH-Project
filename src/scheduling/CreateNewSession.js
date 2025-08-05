@@ -4,6 +4,7 @@ import axios from "axios";
 import Navbar from "../components/Navbar";
 import "../styles/createSession.css";
 import API_BASE_URL from "../apiConfig";
+import FRONTEND_BASE_URL from "../frontendConfig";
 import { sendEmailViaGraph } from '../utils/sendGraphEmail';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -162,7 +163,7 @@ const CreateNewSession = () => {
 
 
 
-    const generateEmailContent = () => {
+    const generateEmailContent = (sessionId) => {
         if (!selectedTemplate) return { subject: '', body: '' };
 
         if (selectedTemplate === 'tutorial_availability') {
@@ -189,6 +190,7 @@ const CreateNewSession = () => {
                 .map((s, i) => `Session ${i + 1}: ${formatReadableSession(s.date, s.startTime, s.endTime)}`)
                 .join('\n') || '[No session slots selected]';
 
+            const replyLink = `${FRONTEND_BASE_URL}/#/doctor-availability/respond?session_id=${sessionId}`;
 
             const selectedSessionName = sessionName === 'Other' ? customSessionName : sessionName;
 
@@ -210,6 +212,9 @@ ${sessionDetails}
 Please let us know your availability preferred date/start time for the above.
 Teaching dates are subjected to first come, first served basis, your teaching hours will be logged.
 
+If you prefer not to reply via email, you may indicate your availability directly here:
+👉 ${replyLink}
+
 Thank you,
 ${adminName || "[Admin Name]"}
 Associate Dean’s Office (ADO)`;
@@ -223,7 +228,8 @@ Associate Dean’s Office (ADO)`;
 
     const handleCreateSession = async () => {
         const sessionId = uuidv4(); // ✅ Generate UUID here
-        const { subject, body } = generateEmailContent();
+        const { subject, body } = generateEmailContent(sessionId);
+
 
         if (!subject || !body) {
             alert("❌ Please complete all required fields and select a valid email template.");
@@ -263,7 +269,12 @@ Associate Dean’s Office (ADO)`;
                 doctor_mcrs: selectedDoctors.join(','),
                 student_ids: selectedStudents.join(','),
                 session_name: sessionName,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                available_slots_json: JSON.stringify(sessionSlots.map(slot => ({
+                    date: slot.date,
+                    startTime: slot.startTime,
+                    endTime: slot.endTime
+                })))
             });
             console.log("✅ Email session metadata saved");
         } catch (err) {

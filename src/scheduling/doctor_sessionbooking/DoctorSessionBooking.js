@@ -20,12 +20,20 @@ const DoctorSessionBooking = () => {
     if (sessionId) {
       axios.get(`${API_BASE_URL}/api/email-sessions/${sessionId}`)
         .then(res => {
+          console.log("🎯 Full session data from backend:", res.data); // 🔍 DEBUG
           const slots = res.data.slots || []; // ⬅️ 'slots' is parsed from JSON backend
           setSessionData({ ...res.data, slots });
         })
         .catch(err => {
           console.error(err);
-          setError("Failed to fetch session details.");
+
+          if (err.response?.status === 403) {
+            setError("🛑 You have submitted already.");
+          } else if (err.response?.status === 404) {
+            setError("❌ This session link is invalid or has expired.");
+          } else {
+            setError("Failed to fetch session details.");
+          }
         });
     }
   }, [sessionId]);
@@ -101,16 +109,29 @@ const DoctorSessionBooking = () => {
     }
 
     try {
+      // Format the slots before sending
+      const cleanedSlots = selectedSlots.map(slot => ({
+        date: slot.date,
+        start: slot.preferredStart || slot.startTime,
+        end: slot.preferredEnd || slot.endTime,
+      }));
+
       await axios.patch(`${API_BASE_URL}/api/scheduling/parsed-email/${sessionId}/update-availability`, {
-        selected_slots: selectedSlots,
-        mcr_number: doctorMCR.trim()
+        selected_slots: cleanedSlots,
+        mcr_number: doctorMCR.trim(),
+        students: sessionData.studentDetails
+          ?.map(s => `${s.name} (${s.school})`)
+          .join(', ') || ''
+
       });
+
       setSubmitted(true);
     } catch (err) {
       console.error(err);
       setError("Failed to submit your availability.");
     }
   };
+
 
 
   if (submitted) {
@@ -134,117 +155,143 @@ const DoctorSessionBooking = () => {
   };
 
 
+  if (error) {
+    return (
+      <div className="doctor-booking-page">
+        <div className="doctor-booking-container">
+          <img src={cghLogo} alt="CGH Logo" className="cgh-logo" />
+          <h1>Doctor Session Availability</h1>
+          <p className="error" style={{ fontSize: "1.2rem", color: "red" }}>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="doctor-booking-container">
-      <img src={cghLogo} alt="CGH Logo" className="cgh-logo" />
+    <div className="doctor-booking-page">
+      <div className="doctor-booking-container">
+        <img src={cghLogo} alt="CGH Logo" className="cgh-logo" />
 
-      <h1>Doctor Session Availability</h1>
-      {error && <p className="error">{error}</p>}
-      {!sessionData && <p>Loading session details...</p>}
+        <h1>Doctor Session Availability</h1>
+        {!sessionData && <p>Loading session details...</p>}
 
-      {sessionData && (
-        <>
-          <p><strong>Session:</strong> {sessionData.session_name}</p>
-
-          <div style={{ margin: '1rem 0' }}>
-            <label htmlFor="mcr" style={{ display: 'block', fontWeight: 'bold' }}>
-              Your MCR/SNB Number:
-            </label>
-            <input
-              id="mcr"
-              type="text"
-              value={doctorMCR}
-              onChange={(e) => setDoctorMCR(e.target.value)}
-            />
-          </div>
-
-          <h3 style={{ fontWeight: 'bold', marginBottom: '1rem' }}>Select your preferred slots:</h3>
-          <ul className="slot-list">
-            {sessionData.slots.map((slot, i) => {
-              const isSelected = selectedSlots.find(s =>
-                s.date === slot.date &&
-                s.startTime === slot.startTime &&
-                s.endTime === slot.endTime
-              );
-
-              return (
-                <li key={i} className={`slot-item ${isSelected ? 'selected' : ''}`}>
-                  {/* Clickable label only */}
-                  <div className="slot-label" onClick={() => toggleSlot(slot)}>
-                    {formatSlot(slot)}
-                    <span className="hover-message">Click to select</span>
-                  </div>
+        {sessionData && (
+          <>
+            <p><strong>Session:</strong> {sessionData.session_name}</p>
+            {sessionData.studentDetails?.length > 0 && (
+              <div className="student-list" style={{ marginBottom: '1rem' }}>
+                <p><strong>🧑‍🎓 Students in this session:</strong></p>
+                <ul>
+                  {sessionData.studentDetails.map((s, i) => (
+                    <li key={i}>
+                      {s.name} ({s.school}, {s.yearofstudy})
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
 
-                  {/* Time input fields only show if selected */}
-                  {isSelected && (
-                    <div className="time-inputs">
-                      <label>
-                        Start:
-                        <input
-                          type="time"
-                          min={slot.startTime}
-                          max={slot.endTime}
-                          value={selectedSlots.find((s) =>
-                            s.date === slot.date &&
-                            s.startTime === slot.startTime &&
-                            s.endTime === slot.endTime
-                          )?.preferredStart || ''}
-                          onChange={(e) => handleTimeChange(slot, 'preferredStart', e.target.value)}
-                        />
+            <div style={{ margin: '1rem 0' }}>
+              <label htmlFor="mcr" style={{ display: 'block', fontWeight: 'bold' }}>
+                Your MCR/SNB Number:
+              </label>
+              <input
+                id="mcr"
+                type="text"
+                value={doctorMCR}
+                onChange={(e) => setDoctorMCR(e.target.value)}
+              />
+            </div>
 
-                      </label>
-                      <label>
-                        End:
-                        <input
-                          type="time"
-                          min={
-                            selectedSlots.find((s) =>
+            <h3 style={{ fontWeight: 'bold', marginBottom: '1rem' }}>Select your preferred slots:</h3>
+            <ul className="slot-list">
+              {sessionData.slots.map((slot, i) => {
+                const isSelected = selectedSlots.find(s =>
+                  s.date === slot.date &&
+                  s.startTime === slot.startTime &&
+                  s.endTime === slot.endTime
+                );
+
+                return (
+                  <li key={i} className={`slot-item ${isSelected ? 'selected' : ''}`}>
+                    {/* Clickable label only */}
+                    <div className="slot-label" onClick={() => toggleSlot(slot)}>
+                      {formatSlot(slot)}
+                      <span className="hover-message">Click to select</span>
+                    </div>
+
+
+                    {/* Time input fields only show if selected */}
+                    {isSelected && (
+                      <div className="time-inputs">
+                        <label>
+                          Start:
+                          <input
+                            type="time"
+                            min={slot.startTime}
+                            max={slot.endTime}
+                            value={selectedSlots.find((s) =>
                               s.date === slot.date &&
                               s.startTime === slot.startTime &&
                               s.endTime === slot.endTime
-                            )?.preferredStart || slot.startTime
-                          }
-                          max={slot.endTime}
-                          value={selectedSlots.find((s) =>
-                            s.date === slot.date &&
-                            s.startTime === slot.startTime &&
-                            s.endTime === slot.endTime
-                          )?.preferredEnd || ''}
-                          onChange={(e) => handleTimeChange(slot, 'preferredEnd', e.target.value)}
-                        />
+                            )?.preferredStart || ''}
+                            onChange={(e) => handleTimeChange(slot, 'preferredStart', e.target.value)}
+                          />
+
+                        </label>
+                        <label>
+                          End:
+                          <input
+                            type="time"
+                            min={
+                              selectedSlots.find((s) =>
+                                s.date === slot.date &&
+                                s.startTime === slot.startTime &&
+                                s.endTime === slot.endTime
+                              )?.preferredStart || slot.startTime
+                            }
+                            max={slot.endTime}
+                            value={selectedSlots.find((s) =>
+                              s.date === slot.date &&
+                              s.startTime === slot.startTime &&
+                              s.endTime === slot.endTime
+                            )?.preferredEnd || ''}
+                            onChange={(e) => handleTimeChange(slot, 'preferredEnd', e.target.value)}
+                          />
 
 
-                      </label>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
+                        </label>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
 
-          </ul>
+            </ul>
 
-          {selectedSlots.length > 0 && (
-            <div className="preview-container">
-              <h3>📝 Preview of Selected Slots:</h3>
-              {selectedSlots.map((slot, idx) => (
-                <div className="preview-slot" key={idx}>
-                  <strong>{formatSlot(slot)}</strong><br />
-                  Preferred Start: {slot.preferredStart || 'Not set'}<br />
-                  Preferred End: {slot.preferredEnd || 'Not set'}
-                </div>
-              ))}
+            {selectedSlots.length > 0 && (
+              <div className="preview-container">
+                <h3>📝 Preview of Selected Slots:</h3>
+                {selectedSlots.map((slot, idx) => (
+                  <div className="preview-slot" key={idx}>
+                    <strong>{formatSlot(slot)}</strong><br />
+                    Preferred Start: {slot.preferredStart || 'Not set'}<br />
+                    Preferred End: {slot.preferredEnd || 'Not set'}
+                  </div>
+                ))}
+              </div>
+            )}
+
+
+            <div className="submit-button-container">
+              <button className="submit-button" onClick={handleSubmit}>
+                Submit Availability
+              </button>
             </div>
-          )}
-
-
-          <div className="submit-button-container">
-            <button className="submit-button" onClick={handleSubmit}>
-              Submit Availability
-            </button>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

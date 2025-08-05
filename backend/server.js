@@ -2414,31 +2414,79 @@ app.get("/api/email-sessions/:sessionId", (req, res) => {
   const sessionId = req.params.sessionId;
 
   const query = "SELECT * FROM email_sessions WHERE session_id = ?";
-  db.query(query, [sessionId], (err, results) => {
+  db.query(query, [sessionId], async (err, results) => {
     if (err) {
       console.error("❌ DB error:", err);
       return res.status(500).json({ error: "Database error" });
     }
+
     if (results.length === 0) {
       return res.status(404).json({ error: "Session not found" });
     }
 
     const session = results[0];
 
+    // 🔒 Check if this session_id has already been submitted
+    const [parsedRows] = await db.promise().query(
+      "SELECT id FROM parsed_emails WHERE session_id = ? AND type = 'availability'",
+      [sessionId]
+    );
+
+    if (parsedRows.length > 0) {
+      return res.status(403).json({ error: "This session has already been submitted." });
+    }
+
     let slots = [];
+
+
     try {
       slots = JSON.parse(session.available_slots_json || '[]');
     } catch (e) {
       console.error("❌ Error parsing available_slots_json:", e);
     }
 
-    res.json({ ...session, slots }); // ✅ Now includes parsed slots array
+    // 🧠 Parse student_ids and fetch student details
+    let studentDetails = [];
+    try {
+      const studentIds = (session.student_ids || '')
+        .split(',')
+        .map(id => parseInt(id.trim()))
+        .filter(id => !isNaN(id));
+
+
+      if (Array.isArray(studentIds) && studentIds.length > 0) {
+        const placeholders = studentIds.map(() => '?').join(',');
+        const studentQuery = `
+          SELECT id, name, school, academicYear, yearofstudy
+          FROM student_database
+          WHERE id IN (${placeholders})
+        `;
+
+        const [studentResults] = await new Promise((resolve, reject) => {
+          db.query(studentQuery, studentIds, (err, rows) => {
+            if (err) reject(err);
+            else resolve([rows]);
+          });
+        });
+
+        studentDetails = studentResults;
+      }
+    } catch (e) {
+      console.error("❌ Error processing student_ids:", e);
+    }
+
+    // ✅ Final response
+    res.json({
+      ...session,
+      slots,
+      studentDetails
+    });
   });
 });
 
 app.patch("/api/scheduling/parsed-email/:session_id/update-availability", async (req, res) => {
   const { session_id } = req.params;
-  const { selected_slots, mcr_number } = req.body;
+  const { selected_slots, mcr_number, students } = req.body;
 
   if (!Array.isArray(selected_slots) || selected_slots.length === 0 || !mcr_number) {
     return res.status(400).json({ error: "Missing or invalid inputs." });
@@ -2447,7 +2495,7 @@ app.patch("/api/scheduling/parsed-email/:session_id/update-availability", async 
   try {
     // Step 1: Validate session exists and MCR is allowed
     const [emailSessionRows] = await db.promise().query(
-      "SELECT doctor_mcrs FROM email_sessions WHERE session_id = ?",
+      "SELECT doctor_mcrs, session_name FROM email_sessions WHERE session_id = ?",
       [session_id]
     );
 
@@ -2459,37 +2507,85 @@ app.patch("/api/scheduling/parsed-email/:session_id/update-availability", async 
       .split(',')
       .map(m => m.trim());
 
+    const session_name = emailSessionRows[0].session_name;
+
     if (!allowedMCRs.includes(mcr_number.trim())) {
       return res.status(403).json({ error: "This MCR is not authorized for this session." });
     }
 
     // Step 2: Format selected slots
-    const formattedSlots = selected_slots
-      .map(slot => `${slot.date} ${slot.start}–${slot.end}`)
-      .join(', ');
+    const formattedSlots = selected_slots.map(slot => {
+      const dateObj = new Date(slot.date);
+      const options = { day: 'numeric', month: 'long', year: 'numeric' };
+      const formattedDate = dateObj.toLocaleDateString('en-GB', options);
 
-    // ✅ Step 3: Update parsed_emails using session_id instead of session_name
-    const [updateResult] = await db.promise().query(
-      `UPDATE parsed_emails
-       SET available_slots_timings = ?, notes = ?
-       WHERE session_id = ? AND type = 'availability'`,
-      [formattedSlots, mcr_number, session_id]
-    );
+      const formatTime = (timeStr) => {
+        const [hour, minute] = timeStr.split(':').map(Number);
+        const ampm = hour >= 12 ? 'pm' : 'am';
+        const hour12 = hour % 12 || 12;
+        return `${hour12}${minute === 0 ? '' : `:${minute.toString().padStart(2, '0')}`}${ampm}`;
+      };
 
-    if (updateResult.affectedRows === 0) {
-      return res.status(404).json({ error: "Matching availability session not found." });
+      const startTime = formatTime(slot.start);
+      const endTime = formatTime(slot.end);
+
+      return `${formattedDate} (${startTime}–${endTime})`;
+    }).join(', ');
+
+
+
+    // 🔍 Step 2.5: Get doctor's full name from main_data
+    let from_name = '';
+    let from_email = '';
+    try {
+      const [doctorRows] = await db.promise().query(
+        "SELECT first_name, last_name, email FROM main_data WHERE mcr_number = ?",
+        [mcr_number]
+      );
+
+      if (doctorRows.length > 0) {
+        const { first_name, last_name, email } = doctorRows[0];
+        from_name = `${first_name} ${last_name}`.trim();
+        from_email = email || '';
+      }
+    } catch (e) {
+      console.error("❌ Error fetching doctor name from main_data:", e);
     }
 
-    res.json({ message: "✅ Availability updated successfully." });
+    // ✅ Step 3: Insert a new availability record into parsed_emails
+    const insertQuery = `
+  INSERT INTO parsed_emails (
+    type, session_name, from_name, from_email,
+    to_email, original_session, new_session,
+    reason, students, available_slots_timings,
+    notes, received_at, session_id
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)
+`;
+
+
+    await db.promise().query(insertQuery, [
+      'availability',     // type
+      session_name,
+      from_name,          // from_name ← ✅ fetched from main_data
+      from_email,
+      '',                 // to_email
+      '',                 // original_session
+      '',                 // new_session
+      '',                 // reason
+      students || '',     // students
+      formattedSlots,     // available_slots_timings
+      mcr_number,         // notes
+      session_id          // session_id
+    ]);
+
+
+    res.json({ message: "✅ Availability submitted successfully." });
 
   } catch (err) {
-    console.error("❌ Error updating availability:", err);
+    console.error("❌ Error submitting availability:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-
-
 
 // -------------------------------------------------------------------------------------------------------------//
 // ------------------- SPECIFIC STUDENT ID TIMETABLE -------------------

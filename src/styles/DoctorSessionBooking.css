@@ -1,11 +1,10 @@
-/* Full-page background */
-body {
+.doctor-booking-page {
     background-image: url('../images/login-background-img.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     min-height: 100vh;
-    margin: 0;
+    padding: 2rem 1rem;
 }
 
 .doctor-booking-container {
@@ -195,4 +194,34 @@ input[type="text"] {
 
 .submit-button:hover {
     background-color: #0056b3;
+}
+
+.student-list {
+    background: #f8f9fc;
+    border: 1px solid #dee2e6;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+    font-size: 0.95rem;
+}
+
+.student-list p {
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.student-list ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.student-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e2e6ea;
+}
+
+.student-list li:last-child {
+    border-bottom: none;
 }

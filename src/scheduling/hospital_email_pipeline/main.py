@@ -26,43 +26,7 @@ while True:
     try:
         emails = get_emails(access_token)
         for email in emails:
-            route_info = detect_route(email)
-            if route_info["route"] == "reply":
-                print(f"📨 Reply with session ID {route_info['session_id']} detected.")
-    
-                # ✅ You can now fetch from DB based on session_id and parse the body to determine "yes/no"
-                from_name = email["from"]["emailAddress"]["name"]
-                from_email = email["from"]["emailAddress"]["address"]
-                body = email.get("body", {}).get("content", "")
-
-                # You can simplify/clean the body if needed
-                # Analyze for yes/no/maybe keywords (you can improve this later)
-                lowered = body.lower()
-                if "yes" in lowered or "available" in lowered:
-                    status = "available"
-                elif "no" in lowered or "not available" in lowered:
-                    status = "not_available"
-                else:
-                    status = "unknown"
-
-                structured_data = {
-                    "type": "reply",
-                    "session_id": route_info["session_id"],
-                    "from_name": from_name,
-                    "from_email": from_email,
-                    "status": status,
-                    "raw_text": body,
-                }
-
-                print("📦 Final reply-based structured data:")
-                print(json.dumps(structured_data, indent=2))
-
-                code, response = post_structured_data(structured_data)
-                print(f"✅ Sent to backend: {code} - {response}")
-                mark_email_as_read(email['id'], access_token)
-
-            # ✅ NORMAL (non-reply) EMAIL FLOW
-            elif should_process_email(email):
+            if should_process_email(email):
                 fields = extract_relevant_fields(email)
                 print("📬 Extracted Fields:")
                 for k, v in fields.items():
@@ -81,6 +45,32 @@ while True:
                     structured_data["from_name"] = fields["from_name"]
                     structured_data["from_email"] = fields["from_email"]
                     structured_data["to_email"] = fields["to_email"]
+                    
+                    # Robustly derive available_slots_timings from original_session + new_session
+                    if (structured_data.get("type") or "").strip().lower() == "availability":
+                        original = (structured_data.get("original_session") or "").strip()
+                        new_time = (structured_data.get("new_session") or "").strip()
+
+                        print("📅 original_session:", original)
+                        print("⏰ new_session:", new_time)
+
+                        if original and new_time:
+                            import re
+                            # Normalize common unicode dashes to simple hyphen
+                            original_cleaned = original.replace("\u2013", "-").replace("\u2014", "-").replace("\u2015", "-").strip()
+
+                            # Extract everything before the first opening parenthesis
+                            match = re.match(r"^(.*?)\s*\(", original_cleaned)
+                            extracted_date = match.group(1).strip() if match else None
+
+                            if extracted_date:
+                                structured_data["available_slots_timings"] = [f"{extracted_date} ({new_time})"]
+                                print("✅ Overwrote available_slots_timings:", structured_data["available_slots_timings"])
+                            else:
+                                print("❌ Could not extract date from cleaned original_session:", original_cleaned)
+                        else:
+                            print("⚠️ original_session or new_session missing")
+
 
                     print("📦 Final structured data to send to backend:")
                     print(json.dumps(structured_data, indent=2))

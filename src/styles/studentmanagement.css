@@ -381,3 +381,27 @@ tr:hover {
 .overlap-row {
     background-color: #ffcccc !important; /* light red for overlap */
 }
+
+.btn.btn-overlaps {
+  background-color: #ffecb3; /* light yellow background to signify alert */
+  color: #333;               /* dark text for readability */
+  border: 1px solid #fbc02d; /* accent border */
+  padding: 8px 16px;
+  width: 100%;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn.btn-overlaps:hover {
+  background-color: #fdd835; /* deeper yellow on hover */
+  transform: translateY(-1px);
+}
+
+.btn.btn-overlaps:active {
+  transform: scale(0.97);
+  background-color: #fbc02d;
+}
+

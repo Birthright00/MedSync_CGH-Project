@@ -1647,6 +1647,26 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// 🔍 GET REQUEST: Fetch all parsed_emails with type = 'change_request'
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/scheduling/parsed_emails", (req, res) => {
+  const query = `
+    SELECT * FROM parsed_emails
+    WHERE type = 'change_request'
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("❌ Error fetching parsed emails:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    res.json(results);
+  });
+});
+
+
+// -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST to call for scheduling data and displaying it as notifications for type = availability
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/api/scheduling/availability-notifications", verifyToken, requireRole("management"), (req, res) => {
@@ -1961,7 +1981,7 @@ app.delete("/api/scheduling/parsed-email/:id", (req, res) => {
 /* For Updating scheduled sessions in the timetable */
 app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
   const { id } = req.params;
-  const { title, doctor, location, start, end, original_time, change_type, change_reason, is_read } = req.body;
+  const { title, doctor, location, start, end, original_time, change_type, change_reason, is_read, students } = req.body;
 
   // Helper function to format date
   function formatDate(dateStr) {
@@ -1984,33 +2004,42 @@ app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
   const timeStr = `${formatTime(start)} - ${formatTime(end)}`;  // e.g. "9:00am - 10:00am"
 
   try {
-    // 1. Fetch all students linked to this scheduled_session_id
-    const [studentsResult] = await db
+    let studentsString = students;
+
+    if (!studentsString) {
+      // Fallback to fetching from session_students if not supplied from frontend
+      const [studentsResult] = await db
+        .promise()
+        .query(
+          `SELECT s.name
+         FROM session_students ss
+         JOIN student_database s ON ss.user_id = s.user_id
+         WHERE ss.scheduled_session_id = ?`,
+          [id]
+        );
+      studentsString = studentsResult.map((row) => row.name).join(", ");
+    }
+
+    console.log("Updating session:", {
+      id,
+      title,
+      doctor,
+      location,
+      dateStr,
+      timeStr,
+      studentsString,
+      original_time,
+      change_type,
+      change_reason,
+    });
+
+    // Step 1: Update the scheduled_sessions table
+    await db
       .promise()
       .query(
-        `
-        SELECT s.name
-        FROM session_students ss
-        JOIN student_database s ON ss.user_id = s.user_id
-        WHERE ss.scheduled_session_id = ?
-        `,
-        [id]
-      );
-
-    // 2. Convert user_ids to names (comma-separated)
-    const studentsString = studentsResult.map((row) => row.name).join(", ");
-
-    console.log("Updating session:", { id, title, doctor, location, dateStr, timeStr, studentsString, original_time, change_type, change_reason });
-
-    // 3. Update the scheduled_sessions table
-    const [updateResult] = await db
-      .promise()
-      .query(
-        `
-        UPDATE scheduled_sessions
-        SET session_name = ?, name = ?, date = ?, time = ?, location = ?, students = ?, original_time = ?, change_type = ?, change_reason = ?, is_read = 0
-        WHERE id = ?
-        `,
+        `UPDATE scheduled_sessions
+       SET session_name = ?, name = ?, date = ?, time = ?, location = ?, students = ?, original_time = ?, change_type = ?, change_reason = ?, is_read = ?
+       WHERE id = ?`,
         [
           title,
           doctor,
@@ -2021,16 +2050,65 @@ app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
           original_time || null,
           change_type || null,
           change_reason || null,
-          id
+          is_read ?? 0,
+          id,
         ]
       );
 
+    // Step 2: Update the session_students table
+    // a) Clear existing mappings
+    await db.promise().query(`DELETE FROM session_students WHERE scheduled_session_id = ?`, [id]);
+
+    // b) Insert new mappings
+    const studentNamesArray = (studentsString || '').split(',').map(name => name.trim());
+    for (const name of studentNamesArray) {
+      if (!name) continue;
+
+      const [studentRows] = await db
+        .promise()
+        .query(`SELECT user_id FROM student_database WHERE name = ?`, [name]);
+
+      if (studentRows.length > 0) {
+        const user_id = studentRows[0].user_id;
+
+        await db
+          .promise()
+          .query(`INSERT INTO session_students (scheduled_session_id, user_id) VALUES (?, ?)`, [id, user_id]);
+      }
+    }
+
     res.json({ message: "Session updated successfully" });
+
   } catch (err) {
-    console.error("Failed to update session:", err);
+    console.error("❌ Failed to update session:", err);
     return res.status(500).json({ error: "Failed to update session" });
   }
+
 });
+
+
+// 📌 GET student names from session_students for a given scheduled_session_id
+app.get("/api/scheduling/get-students-for-session/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [results] = await db
+      .promise()
+      .query(
+        `SELECT s.name FROM session_students ss 
+         JOIN student_database s ON ss.user_id = s.user_id 
+         WHERE ss.scheduled_session_id = ?`,
+        [id]
+      );
+
+    const studentNames = results.map((row) => row.name);
+    res.json({ students: studentNames });
+  } catch (err) {
+    console.error("❌ Failed to fetch students for session:", err);
+    res.status(500).json({ error: "Failed to fetch students for session" });
+  }
+});
+
 
 // Marking Notification as Read
 app.patch('/api/scheduling/mark-as-read/:id', (req, res) => {
@@ -2247,6 +2325,30 @@ app.post('/upload-student-data', async (req, res) => {
   }
 });
 
+// ------------------- Displaying All Doctors -------------------
+// ------------------- Get All Doctors from main_data -------------------
+// ------------------- Displaying All Doctors -------------------
+app.get('/doctors', (req, res) => {
+  const query = `
+    SELECT 
+      mcr_number, 
+      CONCAT(first_name, ' ', last_name) AS name, 
+      email 
+    FROM main_data 
+    WHERE deleted = 0
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('❌ Failed to retrieve doctors from main_data:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+
+
 // ------------------- Displaying Data from Student Database on Student Management Screen -------------------
 app.get('/students', (req, res) => {
   db.query('SELECT * FROM student_database', (err, results) => {
@@ -2349,6 +2451,185 @@ app.post('/delete-multiple-students', (req, res) => {
   });
 });
 
+// -------------------------------------------------------------------------------------------------------------//
+// ------------------- DOCTOR LINK FOR AVAILABILITY INSTEAD OF EMAILING REPLY -------------------
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/email-sessions/:sessionId", (req, res) => {
+  const sessionId = req.params.sessionId;
+
+  const query = "SELECT * FROM email_sessions WHERE session_id = ?";
+  db.query(query, [sessionId], async (err, results) => {
+    if (err) {
+      console.error("❌ DB error:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    const session = results[0];
+
+    // 🔒 Check if this session_id has already been submitted
+    const [parsedRows] = await db.promise().query(
+      "SELECT id FROM parsed_emails WHERE session_id = ? AND type = 'availability'",
+      [sessionId]
+    );
+
+    if (parsedRows.length > 0) {
+      return res.status(403).json({ error: "This session has already been submitted." });
+    }
+
+    let slots = [];
+
+
+    try {
+      slots = JSON.parse(session.available_slots_json || '[]');
+    } catch (e) {
+      console.error("❌ Error parsing available_slots_json:", e);
+    }
+
+    // 🧠 Parse student_ids and fetch student details
+    let studentDetails = [];
+    try {
+      const studentIds = (session.student_ids || '')
+        .split(',')
+        .map(id => parseInt(id.trim()))
+        .filter(id => !isNaN(id));
+
+
+      if (Array.isArray(studentIds) && studentIds.length > 0) {
+        const placeholders = studentIds.map(() => '?').join(',');
+        const studentQuery = `
+          SELECT id, name, school, academicYear, yearofstudy
+          FROM student_database
+          WHERE id IN (${placeholders})
+        `;
+
+        const [studentResults] = await new Promise((resolve, reject) => {
+          db.query(studentQuery, studentIds, (err, rows) => {
+            if (err) reject(err);
+            else resolve([rows]);
+          });
+        });
+
+        studentDetails = studentResults;
+      }
+    } catch (e) {
+      console.error("❌ Error processing student_ids:", e);
+    }
+
+    // ✅ Final response
+    res.json({
+      ...session,
+      slots,
+      studentDetails
+    });
+  });
+});
+
+app.patch("/api/scheduling/parsed-email/:session_id/update-availability", async (req, res) => {
+  const { session_id } = req.params;
+  const { selected_slots, mcr_number, students } = req.body;
+
+  if (!Array.isArray(selected_slots) || selected_slots.length === 0 || !mcr_number) {
+    return res.status(400).json({ error: "Missing or invalid inputs." });
+  }
+
+  try {
+    // Step 1: Validate session exists and MCR is allowed
+    const [emailSessionRows] = await db.promise().query(
+      "SELECT doctor_mcrs, session_name FROM email_sessions WHERE session_id = ?",
+      [session_id]
+    );
+
+    if (emailSessionRows.length === 0) {
+      return res.status(404).json({ error: "Invalid session link." });
+    }
+
+    const allowedMCRs = emailSessionRows[0].doctor_mcrs
+      .split(',')
+      .map(m => m.trim());
+
+    const session_name = emailSessionRows[0].session_name;
+
+    if (!allowedMCRs.includes(mcr_number.trim())) {
+      return res.status(403).json({ error: "This MCR is not authorized for this session." });
+    }
+
+    // Step 2: Format selected slots
+    const formattedSlots = selected_slots.map(slot => {
+      const dateObj = new Date(slot.date);
+      const options = { day: 'numeric', month: 'long', year: 'numeric' };
+      const formattedDate = dateObj.toLocaleDateString('en-GB', options);
+
+      const formatTime = (timeStr) => {
+        const [hour, minute] = timeStr.split(':').map(Number);
+        const ampm = hour >= 12 ? 'pm' : 'am';
+        const hour12 = hour % 12 || 12;
+        return `${hour12}${minute === 0 ? '' : `:${minute.toString().padStart(2, '0')}`}${ampm}`;
+      };
+
+      const startTime = formatTime(slot.start);
+      const endTime = formatTime(slot.end);
+
+      return `${formattedDate} (${startTime}–${endTime})`;
+    }).join(', ');
+
+
+
+    // 🔍 Step 2.5: Get doctor's full name from main_data
+    let from_name = '';
+    let from_email = '';
+    try {
+      const [doctorRows] = await db.promise().query(
+        "SELECT first_name, last_name, email FROM main_data WHERE mcr_number = ?",
+        [mcr_number]
+      );
+
+      if (doctorRows.length > 0) {
+        const { first_name, last_name, email } = doctorRows[0];
+        from_name = `${first_name} ${last_name}`.trim();
+        from_email = email || '';
+      }
+    } catch (e) {
+      console.error("❌ Error fetching doctor name from main_data:", e);
+    }
+
+    // ✅ Step 3: Insert a new availability record into parsed_emails
+    const insertQuery = `
+  INSERT INTO parsed_emails (
+    type, session_name, from_name, from_email,
+    to_email, original_session, new_session,
+    reason, students, available_slots_timings,
+    notes, received_at, session_id
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)
+`;
+
+
+    await db.promise().query(insertQuery, [
+      'availability',     // type
+      session_name,
+      from_name,          // from_name ← ✅ fetched from main_data
+      from_email,
+      '',                 // to_email
+      '',                 // original_session
+      '',                 // new_session
+      '',                 // reason
+      students || '',     // students
+      formattedSlots,     // available_slots_timings
+      mcr_number,         // notes
+      session_id          // session_id
+    ]);
+
+
+    res.json({ message: "✅ Availability submitted successfully." });
+
+  } catch (err) {
+    console.error("❌ Error submitting availability:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // -------------------------------------------------------------------------------------------------------------//
 // ------------------- SPECIFIC STUDENT ID TIMETABLE -------------------
@@ -2385,13 +2666,14 @@ app.post("/api/email-sessions", (req, res) => {
     doctor_mcrs,
     student_ids,
     session_name,
+    available_slots_json,
   } = req.body;
 
   db.query(
     `INSERT INTO email_sessions 
-      (session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name],
+      (session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name, available_slots_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name, available_slots_json,],
     (err, results) => {
       if (err) {
         console.error("❌ Failed to store email session:", err);

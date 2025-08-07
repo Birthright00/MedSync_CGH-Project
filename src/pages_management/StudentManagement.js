@@ -26,6 +26,7 @@ const StudentData = () => {
     const [showPopup, setShowPopup] = useState(false);
     const [currentPage, setCurrentPage] = useState(1); // current page number
     const [overlappingRows, setOverlappingRows] = useState(new Set());
+    const [showingOverlaps, setShowingOverlaps] = useState(false);
     const currentUserADID = localStorage.getItem("adid");
 
     const findOverlaps = (students) => {
@@ -271,9 +272,18 @@ const StudentData = () => {
                             <div className="overlap-alert">
                                 <button
                                     className="btn btn-overlaps"
-                                    onClick={() => setFilteredStudents(allStudents.filter(s => overlappingRows.has(s.user_id + s.start_date)))}
+                                    onClick={() => {
+                                        if (showingOverlaps) {
+                                            // Unfilter: Show all students
+                                            setFilteredStudents(allStudents);
+                                        } else {
+                                            // Filter: Show only overlapping students
+                                            setFilteredStudents(allStudents.filter(s => overlappingRows.has(s.user_id + s.start_date)));
+                                        }
+                                        setShowingOverlaps(!showingOverlaps); // Toggle the state
+                                    }}
                                 >
-                                    Show Overlapping Students ({overlappingRows.size})
+                                    {showingOverlaps ? "Show All Students" : `Show Overlapping Students (${overlappingRows.size})`}
                                 </button>
                             </div>
                         )}

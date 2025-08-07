@@ -73,6 +73,14 @@ const StaffTimetable = () => {
                 return item.doctor_email === staffEmail;
             });
 
+
+            // Fetch parsed_emails for checking pending change requests
+            const parsedEmailRes = await axios.get(`${API_BASE_URL}/api/scheduling/parsed_emails`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const parsedChangeRequests = parsedEmailRes.data.filter(p => p.type === 'change_request');
+
+
             console.log('🔍 Filtered sessions:', filtered);
 
             const mappedEvents = filtered.map((item) => {
@@ -85,6 +93,12 @@ const StaffTimetable = () => {
                     'D MMMM YYYY h:mmA',
                     'D MMMM YYYY hA',
                 ]).toDate();
+
+                const hasPendingRequest = endDateTime > now && parsedChangeRequests.some(req =>
+                    req.session_name === item.session_name && req.from_email === item.doctor_email
+                );
+
+
 
                 return {
                     id: item.id,
@@ -100,6 +114,7 @@ const StaffTimetable = () => {
                     changeType: item.change_type,
                     changeReason: item.change_reason,
                     doctor_email: item.doctor_email,
+                    pendingChangeRequest: hasPendingRequest,
                 };
             });
 
@@ -182,6 +197,7 @@ const StaffTimetable = () => {
     }, []);
 
     const getEventColor = (event) => {
+        if (event.pendingChangeRequest) return '#FFA500'; // orange
         if (event.isPast) return '#999999';
         if (['rescheduled', 'resized'].includes(event.changeType)) return '#D49A00';
         return '#3174ad';
@@ -219,14 +235,18 @@ const StaffTimetable = () => {
 
     const CustomEvent = ({ event }) => (
         <div>
-            <div>
-                <strong>{event.title}</strong>
-            </div>
+            <strong>{event.title}</strong>
+            {event.pendingChangeRequest && (
+                <div style={{ fontSize: '0.75em', color: '#FFA500' }}>
+                    ⏳ Pending ADO approval
+                </div>
+            )}
             {event.location && (
                 <div style={{ fontSize: '0.75em', marginTop: '2px' }}>📍 {event.location}</div>
             )}
         </div>
     );
+
 
 
     return (
@@ -266,7 +286,7 @@ const StaffTimetable = () => {
                             event: CustomEvent,
                         }}
                         onSelectEvent={(event) => {
-                            if (!event.isPast) {
+                            if (!event.isPast && !event.pendingChangeRequest) {
                                 setEditForm({
                                     id: event.id,
                                     title: event.title,
@@ -283,6 +303,8 @@ const StaffTimetable = () => {
                                     changeReason: "",
                                     fromName: event.doctor_name || "Unknown", // ✅ FIXED
                                 });
+                            } else if (event.pendingChangeRequest) {
+                                alert("⚠️ A change request for this session is already pending ADO approval.");
                             }
                         }}
 
@@ -304,6 +326,8 @@ const StaffTimetable = () => {
                             borderRadius: '12px',
                             width: '90%',
                             maxWidth: '500px',
+                            maxHeight: '100vh',           // ✅ Limit height
+                            overflowY: 'auto',           // ✅ Scroll when content overflows
                             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
                             display: 'flex',
                             flexDirection: 'column',
@@ -327,6 +351,27 @@ const StaffTimetable = () => {
                                     }}
                                 />
                             </div>
+
+                            <div>
+                                <label style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>Location</label>
+                                <input
+                                    type="text"
+                                    value={editForm.location}
+                                    readOnly
+                                    disabled
+                                    style={{
+                                        width: '95%',
+                                        padding: '10px',
+                                        fontSize: '15px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #ccc',
+                                        backgroundColor: '#f3f3f3',
+                                        color: '#333',
+                                        cursor: 'not-allowed'
+                                    }}
+                                />
+                            </div>
+
 
                             <div>
                                 <label style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>Date</label>

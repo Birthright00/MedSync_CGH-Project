@@ -22,6 +22,9 @@ const DoctorScheduler = () => {
   const [isChangeRequest, setIsChangeRequest] = useState(false);
   const [locationInput, setLocationInput] = useState("");
 
+  
+
+
   const fetchAllData = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -58,6 +61,9 @@ const DoctorScheduler = () => {
     setShowLocationModal(true);
   };
 
+  // Handle notification rejection
+  // Deletes the notification and refreshes the list
+  // This is used for both availability and change requests
   const handleReject = async (notifId) => {
     try {
       const token = localStorage.getItem("token");
@@ -70,7 +76,32 @@ const DoctorScheduler = () => {
     }
   };
 
+  // Normalize start time from raw time range
+  // Handles different dash variants and formats the time to "h:mma"
+  // This is used to ensure consistent time formatting for matching sessions
+  function normalizeStartTime(rawTimeRange) {
+    if (!rawTimeRange) return "";
+    const dashVariants = ['–', '-', '—'];
+    let parts;
 
+    for (const dash of dashVariants) {
+      if (rawTimeRange.includes(dash)) {
+        parts = rawTimeRange.split(dash);
+        break;
+      }
+    }
+
+    if (!parts || parts.length < 1) return "";
+
+    const rawStart = parts[0].trim().toLowerCase();
+    const parsed = moment(rawStart, ["hA", "h:mmA"]);
+    return parsed.isValid() ? parsed.format("h:mma").toLowerCase() : rawStart;
+  }
+
+
+  // Handle location confirmation for both availability and change requests
+  // For availability, it adds the session to the timetable
+  // For change requests, it updates the existing session
   const handleConfirmLocation = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -91,26 +122,39 @@ const DoctorScheduler = () => {
         const matchingSession = timetableSessions.find(session => {
           const sessionName = session.session_name?.trim().toLowerCase();
           const doctorName = session.name?.trim().toLowerCase();
-          const sessionDate = session.date?.trim();
-          const sessionStartTime = session.time?.replace(/[()]/g, "").split("-")[0]?.trim().toLowerCase();
+          const expectedSessionName = (selectedNotif.original_session_name || selectedNotif.session_name)?.trim().toLowerCase();
+          const expectedDoctor = selectedNotif.name?.trim().toLowerCase();
+
+          const sessionDate = moment(session.date?.trim(), ["D MMMM YYYY", "DD MMMM YYYY"]).format("D MMMM YYYY");
+          const expectedDate = moment(originalDatePart?.trim(), ["D MMMM YYYY", "DD MMMM YYYY"]).format("D MMMM YYYY");
+
+          const sessionStartTime = normalizeStartTime(session.time?.replace(/[()]/g, ""));
+          const expectedStartTime = normalizeStartTime(originalTimeRange?.split(/[-–—]/)[0]);  // ✅ Normalize like session
+
+          const sessionDateTime = moment(`${sessionDate} ${sessionStartTime}`, ["D MMMM YYYY h:mma"]);
+          const now = moment();
+
+          // ❌ Skip if session already ended
+          if (sessionDateTime.isBefore(now)) return false;
 
           console.log("🔍 Matching against:");
-          console.log("sessionName:", session.session_name?.trim().toLowerCase());
-          console.log("expectedName:", (selectedNotif.original_session_name || selectedNotif.session_name)?.trim().toLowerCase());
-          console.log("doctorName:", session.name?.trim().toLowerCase());
-          console.log("expectedDoctor:", selectedNotif.name?.trim().toLowerCase());
-          console.log("sessionDate:", session.date?.trim());
+          console.log("sessionName:", sessionName);
+          console.log("expectedName:", expectedSessionName);
+          console.log("doctorName:", doctorName);
+          console.log("expectedDoctor:", expectedDoctor);
+          console.log("sessionDate:", sessionDate);
           console.log("expectedDate:", originalDate);
           console.log("sessionStartTime:", sessionStartTime);
           console.log("expectedTime:", originalStartTime);
 
           return (
-            sessionName === (selectedNotif.original_session_name || selectedNotif.session_name)?.trim().toLowerCase() &&
-            doctorName === selectedNotif.name?.trim().toLowerCase() &&
+            sessionName === expectedSessionName &&
+            doctorName === expectedDoctor &&
             sessionDate === originalDate &&
             sessionStartTime === originalStartTime
           );
         });
+
 
 
         if (!matchingSession) {

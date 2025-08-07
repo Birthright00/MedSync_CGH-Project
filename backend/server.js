@@ -1647,6 +1647,26 @@ app.post("/api/scheduling/parsed-email", (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// 🔍 GET REQUEST: Fetch all parsed_emails with type = 'change_request'
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/scheduling/parsed_emails", (req, res) => {
+  const query = `
+    SELECT * FROM parsed_emails
+    WHERE type = 'change_request'
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("❌ Error fetching parsed emails:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    res.json(results);
+  });
+});
+
+
+// -------------------------------------------------------------------------------------------------------------//
 // GET REQUEST to call for scheduling data and displaying it as notifications for type = availability
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/api/scheduling/availability-notifications", verifyToken, requireRole("management"), (req, res) => {

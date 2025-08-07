@@ -23,7 +23,7 @@ const StaffTimetable = () => {
     const modalRef = useRef(null);
     const [calendarView, setCalendarView] = useState(Views.WORK_WEEK);
     const [calendarDate, setCalendarDate] = useState(new Date());
-    
+
 
     const fetchTimetable = async () => {
         const token = localStorage.getItem('token');
@@ -388,6 +388,31 @@ const StaffTimetable = () => {
                                     />
                                 </div>
                             </div>
+
+                            <div>
+                                <label style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>
+                                    Students in Session
+                                </label>
+                                <div style={{
+                                    maxHeight: '120px',
+                                    overflowY: 'auto',
+                                    border: '1px solid #ccc',
+                                    borderRadius: '8px',
+                                    padding: '10px',
+                                    backgroundColor: '#f9f9f9',
+                                    fontSize: '14px',
+                                }}>
+                                    {(Array.isArray(editForm.students)
+                                        ? editForm.students
+                                        : (editForm.students || "").split(',')
+                                    ).map((student, idx) => (
+                                        <div key={idx} style={{ marginBottom: '4px' }}>
+                                            👤 {student.trim()}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
 
                             <div>
                                 <label style={{ fontWeight: '600', marginBottom: '6px', display: 'block' }}>

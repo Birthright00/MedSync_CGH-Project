@@ -2325,6 +2325,30 @@ app.post('/upload-student-data', async (req, res) => {
   }
 });
 
+// ------------------- Displaying All Doctors -------------------
+// ------------------- Get All Doctors from main_data -------------------
+// ------------------- Displaying All Doctors -------------------
+app.get('/doctors', (req, res) => {
+  const query = `
+    SELECT 
+      mcr_number, 
+      CONCAT(first_name, ' ', last_name) AS name, 
+      email 
+    FROM main_data 
+    WHERE deleted = 0
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('❌ Failed to retrieve doctors from main_data:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+
+
 // ------------------- Displaying Data from Student Database on Student Management Screen -------------------
 app.get('/students', (req, res) => {
   db.query('SELECT * FROM student_database', (err, results) => {

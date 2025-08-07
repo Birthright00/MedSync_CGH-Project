@@ -29,8 +29,22 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
   const [redoStack, setRedoStack] = useState([]);
   const [blockedDates, setBlockedDates] = useState([]);
   const [allStudentNames, setAllStudentNames] = useState([]);
+  const [doctorOptions, setDoctorOptions] = useState([]);
   const modalRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const [showManualSessionModal, setShowManualSessionModal] = useState(false);
+  const [manualForm, setManualForm] = useState({
+    session_name: "",
+    name: "",
+    doctor_email: "",
+    date: "",
+    time: "",
+    location: "",
+    students: "",
+    change_reason: ""
+  });
+
 
   const isSameDay = (d1, d2) => {
     return d1.getFullYear() === d2.getFullYear() &&
@@ -88,6 +102,29 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
     fetchAllStudents();
   }, []);
+
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/doctors`);
+        const formatted = res.data.map(doc => ({
+          label: `${doc.name} (${doc.email})`,
+          value: {
+            name: doc.name,
+            email: doc.email
+          }
+        }));
+        setDoctorOptions(formatted);
+      } catch (err) {
+        console.error("❌ Failed to fetch doctors:", err);
+      }
+    };
+
+    fetchDoctors();
+  }, []);
+
+
 
 
   useEffect(() => {
@@ -367,32 +404,32 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         }
       );
 
-        // ✅ Re-fetch updated students from backend
-  const res = await axios.get(`${API_BASE_URL}/api/scheduling/get-students-for-session/${selectedEvent.id}`);
-  const updatedStudents = res.data.students || [];
+      // ✅ Re-fetch updated students from backend
+      const res = await axios.get(`${API_BASE_URL}/api/scheduling/get-students-for-session/${selectedEvent.id}`);
+      const updatedStudents = res.data.students || [];
 
-  // ✅ Update frontend state with latest data
-  setForm((prev) => ({
-    ...prev,
-    students: [...new Set(updatedStudents.map((s) => s.trim()))]
-  }));
+      // ✅ Update frontend state with latest data
+      setForm((prev) => ({
+        ...prev,
+        students: [...new Set(updatedStudents.map((s) => s.trim()))]
+      }));
 
-  // ✅ Optional update to selectedEvent if it's reused
-  setSelectedEvent(prev => ({
-    ...prev,
-    students: updatedStudents.join(", ")
-  }));
+      // ✅ Optional update to selectedEvent if it's reused
+      setSelectedEvent(prev => ({
+        ...prev,
+        students: updatedStudents.join(", ")
+      }));
 
-  // ✅ Refresh calendar if needed
-  if (refreshSessions) {
-    await refreshSessions();
-  }
+      // ✅ Refresh calendar if needed
+      if (refreshSessions) {
+        await refreshSessions();
+      }
 
-  setSelectedEvent(null); // close modal
-} catch (err) {
-  console.error("❌ Failed to update backend:", err);
-  alert("Failed to save changes to database.");
-}
+      setSelectedEvent(null); // close modal
+    } catch (err) {
+      console.error("❌ Failed to update backend:", err);
+      alert("Failed to save changes to database.");
+    }
   };
 
 
@@ -650,6 +687,44 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     }
   };
 
+  const handleManualSubmit = async () => {
+    const token = localStorage.getItem("token");
+
+    try {
+      const payload = {
+        ...manualForm,
+        original_time: manualForm.time,
+        change_type: "manual",
+        is_read: false,
+      };
+
+      await axios.post(`${API_BASE_URL}/api/scheduling/add-to-timetable`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert("✅ Manual session added successfully.");
+      setShowManualSessionModal(false);
+      setManualForm({
+        session_name: "",
+        name: "",
+        doctor_email: "",
+        date: "",
+        time: "",
+        location: "",
+        students: "",
+        change_reason: ""
+      });
+
+      if (refreshSessions) {
+        await refreshSessions();
+      }
+    } catch (err) {
+      console.error("❌ Error adding manual session:", err);
+      alert("⚠️ Failed to add manual session. Check input fields.");
+    }
+  };
+
+
 
   const CustomToolbar = ({ label, onNavigate, onView, undoAvailable, redoAvailable, onUndo, onRedo }) => {
     return (
@@ -707,6 +782,24 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
           </button>
         </div>
       </div>
+
+      <div style={{ padding: '10px 20px', textAlign: 'right' }}>
+        <button
+          onClick={() => setShowManualSessionModal(true)}
+          style={{
+            backgroundColor: '#2196F3',
+            color: '#fff',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            fontWeight: 'bold',
+            cursor: 'pointer'
+          }}
+        >
+          ➕ Create Manual Session
+        </button>
+      </div>
+
+
       <div style={{ height: '70vh', padding: '0px' }}>
         <DnDCalendar
           localizer={localizer}
@@ -852,6 +945,166 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
           </div>
         </div>
       )}
+
+
+      {/* Overlay for Manual Session Creation */}
+      {showManualSessionModal && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div className="modal-box" style={{
+            maxWidth: "600px",
+            background: "#fff",
+            borderRadius: "12px",
+            padding: "24px",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+            width: "90%",
+            maxHeight: "90vh",
+            overflowY: "auto"
+          }}>
+            <h3>Create Manual Session</h3>
+
+            {/* Session Name */}
+            <div style={{ marginBottom: "16px", display: "flex", flexDirection: "column" }}>
+              <label style={{ fontWeight: "bold" }}>Session Name</label>
+              <input
+                type="text"
+                value={manualForm.session_name}
+                onChange={(e) => setManualForm({ ...manualForm, session_name: e.target.value })}
+                style={{ width: "100%", padding: "8px", marginTop: "4px" }}
+              />
+            </div>
+
+            {/* Doctor Dropdown */}
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ fontWeight: "bold" }}>Doctor</label>
+              <Select
+                options={doctorOptions}
+                onChange={(selected) => {
+                  setManualForm({
+                    ...manualForm,
+                    name: selected?.value.name || "",
+                    doctor_email: selected?.value.email || ""
+                  });
+                }}
+                placeholder="Search and select a doctor..."
+              />
+            </div>
+
+            {/* Date */}
+            <div style={{ marginBottom: "16px", display: "flex", flexDirection: "column" }}>
+              <label style={{ fontWeight: "bold" }}>Date (e.g. 7 August 2025)</label>
+              <input
+                type="text"
+                value={manualForm.date}
+                onChange={(e) => setManualForm({ ...manualForm, date: e.target.value })}
+                style={{ width: "100%", padding: "8px", marginTop: "4px" }}
+              />
+            </div>
+
+            {/* Time */}
+            <div style={{ marginBottom: "16px", display: "flex", flexDirection: "column" }}>
+              <label style={{ fontWeight: "bold" }}>Time (e.g. 2pm–4pm)</label>
+              <input
+                type="text"
+                value={manualForm.time}
+                onChange={(e) => setManualForm({ ...manualForm, time: e.target.value })}
+                style={{ width: "100%", padding: "8px", marginTop: "4px" }}
+              />
+            </div>
+
+            {/* Location */}
+            <div style={{ marginBottom: "16px", display: "flex", flexDirection: "column" }}>
+              <label style={{ fontWeight: "bold" }}>Location</label>
+              <input
+                type="text"
+                value={manualForm.location}
+                onChange={(e) => setManualForm({ ...manualForm, location: e.target.value })}
+                style={{ width: "100%", padding: "8px", marginTop: "4px" }}
+              />
+            </div>
+
+            {/* Students */}
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ fontWeight: "bold" }}>Students</label>
+              <div className="student-chips-scrollable" style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px',
+                marginBottom: '10px',
+                maxHeight: '100px',
+                overflowY: 'auto'
+              }}>
+                {(manualForm.students?.split(",") || []).filter(Boolean).map((name, index) => (
+                  <div key={index} className="chip" style={{
+                    padding: '6px 10px',
+                    background: '#d0e6ff',
+                    borderRadius: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    {name}
+                    <button
+                      type="button"
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+                      onClick={() => {
+                        const updated = manualForm.students
+                          .split(",")
+                          .filter((_, i) => i !== index)
+                          .join(",");
+                        setManualForm({ ...manualForm, students: updated });
+                      }}
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <Select
+                isMulti
+                placeholder="Add students..."
+                options={
+                  (allStudentNames || [])
+                    .filter(name => !(manualForm.students || "").split(",").includes(name))
+                    .map(name => ({ value: name, label: name }))
+                }
+                onChange={(selectedOptions) => {
+                  const selectedNames = selectedOptions.map(o => o.value);
+                  const currentNames = (manualForm.students || "").split(",").filter(n => n);
+                  const combined = [...new Set([...currentNames, ...selectedNames])];
+                  setManualForm({ ...manualForm, students: combined.join(",") });
+                }}
+              />
+            </div>
+
+            {/* Change Reason */}
+            <div style={{ marginBottom: "16px", display: "flex", flexDirection: "column" }}>
+              <label style={{ fontWeight: "bold" }}>Change Reason (optional)</label>
+              <input
+                type="text"
+                value={manualForm.change_reason}
+                onChange={(e) => setManualForm({ ...manualForm, change_reason: e.target.value })}
+                style={{ width: "100%", padding: "8px", marginTop: "4px" }}
+              />
+            </div>
+
+            {/* Buttons */}
+            <div className="modal-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={handleManualSubmit} className="confirm-btn">Submit</button>
+              <button onClick={() => setShowManualSessionModal(false)} className="cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
 
     </>

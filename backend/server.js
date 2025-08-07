@@ -1981,7 +1981,7 @@ app.delete("/api/scheduling/parsed-email/:id", (req, res) => {
 /* For Updating scheduled sessions in the timetable */
 app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
   const { id } = req.params;
-  const { title, doctor, location, start, end, original_time, change_type, change_reason, is_read, students } = req.body;
+  const { title, doctor, doctor_email, location, start, end, original_time, change_type, change_reason, is_read, students } = req.body;
 
   // Helper function to format date
   function formatDate(dateStr) {
@@ -2031,6 +2031,7 @@ app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
       original_time,
       change_type,
       change_reason,
+      doctor_email
     });
 
     // Step 1: Update the scheduled_sessions table
@@ -2038,10 +2039,11 @@ app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
       .promise()
       .query(
         `UPDATE scheduled_sessions
-       SET session_name = ?, name = ?, date = ?, time = ?, location = ?, students = ?, original_time = ?, change_type = ?, change_reason = ?, is_read = ?
+       SET session_name = ?, doctor_email = ?, name = ?, date = ?, time = ?, location = ?, students = ?, original_time = ?, change_type = ?, change_reason = ?, is_read = ?
        WHERE id = ?`,
         [
           title,
+          doctor_email,
           doctor,
           dateStr,
           timeStr,
@@ -2052,6 +2054,7 @@ app.patch("/api/scheduling/update-scheduled-session/:id", async (req, res) => {
           change_reason || null,
           is_read ?? 0,
           id,
+          
         ]
       );
 

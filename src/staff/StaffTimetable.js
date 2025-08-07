@@ -192,7 +192,7 @@ const StaffTimetable = () => {
 
     useEffect(() => {
         fetchTimetable();
-        const interval = setInterval(fetchTimetable, 10000);
+        const interval = setInterval(fetchTimetable, 3000);
         return () => clearInterval(interval);
     }, []);
 

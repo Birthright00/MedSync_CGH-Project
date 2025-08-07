@@ -389,6 +389,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${selectedEvent.id}`, {
         title: form.title,
         doctor: form.doctor,
+        doctor_email: form.doctor_email,
         location: form.location,
         start: form.start,
         end: form.end,
@@ -475,6 +476,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${event.id}`, {
         title: event.title,
         doctor: event.doctor,
+        doctor_email: form.doctor_email,
         location: event.location,
         start: start.toISOString(),   // convert to ISO format for backend consistency
         end: end.toISOString(),
@@ -517,6 +519,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${event.id}`, {
         title: event.title,
         doctor: event.doctor,
+        doctor_email: form.doctor_email,
         location: event.location,
         start: start.toISOString(),
         end: end.toISOString(),
@@ -591,6 +594,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${lastAction.before.id}`, {
           title: lastAction.before.title,
           doctor: lastAction.before.doctor,
+          doctor_email: form.doctor_email,
           location: lastAction.before.location,
           start: moment(lastAction.before.start).toISOString(),
           end: moment(lastAction.before.end).toISOString(),
@@ -607,6 +611,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${lastAction.before.id}`, {
           title: lastAction.before.title,
           doctor: lastAction.before.doctor,
+          doctor_email: form.doctor_email,
           location: lastAction.before.location,
           start: moment(lastAction.before.start).toISOString(),
           end: moment(lastAction.before.end).toISOString(),
@@ -652,6 +657,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${nextAction.after.id}`, {
           title: nextAction.after.title,
           doctor: nextAction.after.doctor,
+          doctor_email: form.doctor_email,
           location: nextAction.after.location,
           start: moment(nextAction.after.start).toISOString(),
           end: moment(nextAction.after.end).toISOString(),
@@ -668,6 +674,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${nextAction.after.id}`, {
           title: nextAction.after.title,
           doctor: nextAction.after.doctor,
+          doctor_email: form.doctor_email,
           location: nextAction.after.location,
           start: moment(nextAction.after.start).toISOString(),
           end: moment(nextAction.after.end).toISOString(),

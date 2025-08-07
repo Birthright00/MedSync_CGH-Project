@@ -93,8 +93,8 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
           params: { adid }
         });
 
-        const names = res.data.map(student => student.name).filter(Boolean);
-        setAllStudentNames(names);
+
+        setAllStudentNames(res.data);
       } catch (err) {
         console.error("❌ Failed to fetch student names:", err);
       }
@@ -836,7 +836,21 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
             <label>Title:</label>
             <input className="edit-input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
             <label>Doctor:</label>
-            <input className="edit-input" value={form.doctor} onChange={e => setForm({ ...form, doctor: e.target.value })} />
+            <Select
+              options={doctorOptions}
+              value={
+                doctorOptions.find(option => option.value.name === form.doctor) || null
+              }
+              onChange={(selected) => {
+                setForm({
+                  ...form,
+                  doctor: selected?.value.name || "",
+                  doctor_email: selected?.value.email || ""
+                });
+              }}
+              placeholder={form.doctor || "Search and select a doctor..."}
+            />
+
             <label>Students:</label>
             <div className="student-chips-scrollable" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {form.students.map((name, index) => (
@@ -862,17 +876,23 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
             <Select
               isMulti
               placeholder="Add students..."
-              options={
-                (allStudentNames || [])
-                  .filter(name => !form.students.includes(name))
-                  .map(name => ({ value: name, label: name }))
-              }
+              options={allStudentNames.map(student => ({
+                value: student.name,
+                label: `${student.name} (${student.school || 'Unknown'}, Year ${student.yearofstudy || '?'})`
+              }))}
+              filterOption={(option, input) => {
+                const words = input.toLowerCase().split(/\s+/); // Split input into words: ["nus", "m3"]
+                const target = option.label.toLowerCase().replace(/year\s?/g, 'm'); // e.g. "john tan (nus, m3)"
+
+                return words.every(word => target.includes(word));
+              }}
               onChange={(selectedOptions) => {
                 const selectedNames = selectedOptions.map(o => o.value);
                 const combined = [...new Set([...form.students, ...selectedNames])];
                 setForm({ ...form, students: combined });
               }}
             />
+
 
             <label>Location:</label>
             <input className="edit-input" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} />
@@ -1071,11 +1091,18 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
               <Select
                 isMulti
                 placeholder="Add students..."
-                options={
-                  (allStudentNames || [])
-                    .filter(name => !(manualForm.students || "").split(",").includes(name))
-                    .map(name => ({ value: name, label: name }))
+                options={allStudentNames
+                  .filter(student => !(manualForm.students || "").split(",").includes(student.name))
+                  .map(student => ({
+                    value: student.name,
+                    label: `${student.name} (${student.school || 'Unknown'}, ${student.yearofstudy || '?'})`
+                  }))
                 }
+                filterOption={(option, input) => {
+                  const words = input.toLowerCase().split(/\s+/);
+                  const target = option.label.toLowerCase().replace(/year\s?/g, 'm');
+                  return words.every(word => target.includes(word));
+                }}
                 onChange={(selectedOptions) => {
                   const selectedNames = selectedOptions.map(o => o.value);
                   const currentNames = (manualForm.students || "").split(",").filter(n => n);
@@ -1083,6 +1110,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
                   setManualForm({ ...manualForm, students: combined.join(",") });
                 }}
               />
+
             </div>
 
             {/* Change Reason */}

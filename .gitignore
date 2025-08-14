@@ -6,8 +6,8 @@
 .pnp.js
 
 # Ignore any authentication tokens
-*.token
-*.credentials
+src/scheduling/hospital_email_pipeline/email_profiles/edward.json
+src/token/access_token.json
 
 # testing
 /coverage

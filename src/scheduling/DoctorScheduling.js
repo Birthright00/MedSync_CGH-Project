@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { Calendar, Views, momentLocalizer } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import moment from 'moment';
 import Select from "react-select";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import '../styles/DoctorScheduler.css';
@@ -32,6 +36,16 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
   const [doctorOptions, setDoctorOptions] = useState([]);
   const modalRef = useRef(null);
   const fileInputRef = useRef(null);
+  const calendarRef = useRef(null);
+
+  // Export functionality states
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportType, setExportType] = useState(null); // 'png' or 'pdf'
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
+  const [calendarView, setCalendarView] = useState(Views.WORK_WEEK);
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  // Hidden calendar states removed - using visible calendar for export
 
   const [showManualSessionModal, setShowManualSessionModal] = useState(false);
   const [manualForm, setManualForm] = useState({
@@ -128,6 +142,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
 
 
   useEffect(() => {
+    // Performance optimization: Only run if sessions or blockedDates actually changed
     const mappedEvents = sessions.map((s, index) => {
       const { startDate, endDate } = parseDateAndTime(s.date, s.time);
       return {
@@ -144,11 +159,13 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         changeReason: s.change_reason,
       };
     });
-    // Walkabout Blocks & Trimming
-    const walkaboutBlocks = generateWalkaboutBlocks(mappedEvents).filter(w => {
-      return !blockedDates.some(b => isSameDay(w.start, b.start));
-    });
 
+    // Performance optimization: Only generate walkabout blocks if we have mapped events
+    const walkaboutBlocks = mappedEvents.length > 0 
+      ? generateWalkaboutBlocks(mappedEvents).filter(w => {
+          return !blockedDates.some(b => isSameDay(w.start, b.start));
+        })
+      : [];
 
     const blockedDateEvents = blockedDates.map((d, idx) => ({
       id: `blocked-${idx}`,
@@ -734,7 +751,192 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
     }
   };
 
+  const exportAsImage = async () => {
+    const start = moment(exportStartDate).startOf('day');
+    const end = moment(exportEndDate).endOf('day');
 
+    const zip = new JSZip();
+    const container = calendarRef.current;
+    const originalHeight = container.style.height;
+    const originalDate = calendarDate;
+    const originalView = calendarView;
+
+    // 📦 Work_Week Export (multi-week PNGs)
+    if (calendarView === Views.WORK_WEEK) {
+      let weekCursor = moment(start);
+      let weekIndex = 1;
+
+      setCalendarView(Views.WORK_WEEK);
+
+      while (weekCursor.isSameOrBefore(end, 'week')) {
+        setCalendarDate(weekCursor.toDate());
+
+        await new Promise(resolve => setTimeout(resolve, 700));
+        container.style.height = 'auto';
+
+        const canvas = await html2canvas(container, { scale: 2 });
+        const dataURL = canvas.toDataURL('image/png');
+
+        zip.file(`timetable_week${weekIndex}.png`, dataURL.split(',')[1], { base64: true });
+
+        weekIndex++;
+        weekCursor.add(1, 'week');
+      }
+    }
+
+    // 📦 Agenda View Export (single PNG over date range)
+    else if (calendarView === Views.AGENDA) {
+      setCalendarView(Views.AGENDA);
+      setCalendarDate(start.toDate());
+
+      await new Promise(resolve => setTimeout(resolve, 700));
+      container.style.height = 'auto';
+
+      const canvas = await html2canvas(container, { scale: 2 });
+      const dataURL = canvas.toDataURL('image/png');
+
+      zip.file(`timetable_agenda_${start.format("YYYYMMDD")}_to_${end.format("YYYYMMDD")}.png`, dataURL.split(',')[1], { base64: true });
+    }
+
+    // 📦 Month View Export (single PNG)
+    else {
+      setCalendarView(Views.MONTH);
+      setCalendarDate(start.toDate());
+
+      await new Promise(resolve => setTimeout(resolve, 700));
+      container.style.height = 'auto';
+
+      const canvas = await html2canvas(container, { scale: 2 });
+      const dataURL = canvas.toDataURL('image/png');
+
+      zip.file(`timetable_month_${start.format("YYYYMMDD")}.png`, dataURL.split(',')[1], { base64: true });
+    }
+
+    // 🎯 Restore State
+    container.style.height = originalHeight;
+    setCalendarDate(originalDate);
+    setCalendarView(originalView);
+
+    // 📥 Trigger ZIP Download
+    zip.generateAsync({ type: 'blob' }).then(content => {
+      saveAs(content, 'timetable_export.zip');
+    });
+  };
+
+  const exportAsPDF = async () => {
+    const start = moment(exportStartDate).startOf('day');
+    const end = moment(exportEndDate).endOf('day');
+
+    const pdf = new jsPDF('landscape');
+    const container = calendarRef.current;
+    const originalDate = calendarDate;
+    const originalView = calendarView;
+    const originalHeight = container.style.height;
+
+    // Case A: Weekly export (multi-page)
+    if (calendarView === Views.WORK_WEEK) {
+      let firstPage = true;
+      const weekCursor = moment(start);
+
+      setCalendarView(Views.WORK_WEEK);
+
+      while (weekCursor.isSameOrBefore(end, 'week')) {
+        setCalendarDate(weekCursor.toDate());
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        container.style.height = 'auto';
+
+        const canvas = await html2canvas(container, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        if (!firstPage) pdf.addPage();
+        firstPage = false;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+        weekCursor.add(1, 'week');
+      }
+    }
+
+    // Case B: Agenda view (single page)
+    else if (calendarView === Views.AGENDA) {
+      setCalendarView(Views.AGENDA);
+      setCalendarDate(start.toDate());
+
+      await new Promise(resolve => setTimeout(resolve, 700));
+      container.style.height = 'auto';
+
+      const canvas = await html2canvas(container, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    }
+
+    // Case C: Month view
+    else {
+      setCalendarView(Views.MONTH);
+      setCalendarDate(start.toDate());
+
+      await new Promise(resolve => setTimeout(resolve, 600));
+      container.style.height = 'auto';
+
+      const canvas = await html2canvas(container, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    }
+
+    pdf.save('timetable.pdf');
+
+    // Restore state
+    container.style.height = originalHeight;
+    setCalendarDate(originalDate);
+    setCalendarView(originalView);
+  };
+
+  const handleExport = async () => {
+    const start = moment(exportStartDate).startOf('day');
+    const end = moment(exportEndDate).endOf('day');
+
+    const filteredEvents = events.filter(event =>
+      moment(event.start).isSameOrAfter(start) &&
+      moment(event.end).isSameOrBefore(end)
+    );
+
+    // Backup state
+    const backupEvents = [...events];
+    const backupDate = calendarDate;
+    const backupView = calendarView;
+
+    setEvents(filteredEvents);
+    setShowExportModal(false);
+
+    if (exportType === 'png') {
+      await exportAsImage();
+      setEvents(backupEvents);
+      setCalendarDate(backupDate);
+      setCalendarView(backupView);
+      return;
+    }
+
+
+    if (exportType === 'pdf') {
+      await exportAsPDF();
+      setEvents(backupEvents);
+      setCalendarDate(backupDate);
+      setCalendarView(backupView);
+      return;
+    }
+  };
 
   const CustomToolbar = ({ label, onNavigate, onView, undoAvailable, redoAvailable, onUndo, onRedo }) => {
     return (
@@ -807,17 +1009,36 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         >
           ➕ Create Manual Session
         </button>
+        
+        <button
+          onClick={() => setShowExportModal(true)}
+          style={{
+            backgroundColor: '#FF9800',
+            color: '#fff',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            marginLeft: '10px',
+          }}
+        >
+          📄 Export Timetable
+        </button>
       </div>
 
 
-      <div style={{ height: '70vh', padding: '0px' }}>
+      <div ref={calendarRef} style={{ height: '70vh', padding: '0px' }}>
         <DnDCalendar
           localizer={localizer}
           events={events}
           startAccessor="start"
           endAccessor="end"
-          defaultView={Views.WORK_WEEK}
+          view={calendarView}
+          date={calendarDate}
+          onView={view => setCalendarView(view)}
+          onNavigate={setCalendarDate}
           views={['month', 'work_week', 'agenda']}
+          length={1}
           min={new Date(1970, 1, 1, 8, 0)}   // <-- Start at 8:00 AM
           max={new Date(1970, 1, 1, 18, 0)}  // <-- End at 6:00 PM
           onSelectEvent={(event, e) => handleSelectEvent(event, e)}
@@ -838,6 +1059,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
           }}
         />
       </div>
+
 
       {selectedEvent && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', overflowY: 'auto', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
@@ -1122,18 +1344,6 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
               />
 
             </div>
-
-            {/* Change Reason */}
-            <div style={{ marginBottom: "16px", display: "flex", flexDirection: "column" }}>
-              <label style={{ fontWeight: "bold" }}>Change Reason (optional)</label>
-              <input
-                type="text"
-                value={manualForm.change_reason}
-                onChange={(e) => setManualForm({ ...manualForm, change_reason: e.target.value })}
-                style={{ width: "100%", padding: "8px", marginTop: "4px" }}
-              />
-            </div>
-
             {/* Buttons */}
             <div className="modal-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button onClick={handleManualSubmit} className="confirm-btn">Submit</button>
@@ -1143,7 +1353,86 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         </div>
       )}
 
+      {/* Export Modal */}
+      {showExportModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div ref={modalRef} style={{ background: '#fff', padding: '30px 40px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 0 20px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <h2>📄 Export Management Timetable</h2>
+            
+            <label>Export Format:</label>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <input 
+                  type="radio" 
+                  name="exportType" 
+                  value="pdf" 
+                  onChange={(e) => setExportType(e.target.value)}
+                />
+                PDF
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <input 
+                  type="radio" 
+                  name="exportType" 
+                  value="png" 
+                  onChange={(e) => setExportType(e.target.value)}
+                />
+                PNG (ZIP)
+              </label>
+            </div>
 
+
+            <label>Start Date:</label>
+            <input 
+              type="date" 
+              value={exportStartDate} 
+              onChange={(e) => setExportStartDate(e.target.value)}
+            />
+
+            <label>End Date:</label>
+            <input 
+              type="date" 
+              value={exportEndDate} 
+              onChange={(e) => setExportEndDate(e.target.value)}
+            />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+              <button 
+                onClick={handleExport}
+                disabled={!exportType || !exportStartDate || !exportEndDate}
+                style={{ 
+                  backgroundColor: (!exportType || !exportStartDate || !exportEndDate) ? '#ccc' : '#FF9800', 
+                  color: '#fff', 
+                  padding: '10px 20px', 
+                  borderRadius: '8px',
+                  cursor: (!exportType || !exportStartDate || !exportEndDate) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                📥 Export
+              </button>
+              <button 
+                onClick={() => {
+                  setShowExportModal(false);
+                  setExportType(null);
+                  setExportStartDate('');
+                  setExportEndDate('');
+                }}
+                style={{ 
+                  backgroundColor: '#6c757d', 
+                  color: '#fff', 
+                  padding: '10px 20px', 
+                  borderRadius: '8px' 
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </>
   );

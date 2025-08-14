@@ -5,6 +5,10 @@
 /.pnp
 .pnp.js
 
+# Ignore any authentication tokens
+*.token
+*.credentials
+
 # testing
 /coverage
 

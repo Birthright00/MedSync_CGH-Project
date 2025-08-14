@@ -2690,10 +2690,157 @@ app.post("/api/email-sessions", (req, res) => {
 
 
 // -------------------------------------------------------------------------------------------------------------//
+// Admin Email Configuration Endpoint
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/admin-emails", async (req, res) => {
+  try {
+    const data = await readFile('../src/config/admin-emails.json', 'utf-8');
+    const adminConfig = JSON.parse(data);
+    res.json(adminConfig);
+  } catch (error) {
+    console.error("Failed to read admin emails config:", error);
+    res.status(500).json({ error: "Failed to load admin emails configuration" });
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// Web-based Email Authentication Endpoints
+// -------------------------------------------------------------------------------------------------------------//
+let authSessions = {}; // Store ongoing authentication sessions
+
+app.post("/api/authenticate-email", async (req, res) => {
+  try {
+    const { profile, email, name } = req.body;
+    
+    // Create a unique session ID for this authentication
+    const sessionId = `auth_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Store session info
+    authSessions[sessionId] = {
+      profile,
+      email,
+      name,
+      status: 'pending',
+      created: new Date().toISOString()
+    };
+    
+    // Return authentication URL and user code (simulated)
+    res.json({
+      auth_url: "https://login.microsoftonline.com/common/oauth2/v2.0/devicecode",
+      user_code: `${profile.toUpperCase()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
+      session_id: sessionId,
+      message: `Please authenticate with ${email}`
+    });
+    
+  } catch (error) {
+    console.error("Authentication initiation error:", error);
+    res.status(500).json({ error: "Failed to initiate authentication" });
+  }
+});
+
+app.get("/api/check-auth-status/:profile", async (req, res) => {
+  try {
+    const { profile } = req.params;
+    
+    // Check if profile has been authenticated (check for profile file)
+    const profilePath = `../src/scheduling/hospital_email_pipeline/email_profiles/${profile}.json`;
+    try {
+      const profileData = await readFile(profilePath, 'utf-8');
+      const profileJson = JSON.parse(profileData);
+      
+      if (profileJson.access_token && profileJson.access_token.trim() !== '') {
+        res.json({ authenticated: true, profile });
+      } else {
+        res.json({ authenticated: false, profile });
+      }
+    } catch (fileError) {
+      res.json({ authenticated: false, profile });
+    }
+    
+  } catch (error) {
+    console.error("Auth status check error:", error);
+    res.status(500).json({ error: "Failed to check authentication status" });
+  }
+});
+
+// Alternative simpler authentication endpoint that gives instructions
+app.post("/api/authenticate-simple", async (req, res) => {
+  try {
+    const { profile, email, name } = req.body;
+    
+    res.json({
+      success: true,
+      instructions: `To authenticate ${name} <${email}>:\n\n1. Open terminal/command prompt\n2. Navigate to: src/scheduling/hospital_email_pipeline\n3. Run: python email_config.py setup ${profile} ${email} "${name}"\n4. Follow the authentication prompts\n5. Click "Check Authentication" when complete`,
+      command: `python email_config.py setup ${profile} ${email} "${name}"`
+    });
+    
+  } catch (error) {
+    console.error("Simple auth error:", error);
+    res.status(500).json({ error: "Failed to generate authentication instructions" });
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // Access Token Calling and Endpoint
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/api/token", async (req, res) => {
   try {
+    const profile = req.query.profile || 'default'; // Get profile from query param
+    
+    // Load admin email mappings from config file
+    let adminEmailMappings = {};
+    try {
+      const configData = await readFile('../src/config/admin-emails.json', 'utf-8');
+      const adminConfig = JSON.parse(configData);
+      
+      // Convert to the format needed for profiles
+      adminEmailMappings = Object.entries(adminConfig.admins).reduce((acc, [key, value]) => {
+        acc[key.toLowerCase()] = { email: value.email, name: value.name };
+        return acc;
+      }, {});
+    } catch (configError) {
+      console.error("Failed to load admin emails config:", configError);
+      // Fallback to hardcoded values
+      adminEmailMappings = {
+        'channe': { email: 'channe@hospital.com', name: 'Channe' },
+        'jeffrey': { email: 'jeffrey@hospital.com', name: 'Jeffrey' },
+        'jennifer': { email: 'jennifer@hospital.com', name: 'Jennifer' },
+        'rose': { email: 'rose@hospital.com', name: 'Rose' },
+        'edward': { email: 'raintail0025@outlook.com', name: 'Edward' },
+        'custom': { email: 'default@hospital.com', name: 'Default Admin' }
+      };
+    }
+    
+    // Try to load from email profile first
+    const profilePath = `../src/scheduling/hospital_email_pipeline/email_profiles/${profile}.json`;
+    try {
+      const profileData = await readFile(profilePath, 'utf-8');
+      const profileJson = JSON.parse(profileData);
+      if (profileJson.access_token) {
+        res.json({ 
+          access_token: profileJson.access_token,
+          sender_email: profileJson.sender_email,
+          sender_name: profileJson.sender_name 
+        });
+        return;
+      }
+    } catch (profileError) {
+      console.log(`Profile ${profile} not found, will need authentication`);
+    }
+    
+    // If profile doesn't exist, return profile info for frontend to handle
+    if (adminEmailMappings[profile]) {
+      res.status(401).json({ 
+        error: "Profile not authenticated",
+        profile: profile,
+        sender_email: adminEmailMappings[profile].email,
+        sender_name: adminEmailMappings[profile].name,
+        needs_auth: true
+      });
+      return;
+    }
+    
+    // Fallback to original token file
     const data = await readFile('../src/token/access_token.json', 'utf-8');
     const json = JSON.parse(data);
     res.json(json);

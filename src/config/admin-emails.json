@@ -1,0 +1,28 @@
+{
+  "admins": {
+    "Channe": {
+      "email": "channe@hospital.com",
+      "name": "Channe"
+    },
+    "Jeffrey": {
+      "email": "jeffrey@hospital.com", 
+      "name": "Jeffrey"
+    },
+    "Jennifer": {
+      "email": "jennifer@hospital.com",
+      "name": "Jennifer"
+    },
+    "Rose": {
+      "email": "rose@hospital.com",
+      "name": "Rose"
+    },
+    "Edward": {
+      "email": "raintail0025@outlook.com",
+      "name": "Edward"
+    },
+    "Custom": {
+      "email": "default@hospital.com",
+      "name": "Default Admin"
+    }
+  }
+}

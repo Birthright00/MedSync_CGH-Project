@@ -29,12 +29,17 @@ const CreateNewSession = () => {
         { date: '', startTime: '', endTime: '' }
     ]);
     const [selectedTemplate, setSelectedTemplate] = useState('');
+    const [selectedEmailProfile, setSelectedEmailProfile] = useState('default');
+    const [adminEmailMappings, setAdminEmailMappings] = useState({});
+    const [isAuthenticating, setIsAuthenticating] = useState(false);
+    const [needsAuth, setNeedsAuth] = useState(false);
 
 
 
 
     useEffect(() => {
         const currentUserADID = localStorage.getItem("adid") || ""; // Fallback to empty string
+        
         // Fetch doctors data from the API
         axios
             .get(`${API_BASE_URL}/main_data`)
@@ -46,6 +51,34 @@ const CreateNewSession = () => {
             .get(`${API_BASE_URL}/students?adid=${currentUserADID}`)
             .then((res) => setStudents(res.data))
             .catch((err) => console.error("Error fetching students:", err));
+        
+        // Fetch admin email configuration
+        axios
+            .get(`${API_BASE_URL}/api/admin-emails`)
+            .then((res) => {
+                // Convert to the format needed for frontend
+                const mappings = Object.entries(res.data.admins).reduce((acc, [key, value]) => {
+                    acc[key] = {
+                        profile: key.toLowerCase(),
+                        email: value.email,
+                        name: value.name
+                    };
+                    return acc;
+                }, {});
+                setAdminEmailMappings(mappings);
+            })
+            .catch((err) => {
+                console.error("Error fetching admin emails:", err);
+                // Fallback to hardcoded values if API fails
+                setAdminEmailMappings({
+                    'Channe': { profile: 'channe', email: 'channe@hospital.com', name: 'Channe' },
+                    'Jeffrey': { profile: 'jeffrey', email: 'jeffrey@hospital.com', name: 'Jeffrey' },
+                    'Jennifer': { profile: 'jennifer', email: 'jennifer@hospital.com', name: 'Jennifer' },
+                    'Rose': { profile: 'rose', email: 'rose@hospital.com', name: 'Rose' },
+                    'Edward': { profile: 'edward', email: 'raintail0025@outlook.com', name: 'Edward' },
+                    'Custom': { profile: 'default', email: 'default@hospital.com', name: 'Default Admin' }
+                });
+            });
     }, []);
 
     const toggleDoctor = (mcr_number) => {
@@ -161,6 +194,66 @@ const CreateNewSession = () => {
         return summary;
     };
 
+    const handleEmailAuthentication = async () => {
+        if (!adminName || !adminEmailMappings[adminName]) {
+            alert("Please select an admin first");
+            return;
+        }
+
+        const adminInfo = adminEmailMappings[adminName];
+        setIsAuthenticating(true);
+
+        try {
+            // Call backend to get authentication instructions
+            const response = await axios.post(`${API_BASE_URL}/api/authenticate-simple`, {
+                profile: adminInfo.profile,
+                email: adminInfo.email,
+                name: adminInfo.name
+            });
+
+            if (response.data.success) {
+                // Show clear instructions
+                alert(`📧 Authentication Setup for ${adminInfo.name} <${adminInfo.email}>\n\n${response.data.instructions}`);
+                
+                // Copy command to clipboard if possible
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(response.data.command).then(() => {
+                        console.log("Command copied to clipboard");
+                    }).catch(() => {
+                        console.log("Could not copy to clipboard");
+                    });
+                }
+                
+                setNeedsAuth(true);
+            }
+        } catch (error) {
+            console.error("Authentication error:", error);
+            alert("Failed to generate authentication instructions. Please try again.");
+        } finally {
+            setIsAuthenticating(false);
+        }
+    };
+
+    const checkAuthenticationStatus = async () => {
+        if (!adminName || !adminEmailMappings[adminName]) return;
+
+        const adminInfo = adminEmailMappings[adminName];
+
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/check-auth-status/${adminInfo.profile}`);
+            
+            if (response.data.authenticated) {
+                alert("✅ Authentication successful! You can now send emails.");
+                setNeedsAuth(false);
+            } else {
+                alert("⏳ Authentication not complete yet. Please complete the sign-in process.");
+            }
+        } catch (error) {
+            console.error("Auth check error:", error);
+            alert("Unable to check authentication status. Please try again.");
+        }
+    };
+
 
 
     const generateEmailContent = (sessionId) => {
@@ -236,13 +329,25 @@ Associate Dean’s Office (ADO)`;
             return;
         }
 
-        // ✅ Optional: Load token from API (assuming you have a working endpoint for this)
+        // ✅ Load token from API with selected email profile
         let accessToken = "";
+        let senderInfo = {};
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/token`);
+            const res = await axios.get(`${API_BASE_URL}/api/token?profile=${selectedEmailProfile}`);
             accessToken = res.data.access_token;
+            senderInfo = {
+                email: res.data.sender_email,
+                name: res.data.sender_name
+            };
+            console.log(`📧 Using email profile: ${senderInfo.name} <${senderInfo.email}>`);
         } catch (error) {
-            alert("❌ Failed to retrieve access token.");
+            if (error.response && error.response.status === 401 && error.response.data.needs_auth) {
+                const profileInfo = error.response.data;
+                alert(`❌ Email profile "${profileInfo.sender_name} <${profileInfo.sender_email}>" needs authentication.\n\nClick the "Authenticate Email" button below to set this up.`);
+                setNeedsAuth(true);
+            } else {
+                alert("❌ Failed to retrieve access token. Make sure the email profile is configured.");
+            }
             console.error(error);
             return;
         }
@@ -415,7 +520,14 @@ Associate Dean’s Office (ADO)`;
                             <label style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#1976d2' }}>Admin Name</label>
                             <select
                                 value={adminName}
-                                onChange={(e) => setAdminName(e.target.value)}
+                                onChange={(e) => {
+                                    const selectedAdmin = e.target.value;
+                                    setAdminName(selectedAdmin);
+                                    // Automatically set email profile based on admin selection
+                                    if (adminEmailMappings[selectedAdmin]) {
+                                        setSelectedEmailProfile(adminEmailMappings[selectedAdmin].profile);
+                                    }
+                                }}
                                 style={{
                                     width: '100%',
                                     padding: '0.65rem',
@@ -425,11 +537,11 @@ Associate Dean’s Office (ADO)`;
                                 }}
                             >
                                 <option value="">-- Select Admin Name --</option>
-                                <option value="Channe">Channe</option>
-                                <option value="Jeffrey">Jeffrey</option>
-                                <option value="Jennifer">Jennifer</option>
-                                <option value="Rose">Rose</option>
-                                <option value="Custom">Custom</option>
+                                {Object.keys(adminEmailMappings).map((adminName) => (
+                                    <option key={adminName} value={adminName}>
+                                        {adminName}
+                                    </option>
+                                ))}
                             </select>
                             {adminName === "Custom" && (
                                 <input
@@ -580,20 +692,84 @@ Associate Dean’s Office (ADO)`;
 
 
                     <div className="form-section">
-                        <h2 className="section-title">✉️ Email Template</h2>
+                        <h2 className="section-title">✉️ Email Template & Sender</h2>
 
-                        <div className="form-group">
-                            <label>Select Template</label>
-                            <select
-                                value={selectedTemplate}
-                                onChange={(e) => setSelectedTemplate(e.target.value)}
-                            >
-                                <option value="">-- Select an Email Template --</option>
-                                <option value="tutorial_availability">
-                                    📧 Tutorial Session – Ask Availability
-                                </option>
-                                {/* More templates can be added after your meeting */}
-                            </select>
+                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                            <div className="form-group" style={{ flex: 1 }}>
+                                <label>Email Template</label>
+                                <select
+                                    value={selectedTemplate}
+                                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                                >
+                                    <option value="">-- Select an Email Template --</option>
+                                    <option value="tutorial_availability">
+                                        📧 Tutorial Session – Ask Availability
+                                    </option>
+                                    {/* More templates can be added after your meeting */}
+                                </select>
+                            </div>
+                            
+                            <div className="form-group" style={{ flex: 1 }}>
+                                <label>Sender Email (Auto-selected)</label>
+                                <input
+                                    type="text"
+                                    value={adminName && adminEmailMappings[adminName] ? 
+                                        `${adminEmailMappings[adminName].name} <${adminEmailMappings[adminName].email}>` : 
+                                        'No admin selected'}
+                                    disabled
+                                    style={{
+                                        backgroundColor: '#f5f5f5',
+                                        color: '#666',
+                                        padding: '0.65rem',
+                                        border: '2px solid #e0e0e0',
+                                        borderRadius: '8px',
+                                        width: '100%'
+                                    }}
+                                />
+                                <small style={{ color: '#666', fontSize: '0.8rem' }}>
+                                    Email automatically selected based on admin name
+                                </small>
+                                
+                                {/* Authentication buttons */}
+                                {adminName && (
+                                    <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                                        <button
+                                            type="button"
+                                            onClick={handleEmailAuthentication}
+                                            disabled={isAuthenticating}
+                                            style={{
+                                                padding: '0.5rem 1rem',
+                                                backgroundColor: '#1976d2',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '5px',
+                                                cursor: isAuthenticating ? 'not-allowed' : 'pointer',
+                                                fontSize: '0.8rem'
+                                            }}
+                                        >
+                                            {isAuthenticating ? '🔄 Authenticating...' : '🔐 Authenticate Email'}
+                                        </button>
+                                        
+                                        {needsAuth && (
+                                            <button
+                                                type="button"
+                                                onClick={checkAuthenticationStatus}
+                                                style={{
+                                                    padding: '0.5rem 1rem',
+                                                    backgroundColor: '#4caf50',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '5px',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.8rem'
+                                                }}
+                                            >
+                                                ✅ Check Authentication
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {selectedTemplate && (

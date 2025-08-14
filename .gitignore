@@ -16,7 +16,7 @@ src/token/access_token.json
 /build
 /excel_test
 
-.claude
+/.claude
 
 # misc
 .DS_Store

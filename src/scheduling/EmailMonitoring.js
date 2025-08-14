@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/createSession.css';
+import Navbar from '../components/Navbar';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001';
 
@@ -196,8 +197,10 @@ const EmailMonitoring = () => {
     };
 
     return (
-        <div className="create-session-container">
-            <h1>🤖 Email Monitoring & LLM Processing</h1>
+        <div>
+            <Navbar />
+            <div className="create-session-container">
+                <h1>🤖 Email Monitoring & LLM Processing</h1>
             
             {configError && (
                 <div className="form-box" style={{ backgroundColor: '#fee', borderColor: '#fcc' }}>
@@ -342,6 +345,7 @@ const EmailMonitoring = () => {
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 };

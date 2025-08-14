@@ -94,9 +94,34 @@ const StaffTimetable = () => {
                     'D MMMM YYYY hA',
                 ]).toDate();
 
-                const hasPendingRequest = endDateTime > now && parsedChangeRequests.some(req =>
-                    req.session_name === item.session_name && req.from_email === item.doctor_email
-                );
+                const hasPendingRequest = endDateTime > now && parsedChangeRequests.some(req => {
+                    // First try to match by original_session_id if available (most reliable)
+                    if (req.original_session_id && item.id) {
+                        return req.original_session_id == item.id; // Use == for type coercion
+                    }
+                    
+                    // Fallback to matching by session name, doctor email, AND original session details
+                    const sameSessionAndDoctor = req.session_name === item.session_name && req.from_email === item.doctor_email;
+                    
+                    if (!sameSessionAndDoctor) return false;
+                    
+                    // Parse the original session date and time from the change request
+                    const originalSessionText = req.original_session || "";
+                    const dateTimeMatch = originalSessionText.match(/(\d{1,2}\s+\w+\s+\d{4})\s+(\d{1,2}:\d{2}[AP]M)/i);
+                    
+                    if (!dateTimeMatch) {
+                        // If we can't parse the original session details, fall back to name/email matching
+                        // This might cause the original bug, but it's better than breaking everything
+                        return true;
+                    }
+                    
+                    const [, requestDate, requestTime] = dateTimeMatch;
+                    const requestDateTime = moment(`${requestDate} ${requestTime}`, 'D MMMM YYYY h:mmA');
+                    const sessionDateTime = moment(`${item.date} ${startTimeStr}`, 'D MMMM YYYY h:mmA');
+                    
+                    // Match if the date and start time are the same (within 1 minute tolerance)
+                    return Math.abs(requestDateTime.diff(sessionDateTime, 'minutes')) <= 1;
+                });
 
 
 
@@ -157,6 +182,7 @@ const StaffTimetable = () => {
                 type: "change_request",
                 session_name: editForm.title || "Untitled",
                 original_session_name: editForm.originalSessionName || editForm.title || "Untitled", // ✅ Add this line
+                original_session_id: editForm.id, // ✅ Add unique session identifier
                 from_name: fromName,
                 from_email: fromEmail,
                 original_session:

@@ -93,9 +93,26 @@ const DoctorScheduler = () => {
 
     if (!parts || parts.length < 1) return "";
 
-    const rawStart = parts[0].trim().toLowerCase();
-    const parsed = moment(rawStart, ["hA", "h:mmA"]);
-    return parsed.isValid() ? parsed.format("h:mma").toLowerCase() : rawStart;
+    const rawStart = parts[0].trim();
+    
+    // Try multiple moment.js parsing formats to handle various time formats
+    const formats = [
+      "h:mmA",      // 3:00PM
+      "hA",         // 3PM  
+      "h:mma",      // 3:00pm
+      "ha",         // 3pm
+      "HH:mm",      // 15:00 (24-hour)
+      "H:mm",       // 3:00 (24-hour single digit)
+    ];
+    
+    const parsed = moment(rawStart, formats, true); // strict parsing
+    
+    if (parsed.isValid()) {
+      return parsed.format("h:mma").toLowerCase();
+    }
+    
+    // Fallback: return the original time in lowercase
+    return rawStart.toLowerCase();
   }
 
 
@@ -120,6 +137,18 @@ const DoctorScheduler = () => {
 
 
         const matchingSession = timetableSessions.find(session => {
+          // First try to match by original_session_id if available (most reliable)
+          if (selectedNotif.original_session_id && session.id) {
+            const sessionDateTime = moment(`${session.date} ${session.time?.split('-')[0]?.trim()}`, ["D MMMM YYYY h:mmA", "D MMMM YYYY hA"]);
+            const now = moment();
+            
+            // Skip if session already ended
+            if (sessionDateTime.isBefore(now)) return false;
+            
+            return selectedNotif.original_session_id == session.id; // Use == for type coercion
+          }
+          
+          // Fallback to complex matching logic
           const sessionName = session.session_name?.trim().toLowerCase();
           const doctorName = session.name?.trim().toLowerCase();
           const expectedSessionName = (selectedNotif.original_session_name || selectedNotif.session_name)?.trim().toLowerCase();
@@ -175,6 +204,7 @@ const DoctorScheduler = () => {
         await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${matchingSession.id}`, {
           title: selectedNotif.session_name,
           doctor: selectedNotif.name,
+          doctor_email: selectedNotif.from_email, // ✅ Add missing doctor_email field
           location: locationInput,
           start: newStart,
           end: newEnd,

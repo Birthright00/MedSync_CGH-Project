@@ -1,8 +1,10 @@
-# Introduction
+# CGH Project 2.0 - Education Office Scheduling Automation
 
 ---
 
-Welcome to the installation and set up guide for _CGH's Data Management Web Application._
+Welcome to the **CGH Education Office Scheduling System** - an advanced automation platform designed specifically for streamlining educational session management at Changi General Hospital.
+
+**CGH Project 2.0** focuses primarily on **scheduling system automation**, featuring AI-powered email parsing, intelligent session management, and comprehensive educational workflow automation for the CGH Education Office.
 
 The instructions for the installation may get rather complicated but please read through the setup guide and/or reach out to the repo's owner for help.
 
@@ -201,15 +203,29 @@ Your chrome will automatically launch and the web application will start.
 If your web browser did not start automatically, click this link :
 [http://localhost:3000](http://localhost:3000)
 
-# Features
+# Core Features - CGH Project 2.0
 
 ---
 
-### Role-Based Access
+## 🎯 **Primary Focus: Educational Scheduling Automation**
 
-- **Management Role:** Full access to view and edit all data.
-- **Staff Role:** View-only access limited to their own data.
-- **HR Role:** Read-only access to all data without editing privileges.
+### **AI-Powered Email Processing**
+- **Intelligent Email Parsing:** Automatically processes scheduling emails using advanced LLM models
+- **Smart Session Extraction:** Identifies session details, doctor names, dates, times, and student lists
+- **Automated Workflow:** Converts emails directly into scheduled sessions with minimal manual intervention
+
+### **Advanced Scheduling Management**
+- **Real-time Session Coordination:** Live updates and conflict detection
+- **Drag-and-Drop Interface:** Intuitive session rescheduling and management
+- **Change Request System:** Automated approval workflows for session modifications
+- **QR Code Integration:** Automatic QR generation for session access and tracking
+
+### **Role-Based Access Control**
+
+- **Education Office Management:** Full scheduling control, email monitoring, and system administration
+- **Medical Staff (Doctors/Nurses):** Session availability submission, change requests, and personal timetable access
+- **Students:** Timetable viewing, session information access, and notification reception
+- **HR Personnel:** Read-only access to staff scheduling information
 
 ### Login Features
 
@@ -350,6 +366,393 @@ When backend server receives the login request it wil :
 
 ---
 
+## Session Scheduling System
+
+---
+
+### How Session Scheduling Works
+
+The application includes a comprehensive session scheduling system that integrates email parsing, AI processing, and automated booking management.
+
+#### Email Integration & AI Processing
+
+1. **Email Monitoring Pipeline**
+   - Python-based email parsing system located in `src/scheduling/hospital_email_pipeline/`
+   - Monitors Microsoft Graph API for incoming scheduling emails
+   - Uses AI/LLM models to parse and extract session information
+   - Automatically creates session requests based on email content
+
+2. **Starting Email Monitoring**
+   ```bash
+   npm run ai-parser
+   ```
+
+3. **Configuration Files**
+   - `config.cfg` - Azure/Microsoft Graph API credentials
+   - `admin-emails.json` - Admin email profiles for sending notifications
+   - `llm_config.yaml` - AI model configuration for email parsing
+
+#### Session Management Features
+
+### For Management Users
+
+1. **Session Creation**
+   - Navigate to Scheduling → Create New Session
+   - Fill in session details (date, time, doctor, students)
+   - System generates QR codes automatically
+   - Email notifications sent to relevant parties
+
+2. **Session Approval Workflow**
+   - Review parsed email requests in the notification panel
+   - Accept or reject session requests
+   - Automatically adds approved sessions to timetables
+   - Links students to sessions via session_students table
+
+3. **Email Session Management**
+   - View incoming session requests from email parsing
+   - Match sessions with existing timetable entries
+   - Handle session changes and cancellations
+   - Monitor email authentication status
+
+### For Staff/Doctors
+
+1. **Availability Submission**
+   - Access Doctor Scheduling page
+   - Submit available time slots
+   - View assigned sessions and students
+   - Receive email notifications for session updates
+
+2. **Session Booking**
+   - Book sessions during available time slots
+   - View student assignments for each session
+   - Access blocked dates and unavailable periods
+
+### For Students
+
+1. **Timetable Access**
+   - View personal session schedule
+   - See assigned doctors and session details
+   - Access session-specific information
+   - Receive notifications for schedule changes
+
+#### Scheduling Database Structure
+
+The system uses several key database tables:
+
+- `scheduled_sessions` - Main session data
+- `session_students` - Links students to sessions
+- `student_database` - Student information
+- `blocked_dates` - Unavailable scheduling periods
+- `parsed_emails` - AI-processed email data
+- `availability_notifications` - Doctor availability requests
+- `change_request_notifications` - Session modification requests
+
+#### API Endpoints for Scheduling
+
+```javascript
+// Session Management
+GET /api/scheduling/timetable - Retrieve session timetables
+POST /api/scheduling/add-to-timetable - Add new session
+PUT /api/scheduling/update-session/:id - Update session details
+DELETE /api/scheduling/delete-session/:id - Remove session
+
+// Email Processing
+POST /api/scheduling/parsed-email - Store parsed email data
+GET /api/scheduling/parsed-emails - Retrieve parsed emails
+DELETE /api/scheduling/parsed-email/:id - Delete processed email
+
+// Notifications
+GET /api/scheduling/availability-notifications - Get availability requests
+POST /api/scheduling/change-request - Submit session change request
+GET /api/scheduling/change-requests - View change requests
+
+// Student Management
+GET /api/scheduling/student-timetable/:userId - Student-specific schedule
+POST /api/scheduling/blocked-dates - Add blocked dates
+GET /api/scheduling/get-blocked-dates - Retrieve blocked periods
+```
+
+#### Email Authentication Setup
+
+1. **Microsoft Graph API Configuration**
+   - Register application in Azure AD
+   - Configure client ID and tenant ID in `config.cfg`
+   - Set up required permissions: `User.Read Mail.ReadWrite Mail.Send`
+
+2. **Authentication Flow**
+   - Navigate to Email Monitoring section
+   - Select admin profile for authentication
+   - Complete OAuth flow for email access
+   - Monitor authentication status in real-time
+
+### Key Application Functions
+
+#### 1. Doctor Availability Management
+
+**For Doctors/Staff:**
+- Navigate to "Doctor Scheduling" from the staff dashboard
+- Click "Submit Availability" button
+- Select available dates and time slots using the calendar interface
+- Add any special notes or preferences
+- Submit availability form - this creates entries in `availability_notifications` table
+- System sends automatic email notifications to management
+
+**For Management:**
+- Access "Scheduling Dashboard" from management portal
+- View all pending availability notifications in the notifications panel
+- Review doctor availability requests with dates, times, and preferences
+- Accept or reject availability submissions
+- Accepted availability becomes available for session booking
+- Rejected requests trigger email notifications back to the doctor
+
+#### 2. AI Email Parser Integration
+
+**Starting the AI Parser via Web Application:**
+- Login as Management user
+- Navigate to "Email Monitoring" section in the scheduling module
+- Select admin email profile from the dropdown (configured in `admin-emails.json`)
+- Click "Start Authentication" to begin Microsoft Graph OAuth flow
+- Complete authentication in the popup window
+- Once authenticated, click "Start Monitoring" button
+- Monitor real-time logs and parsing status in the web interface
+- View parsed email results in the "Parsed Emails" section
+
+**AI Parser Functions:**
+- Monitors specified email inboxes for scheduling-related emails
+- Uses LLM models (configured in `llm_config.yaml`) to extract:
+  - Session names and descriptions
+  - Doctor names and contact information
+  - Dates and time slots
+  - Student lists and requirements
+  - Location details
+- Creates entries in `parsed_emails` table with extracted data
+- Triggers notifications for management review
+
+**Manual Parser Control:**
+- Start/Stop monitoring from the web interface
+- View real-time parsing logs and status
+- Download parsing results as CSV/Excel
+- Clear processed emails from the queue
+
+#### 3. Session Request Approval Workflow
+
+**Email-to-Session Pipeline:**
+1. **Email Received**: Scheduling emails arrive in monitored inbox
+2. **AI Processing**: Parser extracts session details using LLM
+3. **Request Creation**: System creates entry in `parsed_emails` table
+4. **Management Review**: Appears in notifications panel for review
+5. **Approval Process**:
+   - Click "Accept" to approve the session request
+   - System automatically creates entry in `scheduled_sessions` table
+   - Links students via `session_students` table
+   - Sends confirmation emails to all parties
+6. **Rejection Process**:
+   - Click "Reject" with optional reason
+   - System sends rejection email to requester
+   - Entry marked as processed but not scheduled
+
+#### 4. Student-Session Assignment
+
+**Automatic Assignment (via Email Parser):**
+- AI extracts student names from email content
+- System matches names against `student_database` table
+- Creates linkage in `session_students` table
+- Students automatically see sessions in their timetables
+
+**Manual Assignment (via Management Interface):**
+- Navigate to "Session Management" 
+- Select existing session or create new one
+- Use student search/selection interface
+- Add/remove students from session
+- Save changes - updates `session_students` mappings
+- System sends notification emails to affected students
+
+#### 5. Session Change Request System
+
+**For Doctors/Students:**
+- Access current session from timetable view
+- Click "Request Change" button
+- Fill out change request form:
+  - Original session details (pre-populated)
+  - Requested new date/time
+  - Reason for change
+  - Priority level
+- Submit request - creates entry in `change_request_notifications`
+
+**For Management:**
+- View all change requests in notifications dashboard
+- Review original vs. requested session details
+- Check doctor/student availability for new time
+- Approve/reject with comments
+- Approved changes automatically update `scheduled_sessions`
+- System handles student re-assignment and notifications
+
+#### 6. Blocked Dates Management
+
+**Adding Blocked Dates:**
+- Management users access "Blocked Dates" section
+- Upload Excel file with blocked periods or add manually
+- Specify date ranges, reasons, and affected areas
+- System prevents scheduling during blocked periods
+- Students and staff see blocked dates in their calendar views
+
+**Blocked Date Functions:**
+- Hospital holidays and maintenance periods
+- Doctor leave and unavailability
+- Room/facility closures
+- Emergency schedule modifications
+
+#### 7. Real-time Notifications System
+
+**Notification Types:**
+- **Availability Requests**: When doctors submit availability
+- **Session Changes**: When sessions are modified or cancelled  
+- **Email Parse Results**: When AI processes new emails
+- **Student Assignments**: When students are added/removed from sessions
+- **System Alerts**: Authentication failures, parsing errors
+
+**Notification Management:**
+- View all notifications in dashboard widget
+- Mark as read/unread
+- Filter by type, date, or priority
+- Auto-refresh for real-time updates
+- Email integration for important alerts
+
+#### 8. QR Code Generation and Session Access
+
+**Automatic QR Generation:**
+- Every created session gets unique QR code
+- QR contains session ID, date, location, and access token
+- Generated using the `generate-qr.js` utility
+- Embedded in email notifications and printable session sheets
+
+**QR Code Usage:**
+- Students scan QR codes for quick session access
+- Contains deep links to session details
+- Works with mobile devices for easy check-in
+- Can be printed for physical distribution
+
+#### 9. Data Import/Export Functions
+
+**Student Data Import:**
+- Navigate to "Student Management" → "Upload Students"
+- Select Excel/CSV file with student data
+- System validates data format and required fields
+- Preview import results before confirmation
+- Bulk insert into `student_database` table
+- Handle duplicates and data conflicts
+
+**Session Data Export:**
+- Access "Reports" section from management dashboard
+- Select date ranges and export criteria
+- Generate Excel/CSV reports with:
+  - Session attendance records
+  - Doctor utilization statistics
+  - Student participation summaries
+  - Email parsing analytics
+
+#### 10. Email Authentication Management
+
+**Profile-Based Authentication:**
+- Multiple admin email profiles supported
+- Each profile has separate authentication tokens
+- Switch between profiles for different email accounts
+- Monitor authentication status per profile
+
+**Token Management:**
+- Automatic token refresh handling
+- Manual re-authentication when needed
+- Token expiry notifications
+- Secure token storage in `token/access_token.json`
+
+#### 11. Admin User and Email Management
+
+**Adding New Admin Users:**
+1. **Database Method:**
+   ```sql
+   -- Add new admin user to user_data table
+   INSERT INTO user_data (user_id, email, user_password, role) 
+   VALUES ('new_admin_id', 'admin@hospital.com', 'hashed_password', 'management');
+   ```
+
+2. **Registration Method:**
+   - Use the `/register` endpoint via the signup page
+   - Set role as "management" for admin privileges
+   - Ensure strong password and valid email
+
+**Managing Admin Email Profiles:**
+
+**File Location:** `src/config/admin-emails.json`
+
+**Adding New Email Profile:**
+```json
+{
+  "admins": {
+    "ExistingAdmin": {
+      "email": "existing@hospital.com",
+      "name": "Existing Admin"
+    },
+    "NewAdminName": {
+      "email": "newadmin@hospital.com", 
+      "name": "New Admin Display Name"
+    }
+  }
+}
+```
+
+**Modifying Existing Email Profiles:**
+1. Open `src/config/admin-emails.json`
+2. Edit the email address or display name for any profile
+3. Save the file - changes take effect immediately
+4. Restart the backend server if needed: `npm run backend`
+
+**Removing Email Profiles:**
+1. Delete the profile entry from `admin-emails.json`
+2. Ensure the profile is not currently authenticated
+3. Clear any stored tokens for that profile
+
+**Email Profile Best Practices:**
+- Use descriptive profile names (e.g., "Dr_Smith", "Admin_Scheduling")
+- Ensure email addresses have proper Microsoft Graph API permissions
+- Test authentication after adding new profiles
+- Keep backup of working configurations
+
+**Profile Name Requirements:**
+- No spaces in profile keys (use underscores: "New_Admin")
+- Profile names are case-sensitive
+- Avoid special characters except underscores
+- Keep names descriptive but concise
+
+#### Troubleshooting Scheduling Issues
+
+1. **Email Not Being Parsed**
+   - Check Python dependencies are installed
+   - Verify Microsoft Graph authentication status in web interface
+   - Review email monitoring logs in the dashboard
+   - Ensure AI model configuration is correct in `llm_config.yaml`
+   - Check if email monitoring is actually running (green status indicator)
+
+2. **Sessions Not Appearing**
+   - Verify database connections in backend logs
+   - Check session approval status in parsed emails section
+   - Review student-session mappings in database
+   - Confirm timetable API responses in browser developer tools
+   - Ensure user has correct role permissions
+
+3. **Authentication Problems**
+   - Re-authenticate Microsoft Graph API via web interface
+   - Check admin email configuration in `admin-emails.json`
+   - Verify Azure AD app permissions in Azure portal
+   - Review access token validity in token management section
+   - Clear browser cache and retry authentication
+
+4. **AI Parser Not Working**
+   - Check Python environment and dependencies
+   - Verify LLM model configuration and API keys
+   - Review email content format - parser expects specific structures
+   - Check parsing logs for error messages
+   - Ensure sufficient API quotas for LLM service
+
 ## Frequently Used Things
 
 ### mySQL
@@ -360,6 +763,27 @@ set session sql_safe_updates = 0;
 use main_db;
 select * from user_data;
 select * from main_data;
+select * from scheduled_sessions;
+select * from session_students;
+select * from student_database;
+```
+
+### Session-Related Database Queries
+
+```sql
+-- View all sessions with student assignments
+SELECT ss.*, st.name as student_name 
+FROM scheduled_sessions ss 
+LEFT JOIN session_students sstud ON ss.id = sstud.scheduled_session_id
+LEFT JOIN student_database st ON sstud.user_id = st.user_id;
+
+-- View sessions for specific doctor
+SELECT * FROM scheduled_sessions WHERE doctor_name = 'Dr. Smith';
+
+-- View student timetable
+SELECT ss.* FROM scheduled_sessions ss
+JOIN session_students sstud ON ss.id = sstud.scheduled_session_id
+WHERE sstud.user_id = 'STUDENT_ID';
 ```
 
 ### Deleting row/ data
@@ -368,6 +792,11 @@ select * from main_data;
 DELETE FROM table_name
 WHERE column_name = 'row_name';
 
+-- Delete specific session
+DELETE FROM scheduled_sessions WHERE id = 123;
+
+-- Delete student-session mapping
+DELETE FROM session_students WHERE scheduled_session_id = 123;
 ```
 
 ### Inserting new row/ data
@@ -375,6 +804,14 @@ WHERE column_name = 'row_name';
 ```sql
 INSERT INTO main_db (mcr_number, first_name, last_name, department, appointment, teaching_training_hours)
 VALUES ('M12345A', 'John', 'Doe', 'Cardiology', 'Consultant', 120);
+
+-- Insert new session
+INSERT INTO scheduled_sessions (session_name, doctor_name, date, start_time, end_time, location)
+VALUES ('Clinical Skills', 'Dr. Smith', '2024-01-15', '09:00:00', '11:00:00', 'Room 101');
+
+-- Link student to session
+INSERT INTO session_students (scheduled_session_id, user_id)
+VALUES (1, 'STUDENT123');
 ```
 
 ### Adding new Column
@@ -382,6 +819,10 @@ VALUES ('M12345A', 'John', 'Doe', 'Cardiology', 'Consultant', 120);
 ```sql
 ALTER TABLE name_of_table
 ADD column_name datatype;
+
+-- Add email field to sessions
+ALTER TABLE scheduled_sessions
+ADD doctor_email VARCHAR(255);
 ```
 
 ### Renaming Column Name

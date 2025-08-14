@@ -1746,44 +1746,75 @@ app.get("/api/scheduling/availability-notifications", verifyToken, requireRole("
 // GET REQUEST to call for scheduling data and displaying it as notifications for type = change_request
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/api/scheduling/change_request", verifyToken, requireRole("management"), (req, res) => {
-  const query = `
-    SELECT
-      id,
-      session_name,
-      from_name AS name,
-      from_email,
-      to_email,
-      original_session,
-      new_session,
-      reason,
-      students,
-      received_at
-    FROM parsed_emails
-    WHERE type = 'change_request'
-    ORDER BY received_at DESC
-  `;
-
-  db.query(query, (err, results) => {
+  // First check if original_session_id column exists
+  db.query(`
+    SELECT COLUMN_NAME 
+    FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = 'parsed_emails' AND TABLE_SCHEMA = 'main_db' AND COLUMN_NAME = 'original_session_id'
+  `, (err, columns) => {
     if (err) {
-      console.error("Error fetching change request notifications:", err);
-      return res.status(500).json({ error: "Failed to retrieve change request data." });
+      console.error("❌ Error checking column existence:", err);
+      return res.status(500).json({ error: "Database error" });
     }
 
-    const transformed = results.map(entry => ({
-      id: entry.id,
-      session_name: entry.session_name || null,
-      name: entry.name,
-      from_email: entry.from_email || null,
-      to_email: entry.to_email || null,
-      students: entry.students || null,
-      original_session: entry.original_session || null,
-      new_session: entry.new_session || null,
-      reason: entry.reason || null,
-      notes: entry.notes || null,
-      received_at: entry.received_at
-    }));
+    const columnExists = columns.length > 0;
+    
+    const query = columnExists ? `
+      SELECT
+        id,
+        session_name,
+        from_name AS name,
+        from_email,
+        to_email,
+        original_session,
+        new_session,
+        reason,
+        students,
+        received_at,
+        original_session_id
+      FROM parsed_emails
+      WHERE type = 'change_request'
+      ORDER BY received_at DESC
+    ` : `
+      SELECT
+        id,
+        session_name,
+        from_name AS name,
+        from_email,
+        to_email,
+        original_session,
+        new_session,
+        reason,
+        students,
+        received_at
+      FROM parsed_emails
+      WHERE type = 'change_request'
+      ORDER BY received_at DESC
+    `;
 
-    return res.json(transformed);
+    db.query(query, (queryErr, results) => {
+      if (queryErr) {
+        console.error("Error fetching change request notifications:", queryErr);
+        return res.status(500).json({ error: "Failed to retrieve change request data." });
+      }
+
+      const transformed = results.map(entry => ({
+        id: entry.id,
+        session_name: entry.session_name || null,
+        name: entry.name,
+        from_email: entry.from_email || null,
+        to_email: entry.to_email || null,
+        students: entry.students || null,
+        original_session: entry.original_session || null,
+        new_session: entry.new_session || null,
+        reason: entry.reason || null,
+        notes: entry.notes || null,
+        received_at: entry.received_at,
+        original_session_id: columnExists ? (entry.original_session_id || null) : null
+      }));
+
+      return res.json(transformed);
+    });
   });
 });
 
@@ -1791,28 +1822,71 @@ app.get("/api/scheduling/change_request", verifyToken, requireRole("management")
 // Post Request From Staff Side to Management Side
 // -------------------------------------------------------------------------------------------------------------//
 app.post("/api/scheduling/request-change-from-staff", verifyToken, requireRole("staff"), (req, res) => {
-  const { session_name, from_name, original_session, new_session, students, reason, from_email } = req.body;
+  const { session_name, from_name, original_session, new_session, students, reason, from_email, original_session_id } = req.body;
 
+  // First check if original_session_id column exists, if not, add it
   db.query(`
-  INSERT INTO parsed_emails (type, session_name, from_name, from_email, original_session, new_session, reason, students)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-`, [
-    "change_request",
-    session_name,
-    from_name || "Unknown",          // ✅ from frontend
-    from_email || req.user.email,
-    original_session || "Unknown",   // ✅ from frontend
-    new_session || "Unknown",
-    reason || "No reason provided.",
-    students || ""
-  ], (err, result) => {
+    SELECT COLUMN_NAME 
+    FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = 'parsed_emails' AND TABLE_SCHEMA = 'main_db' AND COLUMN_NAME = 'original_session_id'
+  `, (err, columns) => {
     if (err) {
-      console.error("❌ Error saving change request:", err);
-      return res.status(500).json({ message: "Server error" });
+      console.error("❌ Error checking column existence:", err);
+      return res.status(500).json({ message: "Database error" });
     }
-    res.json({ message: "Change request submitted." });
-  });
 
+    const columnExists = columns.length > 0;
+    
+    if (!columnExists) {
+      // Add the column if it doesn't exist
+      db.query(`ALTER TABLE parsed_emails ADD COLUMN original_session_id INT`, (alterErr) => {
+        if (alterErr) {
+          console.error("❌ Error adding original_session_id column:", alterErr);
+          // Continue anyway - we'll insert without the column
+        }
+        insertChangeRequest();
+      });
+    } else {
+      insertChangeRequest();
+    }
+
+    function insertChangeRequest() {
+      const query = columnExists || !err ? 
+        `INSERT INTO parsed_emails (type, session_name, from_name, from_email, original_session, new_session, reason, students, original_session_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)` :
+        `INSERT INTO parsed_emails (type, session_name, from_name, from_email, original_session, new_session, reason, students)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+
+      const values = columnExists || !err ? [
+        "change_request",
+        session_name,
+        from_name || "Unknown",
+        from_email || req.user.email,
+        original_session || "Unknown",
+        new_session || "Unknown",
+        reason || "No reason provided.",
+        students || "",
+        original_session_id || null
+      ] : [
+        "change_request",
+        session_name,
+        from_name || "Unknown",
+        from_email || req.user.email,
+        original_session || "Unknown",
+        new_session || "Unknown",
+        reason || "No reason provided.",
+        students || ""
+      ];
+
+      db.query(query, values, (insertErr, result) => {
+        if (insertErr) {
+          console.error("❌ Error saving change request:", insertErr);
+          return res.status(500).json({ message: "Server error" });
+        }
+        res.json({ message: "Change request submitted." });
+      });
+    }
+  });
 });
 
 
@@ -1929,13 +2003,8 @@ app.get("/api/scheduling/timetable", verifyToken, (req, res) => {
 
   let query = `
     SELECT id, session_name, name, date, time, location, students, change_type, original_time, change_reason, is_read, doctor_email
+    FROM scheduled_sessions
   `;
-
-  if (userRole === "staff") {
-    query += `, doctor_email`;
-  }
-
-  query += ` FROM scheduled_sessions`;
 
   const params = [];
 

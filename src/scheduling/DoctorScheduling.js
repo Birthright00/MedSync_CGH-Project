@@ -23,7 +23,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [form, setForm] = useState({ title: '', doctor: '', location: '', start: '', end: '', color: '', students: [] });
+  const [form, setForm] = useState({ title: '', doctor: '', doctor_email: '', location: '', start: '', end: '', color: '', students: [] });
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
@@ -134,6 +134,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         id: s.id ?? index,
         title: s.session_name,
         doctor: s.name,
+        doctor_email: s.doctor_email, // ✅ Include doctor_email in event mapping
         location: s.location,
         start: startDate,
         end: endDate,
@@ -286,6 +287,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         setForm({
           title: selectedEvent.title,
           doctor: selectedEvent.doctor,
+          doctor_email: selectedEvent.doctor_email, // ✅ Include doctor_email from existing session
           location: selectedEvent.location,
           start: moment(selectedEvent.start).format('YYYY-MM-DDTHH:mm'),
           end: moment(selectedEvent.end).format('YYYY-MM-DDTHH:mm'),
@@ -297,6 +299,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         setForm({
           title: selectedEvent.title,
           doctor: selectedEvent.doctor,
+          doctor_email: selectedEvent.doctor_email, // ✅ Include doctor_email from existing session
           location: selectedEvent.location,
           start: moment(selectedEvent.start).format('YYYY-MM-DDTHH:mm'),
           end: moment(selectedEvent.end).format('YYYY-MM-DDTHH:mm'),
@@ -476,7 +479,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${event.id}`, {
         title: event.title,
         doctor: event.doctor,
-        doctor_email: form.doctor_email,
+        doctor_email: event.doctor_email, // ✅ Use event's own doctor_email
         location: event.location,
         start: start.toISOString(),   // convert to ISO format for backend consistency
         end: end.toISOString(),
@@ -519,7 +522,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
       await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${event.id}`, {
         title: event.title,
         doctor: event.doctor,
-        doctor_email: form.doctor_email,
+        doctor_email: event.doctor_email, // ✅ Use event's own doctor_email
         location: event.location,
         start: start.toISOString(),
         end: end.toISOString(),
@@ -594,7 +597,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${lastAction.before.id}`, {
           title: lastAction.before.title,
           doctor: lastAction.before.doctor,
-          doctor_email: form.doctor_email,
+          doctor_email: lastAction.before.doctor_email, // ✅ Use the action's original doctor_email
           location: lastAction.before.location,
           start: moment(lastAction.before.start).toISOString(),
           end: moment(lastAction.before.end).toISOString(),
@@ -611,7 +614,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${lastAction.before.id}`, {
           title: lastAction.before.title,
           doctor: lastAction.before.doctor,
-          doctor_email: form.doctor_email,
+          doctor_email: lastAction.before.doctor_email, // ✅ Use the action's original doctor_email
           location: lastAction.before.location,
           start: moment(lastAction.before.start).toISOString(),
           end: moment(lastAction.before.end).toISOString(),
@@ -657,7 +660,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${nextAction.after.id}`, {
           title: nextAction.after.title,
           doctor: nextAction.after.doctor,
-          doctor_email: form.doctor_email,
+          doctor_email: nextAction.after.doctor_email, // ✅ Use the action's target doctor_email
           location: nextAction.after.location,
           start: moment(nextAction.after.start).toISOString(),
           end: moment(nextAction.after.end).toISOString(),
@@ -674,7 +677,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
         await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${nextAction.after.id}`, {
           title: nextAction.after.title,
           doctor: nextAction.after.doctor,
-          doctor_email: form.doctor_email,
+          doctor_email: nextAction.after.doctor_email, // ✅ Use the action's target doctor_email
           location: nextAction.after.location,
           start: moment(nextAction.after.start).toISOString(),
           end: moment(nextAction.after.end).toISOString(),

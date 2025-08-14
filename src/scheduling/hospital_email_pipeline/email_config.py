@@ -63,10 +63,10 @@ class EmailConfig:
                 "last_used": self._get_timestamp()
             })
             self.save_profile()
-            print("✅ Email profile setup completed!")
+            print("[OK] Email profile setup completed!")
             return True
         else:
-            print("❌ Failed to authenticate email profile")
+            print("[ERROR] Failed to authenticate email profile")
             return False
     
     def get_access_token(self):
@@ -77,6 +77,9 @@ class EmailConfig:
             self.profile["last_used"] = self._get_timestamp()
             self.save_profile()
             return token
+        else:
+            print(f"[ERROR] No access token found for profile '{self.config_name}'")
+            print("Run: python email_config.py setup <profile_name> <email> <name>")
         return None
     
     def is_configured(self):
@@ -171,4 +174,4 @@ if __name__ == "__main__":
         config.delete_profile()
     
     else:
-        print("❌ Invalid arguments")
+        print("[ERROR] Invalid arguments")

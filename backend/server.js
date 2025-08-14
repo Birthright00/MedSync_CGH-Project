@@ -34,6 +34,14 @@ import multer from "multer";
 import * as XLSX from "xlsx";
 import csv from "csv-parser";
 import { readFile } from 'fs/promises';
+import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // -------------------------------------------------------------------------------------------------------------//
 // IMPORTS EXPLANATION
@@ -2690,19 +2698,6 @@ app.post("/api/email-sessions", (req, res) => {
 
 
 // -------------------------------------------------------------------------------------------------------------//
-// Admin Email Configuration Endpoint
-// -------------------------------------------------------------------------------------------------------------//
-app.get("/api/admin-emails", async (req, res) => {
-  try {
-    const data = await readFile('../src/config/admin-emails.json', 'utf-8');
-    const adminConfig = JSON.parse(data);
-    res.json(adminConfig);
-  } catch (error) {
-    console.error("Failed to read admin emails config:", error);
-    res.status(500).json({ error: "Failed to load admin emails configuration" });
-  }
-});
-
 // -------------------------------------------------------------------------------------------------------------//
 // Web-based Email Authentication Endpoints
 // -------------------------------------------------------------------------------------------------------------//
@@ -2847,6 +2842,169 @@ app.get("/api/token", async (req, res) => {
   } catch (error) {
     console.error("Failed to read token:", error);
     res.status(500).json({ error: "Failed to load token" });
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// Configuration Endpoints
+// -------------------------------------------------------------------------------------------------------------//
+app.get("/api/admin-emails", async (req, res) => {
+  try {
+    const configData = await readFile('../src/config/admin-emails.json', 'utf-8');
+    const adminConfig = JSON.parse(configData);
+    
+    // Convert to the format expected by frontend
+    const adminEmailMappings = Object.entries(adminConfig.admins).reduce((acc, [key, value]) => {
+      acc[key.toLowerCase()] = { 
+        profile: key.toLowerCase(), 
+        email: value.email, 
+        name: value.name 
+      };
+      return acc;
+    }, {});
+    
+    res.json(adminEmailMappings);
+  } catch (error) {
+    console.error("Failed to load admin emails config:", error);
+    res.status(500).json({ error: "Failed to load admin emails configuration" });
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
+// Email Monitoring Control Endpoints
+// -------------------------------------------------------------------------------------------------------------//
+let monitoringProcess = null;
+let monitoringLogs = [];
+
+app.get("/api/email-monitoring/status", (req, res) => {
+  try {
+    const status = monitoringProcess ? 'running' : 'stopped';
+    const profile = monitoringProcess ? monitoringProcess.profile : null;
+    
+    res.json({ 
+      status,
+      profile,
+      logs: monitoringLogs.slice(-20) // Return last 20 log entries
+    });
+  } catch (error) {
+    console.error("Error checking monitoring status:", error);
+    res.status(500).json({ error: "Failed to check monitoring status" });
+  }
+});
+
+app.post("/api/email-monitoring/start", async (req, res) => {
+  try {
+    const { profile } = req.body;
+    
+    if (monitoringProcess) {
+      return res.json({ success: false, error: "Monitoring is already running" });
+    }
+    
+    // Check if profile is authenticated
+    const profilePath = `../src/scheduling/hospital_email_pipeline/email_profiles/${profile}.json`;
+    try {
+      const profileData = await readFile(profilePath, 'utf-8');
+      const profileJson = JSON.parse(profileData);
+      
+      if (!profileJson.access_token || profileJson.access_token.trim() === '') {
+        return res.json({ success: false, error: "Profile not authenticated" });
+      }
+    } catch (profileError) {
+      return res.json({ success: false, error: "Profile not found or invalid" });
+    }
+    
+    // Start the monitoring process
+    const pythonPath = path.join(__dirname, '..', 'src', 'scheduling', 'hospital_email_pipeline');
+    const pythonScript = path.join(pythonPath, 'main.py');
+    
+    console.log('Starting monitoring with:');
+    console.log('Python path:', pythonPath);
+    console.log('Python script:', pythonScript);
+    console.log('Profile:', profile);
+    
+    try {
+      monitoringProcess = spawn('python', [pythonScript, '--profile', profile], {
+        cwd: pythonPath,
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+      
+      monitoringProcess.profile = profile;
+    } catch (spawnError) {
+      console.error('Failed to spawn Python process:', spawnError);
+      return res.status(500).json({ success: false, error: `Failed to start Python process: ${spawnError.message}` });
+    }
+    
+    // Log stdout
+    monitoringProcess.stdout.on('data', (data) => {
+      const message = data.toString().trim();
+      if (message) {
+        monitoringLogs.push({
+          timestamp: new Date().toISOString(),
+          message: message
+        });
+        
+        // Keep only last 100 log entries
+        if (monitoringLogs.length > 100) {
+          monitoringLogs = monitoringLogs.slice(-100);
+        }
+      }
+    });
+    
+    // Log stderr
+    monitoringProcess.stderr.on('data', (data) => {
+      const message = `ERROR: ${data.toString().trim()}`;
+      monitoringLogs.push({
+        timestamp: new Date().toISOString(),
+        message: message
+      });
+    });
+    
+    // Handle process exit
+    monitoringProcess.on('close', (code) => {
+      monitoringLogs.push({
+        timestamp: new Date().toISOString(),
+        message: `Monitoring process exited with code ${code}`
+      });
+      monitoringProcess = null;
+    });
+    
+    // Clear previous logs when starting new monitoring session
+    monitoringLogs = [];
+    
+    monitoringLogs.push({
+      timestamp: new Date().toISOString(),
+      message: `Email monitoring started for profile: ${profile}`
+    });
+    
+    res.json({ success: true, message: "Email monitoring started" });
+    
+  } catch (error) {
+    console.error("Error starting monitoring:", error);
+    res.status(500).json({ success: false, error: `Failed to start monitoring: ${error.message}` });
+  }
+});
+
+app.post("/api/email-monitoring/stop", (req, res) => {
+  try {
+    if (!monitoringProcess) {
+      return res.json({ success: false, error: "Monitoring is not running" });
+    }
+    
+    // Kill the monitoring process
+    monitoringProcess.kill('SIGTERM');
+    
+    monitoringLogs.push({
+      timestamp: new Date().toISOString(),
+      message: "Email monitoring stopped by user"
+    });
+    
+    monitoringProcess = null;
+    
+    res.json({ success: true, message: "Email monitoring stopped" });
+    
+  } catch (error) {
+    console.error("Error stopping monitoring:", error);
+    res.status(500).json({ success: false, error: "Failed to stop monitoring" });
   }
 });
 

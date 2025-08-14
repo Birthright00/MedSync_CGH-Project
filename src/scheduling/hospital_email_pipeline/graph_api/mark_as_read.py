@@ -10,4 +10,4 @@ def mark_email_as_read(email_id, access_token):
     response = requests.patch(url, headers=headers, json=data)
 
     if response.status_code != 200:
-        print(f"❌ Failed to mark as read: {response.status_code} - {response.text}")
+        print(f"[ERROR] Failed to mark as read: {response.status_code} - {response.text}")

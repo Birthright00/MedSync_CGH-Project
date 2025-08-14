@@ -19,6 +19,7 @@ import StudentTimetable from "./pages_student/StudentTimetable";
 import NotificationWatcher from './components/NotificationWatcher';
 import UserManagementLanding from "./user_management/UserManagementLanding";
 import CreateNewSession from './scheduling/CreateNewSession'; // adjust path if needed
+import EmailMonitoring from './scheduling/EmailMonitoring';
 import StaffTimetable from "./staff/StaffTimetable";
 import StudentManagement from "./pages_management/StudentManagement";
 import DoctorSessionBooking from "./scheduling/doctor_sessionbooking/DoctorSessionBooking";
@@ -65,6 +66,7 @@ function App() {
         } />
 
         <Route path="/timetable/create" element={<CreateNewSession />} />
+        <Route path="/timetable/email-monitoring" element={<EmailMonitoring />} />
 
         {/*  
         <Route path="/timetable/create" element={

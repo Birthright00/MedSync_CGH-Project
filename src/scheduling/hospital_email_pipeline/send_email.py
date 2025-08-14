@@ -53,15 +53,15 @@ def send_email(access_token, to_emails, subject, body, session_id=None, from_ema
         )
         
         if response.status_code == 202:  # Success
-            print("✅ Email sent successfully!")
+            print("[OK] Email sent successfully!")
             return True
         else:
             error_data = response.json() if response.content else {}
-            print(f"❌ Email send failed: {response.status_code} - {error_data}")
+            print(f"[ERROR] Email send failed: {response.status_code} - {error_data}")
             return False
             
     except Exception as e:
-        print(f"❌ Exception occurred while sending email: {e}")
+        print(f"[ERROR] Exception occurred while sending email: {e}")
         return False
 
 def send_session_email_from_data(email_data, profile_name="default"):
@@ -71,14 +71,14 @@ def send_session_email_from_data(email_data, profile_name="default"):
     email_config = EmailConfig(profile_name)
     
     if not email_config.is_configured():
-        print(f"❌ Email profile '{profile_name}' is not configured")
+        print(f"[ERROR] Email profile '{profile_name}' is not configured")
         print("Run: python email_config.py setup <profile_name> <sender_email> <sender_name>")
         return False
     
     # Get access token from profile
     access_token = email_config.get_access_token()
     if not access_token:
-        print(f"❌ No access token available for profile '{profile_name}'")
+        print(f"[ERROR] No access token available for profile '{profile_name}'")
         return False
     
     # Get sender info
@@ -97,7 +97,7 @@ def send_session_email_from_data(email_data, profile_name="default"):
     to_emails = [doc.get('email') for doc in selected_doctor_objs if doc.get('email')]
     
     if not to_emails:
-        print("❌ No valid doctor email addresses found")
+        print("[ERROR] No valid doctor email addresses found")
         return False
     
     print(f"📧 Sending email to {len(to_emails)} doctors: {', '.join(to_emails)}")
@@ -137,16 +137,16 @@ if __name__ == "__main__":
             if success:
                 print("🎉 Email sending completed successfully!")
             else:
-                print("❌ Email sending failed!")
+                print("[ERROR] Email sending failed!")
                 
         except Exception as e:
-            print(f"❌ Error processing email data: {e}")
+            print(f"[ERROR] Error processing email data: {e}")
     else:
         # Example/test mode - send a simple test email
         email_config = EmailConfig(profile_name)
         
         if not email_config.is_configured():
-            print(f"❌ Email profile '{profile_name}' is not configured")
+            print(f"[ERROR] Email profile '{profile_name}' is not configured")
             print("Available profiles:")
             profiles = EmailConfig.list_profiles()
             for profile in profiles:
@@ -173,9 +173,9 @@ Thank you!"""
                 if success:
                     print("🎉 Email sending completed successfully!")
                 else:
-                    print("❌ Email sending failed!")
+                    print("[ERROR] Email sending failed!")
             else:
-                print("❌ Could not obtain access token")
+                print("[ERROR] Could not obtain access token")
                 
     print("\nUsage:")
     print("  python send_email.py                           # Test mode with default profile")

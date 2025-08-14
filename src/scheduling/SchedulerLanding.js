@@ -18,6 +18,7 @@ const SchedulerLanding = () => {
     const [isCreateHovered, setIsCreateHovered] = useState(false);
     const [isScheduleHovered, setIsScheduleHovered] = useState(false);
     const [isManageHovered, setIsManageHovered] = useState(false);
+    const [isEmailHovered, setIsEmailHovered] = useState(false);
     const [announcements, setAnnouncements] = useState([]);
 
     useEffect(() => {
@@ -52,6 +53,10 @@ const SchedulerLanding = () => {
 
     const handleUsers = () => {
         nav("/timetable/users-management");
+    };
+
+    const handleEmailMonitoring = () => {
+        nav("/timetable/email-monitoring");
     };
 
     return (
@@ -124,6 +129,24 @@ const SchedulerLanding = () => {
                         />
                         <h2>Manage Users</h2>
                         <p>View and modify doctor and student information.</p>
+                    </motion.div>
+
+                    <motion.div
+                        className="data-card email-monitoring-card"
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.6 }}
+                        onClick={handleEmailMonitoring}
+                        onMouseEnter={() => setIsEmailHovered(true)}
+                        onMouseLeave={() => setIsEmailHovered(false)}
+                    >
+                        <img
+                            src={isEmailHovered ? white_email : email}
+                            alt="email monitoring"
+                            className="card-icon"
+                        />
+                        <h2>Email Monitoring</h2>
+                        <p>Control LLM-powered email processing and monitoring.</p>
                     </motion.div>
                 </div>
             </div>

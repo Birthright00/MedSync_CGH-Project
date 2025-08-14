@@ -9,7 +9,7 @@ def get_emails(access_token):
     response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
-        print("✅ Email fetch success.")
+        print("[OK] Email fetch success.")
         all_emails = response.json().get("value", [])
         # Only return emails that contain these words in subject or preview
         return [
@@ -23,5 +23,18 @@ def get_emails(access_token):
             ]
 
     else:
-        print(f"❌ Error {response.status_code}: {response.text}")
-        raise Exception(f"❌ Failed to fetch emails: {response.status_code} - {response.text}")
+        error_msg = f"HTTP {response.status_code}"
+        try:
+            error_detail = response.json()
+            if 'error' in error_detail:
+                error_msg += f": {error_detail['error'].get('message', 'Unknown error')}"
+        except:
+            error_msg += f": {response.text[:200]}"
+        
+        print(f"[ERROR] Email fetch failed - {error_msg}")
+        if response.status_code == 401:
+            print("[ERROR] Authentication failed. Access token may be expired.")
+        elif response.status_code == 403:
+            print("[ERROR] Permission denied. Check Graph API permissions.")
+        
+        raise Exception(f"[ERROR] Failed to fetch emails: {error_msg}")

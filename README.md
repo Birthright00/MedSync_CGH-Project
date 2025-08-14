@@ -382,10 +382,21 @@ The application includes a comprehensive session scheduling system that integrat
    - Uses AI/LLM models to parse and extract session information
    - Automatically creates session requests based on email content
 
-2. **Starting Email Monitoring**
+2. **Starting AI Email Parser - Two Methods**
+
+   **Method 1: Terminal/Command Line (Advanced Users)**
    ```bash
    npm run ai-parser
    ```
+   
+   **Method 2: Web Application Interface (Recommended)**
+   - Login as Management user
+   - Navigate to "Email Monitoring" section in the scheduling module
+   - Select admin email profile from dropdown
+   - Click "Start Authentication" → Complete OAuth flow
+   - Click "Start Monitoring" button
+   - Monitor real-time logs and parsing status directly in the web interface
+   - View parsed email results in the "Parsed Emails" section
 
 3. **Configuration Files**
    - `config.cfg` - Azure/Microsoft Graph API credentials
@@ -484,6 +495,113 @@ GET /api/scheduling/get-blocked-dates - Retrieve blocked periods
    - Select admin profile for authentication
    - Complete OAuth flow for email access
    - Monitor authentication status in real-time
+
+#### AI Email Parser - Detailed Usage Guide
+
+**Overview:**
+The AI email parser is the core automation feature that monitors email inboxes, extracts scheduling information using LLM models, and creates session requests automatically.
+
+**Method 1: Web Application Interface (🔥 Recommended)**
+
+*Advantages:*
+- User-friendly graphical interface
+- Real-time status monitoring and logs
+- Easy start/stop controls
+- Visual feedback and error handling
+- No technical command-line knowledge required
+
+*Step-by-Step Process:*
+1. **Access Email Monitoring:**
+   - Login with Management role credentials
+   - Navigate to "Scheduling" → "Email Monitoring"
+
+2. **Profile Selection & Authentication:**
+   - Select admin email profile from dropdown menu
+   - Click "Start Authentication" button
+   - Complete Microsoft Graph OAuth in popup window
+   - Verify authentication status shows "✅ Authenticated"
+
+3. **Start AI Monitoring:**
+   - Click "▶️ Start Monitoring" button
+   - Monitor live status: "🟢 Running (Profile: selected_profile)"
+   - View real-time activity logs in the dashboard
+   - Watch for "📡 Live Updates" indicator
+
+4. **Monitor Results:**
+   - Parsed emails appear in "Parsed Emails" section
+   - Review session details extracted by AI
+   - Approve/reject requests directly from interface
+
+5. **Stop When Needed:**
+   - Click "⏹️ Stop Monitoring" to halt the process
+   - Status changes to "🔴 Stopped"
+
+**Method 2: Terminal/Command Line (Advanced Users)**
+
+*Advantages:*
+- Direct system access
+- Detailed console output
+- Suitable for debugging and development
+- Can be automated with scripts
+
+*Usage:*
+```bash
+# Navigate to project directory
+cd CGH_Project
+
+# Start the AI email parser
+npm run ai-parser
+
+# The parser will:
+# 1. Load configuration from src/scheduling/hospital_email_pipeline/config.cfg
+# 2. Connect to Microsoft Graph API
+# 3. Monitor configured email inbox
+# 4. Process emails using LLM models
+# 5. Store results in parsed_emails database table
+```
+
+*Terminal Output:*
+```
+🤖 Starting AI Email Parser...
+📧 Connecting to Microsoft Graph API...
+✅ Authentication successful
+🔍 Monitoring inbox: admin@hospital.com
+📨 Processing new email: "Tutorial Session Request"
+🧠 AI Analysis: Extracted session details
+💾 Stored in database: Session ID #456
+🔄 Continuing to monitor...
+```
+
+**Configuration Requirements for Both Methods:**
+
+1. **Microsoft Graph API Setup:**
+   - Azure AD application registration
+   - Client ID and tenant ID configured
+   - Required permissions: `User.Read`, `Mail.ReadWrite`, `Mail.Send`
+
+2. **Configuration Files:**
+   - `src/scheduling/hospital_email_pipeline/config/config.cfg` - API credentials
+   - `src/config/admin-emails.json` - Email profile mappings
+   - `src/scheduling/hospital_email_pipeline/config/llm_config.yaml` - AI model settings
+
+3. **Dependencies:**
+   - Python 3.7+ environment
+   - Required Python packages (installed via npm run ai-parser)
+   - Valid LLM API access (OpenAI, Azure OpenAI, etc.)
+
+**Monitoring & Troubleshooting:**
+
+*Web Interface Indicators:*
+- 🟢 Green status = Parser running successfully
+- 🔴 Red status = Parser stopped or error
+- ❌ Authentication failed = Re-authenticate required
+- 📡 Live Updates = Real-time data streaming
+
+*Common Issues:*
+- **Authentication Expired:** Re-authenticate via web interface
+- **No Emails Processed:** Check email keywords and inbox permissions
+- **AI Parsing Errors:** Verify LLM API configuration and quotas
+- **Connection Issues:** Check network and Microsoft Graph service status
 
 ### Key Application Functions
 

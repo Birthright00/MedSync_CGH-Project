@@ -50,11 +50,11 @@ export const projects = [
         images: [],
     },
     {
-        title: "🏥 Changi General Hospital Platform",
-        status: "Web Development",
+        title: "🏥 CGH Project 2.0 - Education Office",
+        status: "AI & Scheduling Automation",
         statusClass: "active",
         description:
-            "Led the Version 2.0 of the hospital scheduling system, focusing on intern experience and healthcare workflows.",
+            "Advanced scheduling automation platform for CGH Education Office, featuring AI-powered email parsing, intelligent session management, and comprehensive educational workflow automation.",
         images: [],
     },
     {

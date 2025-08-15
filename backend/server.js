@@ -1945,11 +1945,136 @@ app.post("/api/scheduling/request-change-from-staff", verifyToken, requireRole("
 // -------------------------------------------------------------------------------------------------------------//
 // For calling of database to add sessions inside if accepted
 // -------------------------------------------------------------------------------------------------------------//
-app.post("/api/scheduling/add-to-timetable", verifyToken, requireRole("management"), (req, res) => {
+app.post("/api/scheduling/add-to-timetable", verifyToken, requireRole("management"), async (req, res) => {
   const { session_name, name, date, time, location, students, doctor_email } = req.body;
 
   if (!session_name || !name || !date || !time || !doctor_email) {
     return res.status(400).json({ error: "Missing required fields." });
+  }
+
+  console.log("🔍 [DEBUG] Checking for scheduling conflicts:", {
+    doctor_email,
+    date,
+    time,
+    session_name
+  });
+
+  try {
+    // Check for existing sessions for this doctor on the same date
+    const conflictQuery = `
+      SELECT id, session_name, time, location 
+      FROM scheduled_sessions 
+      WHERE doctor_email = ? AND date = ?
+    `;
+    
+    const [existingSessions] = await db.promise().query(conflictQuery, [doctor_email, date]);
+    
+    if (existingSessions.length > 0) {
+      console.log("⚠️ [DEBUG] Found existing sessions on same date:", existingSessions);
+      
+      // Parse the new session time
+      const newTimeRange = parseTimeRange(time);
+      if (!newTimeRange) {
+        console.error("❌ [ERROR] Could not parse new session time:", time);
+        return res.status(400).json({ error: "Invalid time format" });
+      }
+      
+      // Check each existing session for time overlap
+      for (const existingSession of existingSessions) {
+        const existingTimeRange = parseTimeRange(existingSession.time);
+        if (!existingTimeRange) {
+          console.warn("⚠️ [WARN] Could not parse existing session time:", existingSession.time);
+          continue;
+        }
+        
+        // Check for time overlap
+        if (timeRangesOverlap(newTimeRange, existingTimeRange)) {
+          console.error("❌ [CONFLICT] Time overlap detected:", {
+            existing: existingSession,
+            new: { session_name, time, date }
+          });
+          
+          return res.status(409).json({
+            error: "SCHEDULING_CONFLICT",
+            message: `Dr. ${name} already has a session scheduled during this time`,
+            conflict: {
+              existing_session: existingSession.session_name,
+              existing_time: existingSession.time,
+              existing_location: existingSession.location,
+              date: date,
+              conflicting_time: time
+            }
+          });
+        }
+      }
+    }
+    
+    console.log("✅ [DEBUG] No conflicts found, proceeding with scheduling");
+  } catch (conflictCheckErr) {
+    console.error("❌ [ERROR] Error checking for conflicts:", conflictCheckErr);
+    return res.status(500).json({ error: "Failed to check for scheduling conflicts" });
+  }
+
+  // Helper function to parse time range (e.g., "2:00pm-3:00pm" or "2pm–3pm")
+  function parseTimeRange(timeStr) {
+    if (!timeStr) return null;
+    
+    // Clean up the time string and handle different dash types
+    const cleanTime = timeStr.replace(/[()]/g, '').trim();
+    const dashVariants = ['–', '-', '—'];
+    let parts;
+    
+    for (const dash of dashVariants) {
+      if (cleanTime.includes(dash)) {
+        parts = cleanTime.split(dash);
+        break;
+      }
+    }
+    
+    if (!parts || parts.length !== 2) return null;
+    
+    const startTime = parts[0].trim();
+    const endTime = parts[1].trim();
+    
+    return {
+      start: convertTo24Hour(startTime),
+      end: convertTo24Hour(endTime),
+      original: timeStr
+    };
+  }
+  
+  // Helper function to convert time to 24-hour format for comparison
+  function convertTo24Hour(timeStr) {
+    if (!timeStr) return null;
+    
+    const time = timeStr.toLowerCase().replace(/\s+/g, '');
+    const isPM = time.includes('pm');
+    const isAM = time.includes('am');
+    
+    let hours, minutes;
+    const timeOnly = time.replace(/[ap]m/g, '');
+    
+    if (timeOnly.includes(':')) {
+      [hours, minutes] = timeOnly.split(':').map(Number);
+    } else {
+      hours = parseInt(timeOnly);
+      minutes = 0;
+    }
+    
+    if (isPM && hours !== 12) hours += 12;
+    if (isAM && hours === 12) hours = 0;
+    
+    return hours * 60 + minutes; // Return total minutes for easy comparison
+  }
+  
+  // Helper function to check if two time ranges overlap
+  function timeRangesOverlap(range1, range2) {
+    if (!range1 || !range2 || !range1.start || !range1.end || !range2.start || !range2.end) {
+      return false;
+    }
+    
+    // Two ranges overlap if one starts before the other ends
+    return (range1.start < range2.end) && (range2.start < range1.end);
   }
 
   const insertQuery = `

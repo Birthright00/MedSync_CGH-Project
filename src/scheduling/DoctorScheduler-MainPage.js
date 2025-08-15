@@ -351,18 +351,48 @@ const DoctorScheduler = () => {
         console.log("🔍 [FRONTEND DEBUG] Adding selected slots to timetable:", slotsToAdd);
 
         // Add each selected slot as a separate session
-        for (const slot of slotsToAdd) {
-          await axios.post(`${API_BASE_URL}/api/scheduling/add-to-timetable`, {
-            session_name: selectedNotif.session_name,
-            name: selectedNotif.name,
-            date: slot.date,
-            time: slot.time || "-",
-            location: locationInput,
-            students: selectedNotif.students || "",
-            doctor_email: selectedNotif.from_email
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+        let conflictOccurred = false;
+        let conflictDetails = null;
+        
+        for (let i = 0; i < slotsToAdd.length; i++) {
+          const slot = slotsToAdd[i];
+          try {
+            await axios.post(`${API_BASE_URL}/api/scheduling/add-to-timetable`, {
+              session_name: selectedNotif.session_name,
+              name: selectedNotif.name,
+              date: slot.date,
+              time: slot.time || "-",
+              location: locationInput,
+              students: selectedNotif.students || "",
+              doctor_email: selectedNotif.from_email
+            }, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            console.log(`✅ [FRONTEND DEBUG] Session ${i + 1} added successfully:`, slot);
+          } catch (addErr) {
+            if (addErr.response?.status === 409 && addErr.response?.data?.error === "SCHEDULING_CONFLICT") {
+              console.error("❌ [FRONTEND DEBUG] Scheduling conflict detected:", addErr.response.data);
+              conflictOccurred = true;
+              conflictDetails = addErr.response.data;
+              break; // Stop adding more sessions if conflict occurs
+            } else {
+              console.error("❌ [FRONTEND DEBUG] Error adding session:", addErr);
+              throw addErr; // Re-throw non-conflict errors
+            }
+          }
+        }
+        
+        if (conflictOccurred) {
+          alert(`⚠️ SCHEDULING CONFLICT DETECTED!\n\nDr. ${selectedNotif.name} already has a session scheduled:\n\n` +
+                `Existing: "${conflictDetails.conflict.existing_session}"\n` +
+                `Time: ${conflictDetails.conflict.existing_time}\n` +
+                `Location: ${conflictDetails.conflict.existing_location}\n\n` +
+                `This conflicts with the new session at ${conflictDetails.conflict.conflicting_time}\n\n` +
+                `Please choose a different time slot or reschedule the existing session.`);
+          
+          setShowLocationModal(false);
+          await fetchAllData(); // Refresh to show current state
+          return; // Exit without sending notification or deleting parsed email
         }
 
         // 📧 Send availability acceptance notification
@@ -447,6 +477,7 @@ const DoctorScheduler = () => {
                     <span className="detail-label">Session:</span> {notif.session_name || "—"}<br />
                     <span className="detail-label">Sessions Needed:</span> <strong>{notif.session_count || 1}x</strong><br />
                     <span className="detail-label">Students:</span> {notif.students || "—"}<br />
+                    <span className="detail-label">Doctor:</span> {notif.name} ({notif.from_email})<br />
                     <span className="detail-label">Available Dates:</span>
                   </div>
 

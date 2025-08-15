@@ -97,7 +97,7 @@ const StaffTimetable = () => {
                 const hasPendingRequest = endDateTime > now && parsedChangeRequests.some(req => {
                     // First try to match by original_session_id if available (most reliable)
                     if (req.original_session_id && item.id) {
-                        return req.original_session_id == item.id; // Use == for type coercion
+                        return req.original_session_id === item.id; // Use == for type coercion
                     }
                     
                     // Fallback to matching by session name, doctor email, AND original session details

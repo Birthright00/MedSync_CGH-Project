@@ -216,6 +216,53 @@ const DoctorScheduler = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
 
+        // 📧 Send change request acceptance notification
+        try {
+          console.log("🔍 [FRONTEND DEBUG] Sending change request notification:", {
+            notification_id: selectedNotif.id,
+            doctor_email: selectedNotif.from_email,
+            session_name: selectedNotif.session_name,
+            original_date: originalDatePart?.trim(),
+            new_date: date,
+            new_time: time
+          });
+
+          const notificationResponse = await axios.post(`${API_BASE_URL}/api/scheduling/notify-change-request-accepted`, {
+            parsed_email_id: selectedNotif.id,
+            doctor_email: selectedNotif.from_email,
+            session_details: {
+              session_name: selectedNotif.session_name,
+              original_date: originalDatePart?.trim(),
+              original_time: originalTimeRange,
+              date: date,
+              time: time,
+              students: selectedNotif.students || "",
+              change_reason: selectedNotif.reason
+            },
+            new_schedule: {
+              date: date,
+              time: time,
+              location: locationInput
+            }
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          console.log("✅ [FRONTEND DEBUG] Change request notification response:", notificationResponse.data);
+          
+          if (notificationResponse.data.email_sent) {
+            console.log("✅ Email sent successfully!");
+          } else {
+            console.warn("⚠️ Email prepared but not sent (check server logs for access token issues)");
+          }
+        } catch (notifErr) {
+          console.error("❌ [FRONTEND DEBUG] Failed to send change request notification:", {
+            error: notifErr.message,
+            response: notifErr.response?.data,
+            status: notifErr.response?.status
+          });
+        }
+
         await axios.delete(`${API_BASE_URL}/api/scheduling/parsed-email/${selectedNotif.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -233,6 +280,50 @@ const DoctorScheduler = () => {
             doctor_email: selectedNotif.from_email
           }, {
             headers: { Authorization: `Bearer ${token}` }
+          });
+        }
+
+        // 📧 Send availability acceptance notification
+        try {
+          const acceptedSlots = selectedNotif.available_dates.map(slot => 
+            `${slot.date} at ${slot.time || 'TBD'}`
+          ).join(', ');
+
+          console.log("🔍 [FRONTEND DEBUG] Sending availability notification:", {
+            notification_id: selectedNotif.id,
+            doctor_email: selectedNotif.from_email,
+            session_name: selectedNotif.session_name,
+            accepted_slots: acceptedSlots,
+            location: locationInput
+          });
+
+          const notificationResponse = await axios.post(`${API_BASE_URL}/api/scheduling/notify-availability-accepted`, {
+            parsed_email_id: selectedNotif.id,
+            doctor_email: selectedNotif.from_email,
+            session_details: {
+              session_name: selectedNotif.session_name,
+              date: selectedNotif.available_dates[0]?.date || 'Multiple dates',
+              time: selectedNotif.available_dates[0]?.time || 'Multiple times',
+              location: locationInput,
+              students: selectedNotif.students || ""
+            },
+            accepted_slot: acceptedSlots
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          console.log("✅ [FRONTEND DEBUG] Availability notification response:", notificationResponse.data);
+          
+          if (notificationResponse.data.email_sent) {
+            console.log("✅ Email sent successfully!");
+          } else {
+            console.warn("⚠️ Email prepared but not sent (check server logs for access token issues)");
+          }
+        } catch (notifErr) {
+          console.error("❌ [FRONTEND DEBUG] Failed to send availability notification:", {
+            error: notifErr.message,
+            response: notifErr.response?.data,
+            status: notifErr.response?.status
           });
         }
 

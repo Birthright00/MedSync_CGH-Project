@@ -1324,7 +1324,7 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
                 isMulti
                 placeholder="Add students..."
                 options={allStudentNames
-                  .filter(student => !(manualForm.students || "").split(",").includes(student.name))
+                  .filter(student => !(manualForm.students || "").split("|").includes(student.name))
                   .map(student => ({
                     value: student.name,
                     label: `${student.name} (${student.school || 'Unknown'}, ${student.yearofstudy || '?'})`
@@ -1337,9 +1337,9 @@ const DoctorScheduling = ({ sessions, refreshSessions }) => {
                 }}
                 onChange={(selectedOptions) => {
                   const selectedNames = selectedOptions.map(o => o.value);
-                  const currentNames = (manualForm.students || "").split(",").filter(n => n);
+                  const currentNames = (manualForm.students || "").split("|").filter(n => n);
                   const combined = [...new Set([...currentNames, ...selectedNames])];
-                  setManualForm({ ...manualForm, students: combined.join(",") });
+                  setManualForm({ ...manualForm, students: combined.join("|") });
                 }}
               />
 

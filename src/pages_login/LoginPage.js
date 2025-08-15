@@ -215,7 +215,7 @@ const LoginPage = () => {
                   }
                   alt="management"
                 />
-                Management
+                EDO
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.1 }}

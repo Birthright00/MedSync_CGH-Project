@@ -201,7 +201,7 @@ const SignUpPage = () => {
                 onClick={() => setSelectedRole("management")}
               >
                 <img src={management} alt="management" />
-                Management
+                EDO
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.1 }}

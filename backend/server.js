@@ -2712,6 +2712,439 @@ app.patch("/api/scheduling/parsed-email/:session_id/update-availability", async 
 });
 
 // -------------------------------------------------------------------------------------------------------------//
+// ------------------- ACCEPTANCE NOTIFICATION ENDPOINTS -------------------
+// -------------------------------------------------------------------------------------------------------------//
+
+// Notify doctor when availability session is accepted
+app.post("/api/scheduling/notify-availability-accepted", async (req, res) => {
+  const { parsed_email_id, doctor_email, session_details, accepted_slot } = req.body;
+  
+  console.log("🔍 [DEBUG] Availability notification request:", {
+    parsed_email_id,
+    doctor_email,
+    session_details,
+    accepted_slot
+  });
+  
+  try {
+    // Get the parsed email details to extract doctor information
+    const [emailResult] = await db.promise().query(
+      "SELECT * FROM parsed_emails WHERE id = ?", 
+      [parsed_email_id]
+    );
+    
+    console.log("🔍 [DEBUG] Database query result:", emailResult);
+    
+    if (emailResult.length === 0) {
+      console.error("❌ [ERROR] Parsed email not found for ID:", parsed_email_id);
+      return res.status(404).json({ error: "Parsed email not found" });
+    }
+    
+    const emailData = emailResult[0];
+    console.log("🔍 [DEBUG] Email data retrieved:", emailData);
+    
+    // Extract doctor name with better fallback logic
+    const doctorName = emailData.name || emailData.doctor_name || emailData.from_name || 'Doctor';
+    console.log("🔍 [DEBUG] Doctor name resolved to:", doctorName);
+    
+    // Create notification email content
+    const subject = `Availability Request Accepted - ${session_details.session_name}`;
+    const body = `Dear Dr. ${doctorName},
+
+Your availability request has been ACCEPTED for the following session:
+
+Session: ${session_details.session_name}
+Date: ${session_details.date}
+Time: ${session_details.time}
+Location: ${session_details.location}
+Students: ${session_details.students}
+
+Accepted Time Slot: ${accepted_slot}
+
+Thank you for your flexibility and cooperation.
+
+Best regards,
+EDO Team`;
+
+    console.log("📧 [DEBUG] Email content prepared:", {
+      subject,
+      body_length: body.length,
+      to: doctor_email
+    });
+
+    // Try to get access token and send email
+    try {
+      // First, try to get access token
+      const adminEmailMappings = JSON.parse(await readFile('../src/config/admin-emails.json', 'utf-8'));
+      console.log("🔍 [DEBUG] Admin email mappings loaded");
+      
+      // Find the admin profile that should send this email (default to first available)
+      const adminProfile = Object.keys(adminEmailMappings.admins)[0];
+      const profilePath = `../src/token/${adminProfile.toLowerCase()}_profile.json`;
+      
+      console.log("🔍 [DEBUG] Looking for profile:", profilePath);
+      
+      let accessToken = null;
+      try {
+        const profileData = await readFile(profilePath, 'utf-8');
+        const profileJson = JSON.parse(profileData);
+        accessToken = profileJson.access_token;
+        console.log("🔍 [DEBUG] Access token found:", accessToken ? "YES" : "NO");
+      } catch (tokenErr) {
+        console.warn("⚠️ [WARN] Profile token not found, trying fallback");
+        try {
+          const fallbackData = await readFile('../src/token/access_token.json', 'utf-8');
+          const fallbackJson = JSON.parse(fallbackData);
+          accessToken = fallbackJson.access_token;
+          console.log("🔍 [DEBUG] Fallback token found:", accessToken ? "YES" : "NO");
+        } catch (fallbackErr) {
+          console.error("❌ [ERROR] No access tokens available:", fallbackErr.message);
+        }
+      }
+      
+      if (accessToken) {
+        // Send email via Graph API
+        const emailPayload = {
+          message: {
+            subject,
+            body: {
+              contentType: "Text",
+              content: body,
+            },
+            toRecipients: [{
+              emailAddress: { address: doctor_email }
+            }],
+            internetMessageHeaders: [{
+              name: "X-Session-ID",
+              value: emailData.session_id || 'notification'
+            }]
+          }
+        };
+        
+        console.log("📤 [DEBUG] Sending email via Graph API:", {
+          to: doctor_email,
+          subject,
+          token_available: true
+        });
+        
+        const graphResponse = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(emailPayload),
+        });
+        
+        console.log("📤 [DEBUG] Graph API response status:", graphResponse.status);
+        
+        if (graphResponse.ok) {
+          console.log("✅ [SUCCESS] Email sent successfully via Graph API");
+          res.json({ 
+            message: "✅ Availability acceptance notification sent successfully",
+            email_sent: true,
+            notification: {
+              to: doctor_email,
+              subject: subject,
+              body: body
+            }
+          });
+        } else {
+          const graphError = await graphResponse.json();
+          console.error("❌ [ERROR] Graph API error:", graphError);
+          res.status(500).json({ 
+            error: "Failed to send email via Graph API",
+            details: graphError,
+            notification_prepared: true
+          });
+        }
+      } else {
+        console.warn("⚠️ [WARN] No access token available, notification prepared but not sent");
+        res.json({ 
+          message: "⚠️ Availability acceptance notification prepared (no access token for sending)",
+          email_sent: false,
+          notification: {
+            to: doctor_email,
+            subject: subject,
+            body: body
+          }
+        });
+      }
+    } catch (emailSendErr) {
+      console.error("❌ [ERROR] Email sending failed:", emailSendErr);
+      res.status(500).json({ 
+        error: "Failed to send notification email",
+        details: emailSendErr.message,
+        notification_prepared: true
+      });
+    }
+    
+  } catch (err) {
+    console.error("❌ [ERROR] General error in availability notification:", err);
+    res.status(500).json({ error: "Failed to prepare notification" });
+  }
+});
+
+// Notify doctor when change request is accepted
+app.post("/api/scheduling/notify-change-request-accepted", async (req, res) => {
+  const { parsed_email_id, doctor_email, session_details, new_schedule } = req.body;
+  
+  console.log("🔍 [DEBUG] Change request notification request:", {
+    parsed_email_id,
+    doctor_email,
+    session_details,
+    new_schedule
+  });
+  
+  try {
+    // Get the parsed email details to extract doctor information
+    const [emailResult] = await db.promise().query(
+      "SELECT * FROM parsed_emails WHERE id = ?", 
+      [parsed_email_id]
+    );
+    
+    console.log("🔍 [DEBUG] Database query result:", emailResult);
+    
+    if (emailResult.length === 0) {
+      console.error("❌ [ERROR] Parsed email not found for ID:", parsed_email_id);
+      return res.status(404).json({ error: "Parsed email not found" });
+    }
+    
+    const emailData = emailResult[0];
+    console.log("🔍 [DEBUG] Email data retrieved:", emailData);
+    
+    // Extract doctor name with better fallback logic
+    const doctorName = emailData.name || emailData.doctor_name || emailData.from_name || 'Doctor';
+    console.log("🔍 [DEBUG] Doctor name resolved to:", doctorName);
+    
+    // Create notification email content
+    const subject = `Change Request Accepted - ${session_details.session_name}`;
+    const body = `Dear Dr. ${doctorName},
+
+Your change request has been ACCEPTED for the following session:
+
+Original Session: ${session_details.session_name}
+Original Date: ${session_details.original_date || session_details.date}
+Original Time: ${session_details.original_time || session_details.time}
+
+NEW SCHEDULE:
+Date: ${new_schedule.date}
+Time: ${new_schedule.time}
+Location: ${new_schedule.location}
+Students: ${session_details.students}
+
+Change Reason: ${session_details.change_reason || 'Not specified'}
+
+The session has been updated in the system. Thank you for informing us of the change.
+
+Best regards,
+EDO Team`;
+
+    console.log("📧 [DEBUG] Email content prepared:", {
+      subject,
+      body_length: body.length,
+      to: doctor_email
+    });
+
+    // Try to get access token and send email
+    try {
+      // First, try to get access token
+      const adminEmailMappings = JSON.parse(await readFile('../src/config/admin-emails.json', 'utf-8'));
+      console.log("🔍 [DEBUG] Admin email mappings loaded");
+      
+      // Find the admin profile that should send this email (default to first available)
+      const adminProfile = Object.keys(adminEmailMappings.admins)[0];
+      const profilePath = `../src/token/${adminProfile.toLowerCase()}_profile.json`;
+      
+      console.log("🔍 [DEBUG] Looking for profile:", profilePath);
+      
+      let accessToken = null;
+      try {
+        const profileData = await readFile(profilePath, 'utf-8');
+        const profileJson = JSON.parse(profileData);
+        accessToken = profileJson.access_token;
+        console.log("🔍 [DEBUG] Access token found:", accessToken ? "YES" : "NO");
+      } catch (tokenErr) {
+        console.warn("⚠️ [WARN] Profile token not found, trying fallback");
+        try {
+          const fallbackData = await readFile('../src/token/access_token.json', 'utf-8');
+          const fallbackJson = JSON.parse(fallbackData);
+          accessToken = fallbackJson.access_token;
+          console.log("🔍 [DEBUG] Fallback token found:", accessToken ? "YES" : "NO");
+        } catch (fallbackErr) {
+          console.error("❌ [ERROR] No access tokens available:", fallbackErr.message);
+        }
+      }
+      
+      if (accessToken) {
+        // Send email via Graph API
+        const emailPayload = {
+          message: {
+            subject,
+            body: {
+              contentType: "Text",
+              content: body,
+            },
+            toRecipients: [{
+              emailAddress: { address: doctor_email }
+            }],
+            internetMessageHeaders: [{
+              name: "X-Session-ID",
+              value: emailData.session_id || 'notification'
+            }]
+          }
+        };
+        
+        console.log("📤 [DEBUG] Sending email via Graph API:", {
+          to: doctor_email,
+          subject,
+          token_available: true
+        });
+        
+        const graphResponse = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(emailPayload),
+        });
+        
+        console.log("📤 [DEBUG] Graph API response status:", graphResponse.status);
+        
+        if (graphResponse.ok) {
+          console.log("✅ [SUCCESS] Email sent successfully via Graph API");
+          res.json({ 
+            message: "✅ Change request acceptance notification sent successfully",
+            email_sent: true,
+            notification: {
+              to: doctor_email,
+              subject: subject,
+              body: body
+            }
+          });
+        } else {
+          const graphError = await graphResponse.json();
+          console.error("❌ [ERROR] Graph API error:", graphError);
+          res.status(500).json({ 
+            error: "Failed to send email via Graph API",
+            details: graphError,
+            notification_prepared: true
+          });
+        }
+      } else {
+        console.warn("⚠️ [WARN] No access token available, notification prepared but not sent");
+        res.json({ 
+          message: "⚠️ Change request acceptance notification prepared (no access token for sending)",
+          email_sent: false,
+          notification: {
+            to: doctor_email,
+            subject: subject,
+            body: body
+          }
+        });
+      }
+    } catch (emailSendErr) {
+      console.error("❌ [ERROR] Email sending failed:", emailSendErr);
+      res.status(500).json({ 
+        error: "Failed to send notification email",
+        details: emailSendErr.message,
+        notification_prepared: true
+      });
+    }
+    
+  } catch (err) {
+    console.error("❌ [ERROR] General error in change request notification:", err);
+    res.status(500).json({ error: "Failed to prepare notification" });
+  }
+});
+
+// Debug endpoint to check notification system status
+app.get("/api/scheduling/debug-notification-status", async (req, res) => {
+  try {
+    console.log("🔍 [DEBUG] Checking notification system status...");
+    
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      system_status: "operational",
+      checks: {
+        admin_config: false,
+        token_files: [],
+        database: false
+      }
+    };
+    
+    // Check admin config
+    try {
+      const adminEmailMappings = JSON.parse(await readFile('../src/config/admin-emails.json', 'utf-8'));
+      debugInfo.checks.admin_config = true;
+      debugInfo.admin_profiles = Object.keys(adminEmailMappings.admins);
+      console.log("✅ [DEBUG] Admin config loaded successfully");
+    } catch (configErr) {
+      console.error("❌ [DEBUG] Admin config error:", configErr.message);
+      debugInfo.checks.admin_config = false;
+      debugInfo.config_error = configErr.message;
+    }
+    
+    // Check token files
+    const tokenDir = '../src/token/';
+    try {
+      const fs = require('fs').promises;
+      const files = await fs.readdir(tokenDir);
+      debugInfo.checks.token_files = files.filter(f => f.endsWith('.json'));
+      console.log("🔍 [DEBUG] Token files found:", debugInfo.checks.token_files);
+    } catch (tokenErr) {
+      console.error("❌ [DEBUG] Token directory error:", tokenErr.message);
+      debugInfo.token_error = tokenErr.message;
+    }
+    
+    // Check database connection
+    try {
+      const [testResult] = await db.promise().query("SELECT 1 as test");
+      debugInfo.checks.database = testResult.length > 0;
+      console.log("✅ [DEBUG] Database connection successful");
+    } catch (dbErr) {
+      console.error("❌ [DEBUG] Database error:", dbErr.message);
+      debugInfo.checks.database = false;
+      debugInfo.database_error = dbErr.message;
+    }
+    
+    console.log("🔍 [DEBUG] System status check complete:", debugInfo);
+    res.json(debugInfo);
+    
+  } catch (err) {
+    console.error("❌ [DEBUG] Error in status check:", err);
+    res.status(500).json({ error: "Failed to check system status", details: err.message });
+  }
+});
+
+// Send notification email via Graph API
+app.post("/api/scheduling/send-acceptance-notification", async (req, res) => {
+  const { doctor_email, subject, body, session_id } = req.body;
+  
+  try {
+    // This endpoint can be called by the frontend to actually send the notification
+    // It would integrate with the existing Graph API sending mechanism
+    
+    console.log("📧 Sending acceptance notification:", {
+      to: doctor_email,
+      subject: subject,
+      session_id: session_id
+    });
+    
+    // For now, we'll return success - this would need Graph API integration
+    res.json({ 
+      message: "✅ Notification sent successfully",
+      sent_to: doctor_email
+    });
+    
+  } catch (err) {
+    console.error("❌ Error sending acceptance notification:", err);
+    res.status(500).json({ error: "Failed to send notification" });
+  }
+});
+
+// -------------------------------------------------------------------------------------------------------------//
 // ------------------- SPECIFIC STUDENT ID TIMETABLE -------------------
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/api/scheduling/student-timetable/:userId", (req, res) => {

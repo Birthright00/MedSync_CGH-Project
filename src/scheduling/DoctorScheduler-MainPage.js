@@ -24,6 +24,10 @@ const DoctorScheduler = () => {
   const [locationInput, setLocationInput] = useState("");
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [selectedSlots, setSelectedSlots] = useState([]); // For multi-session selection
+  const [showChangeRequestModal, setShowChangeRequestModal] = useState(false);
+  const [suggestedSlots, setSuggestedSlots] = useState([
+    { date: '', startTime: '', endTime: '' }
+  ]);
 
   
 
@@ -121,6 +125,86 @@ const DoctorScheduler = () => {
     
     setShowSlotSelectionModal(false);
     setShowLocationModal(true);
+  };
+
+  const handleChangeRequest = (notif) => {
+    setSelectedNotif(notif);
+    setSuggestedSlots([{ date: '', startTime: '', endTime: '' }]);
+    setShowChangeRequestModal(true);
+  };
+
+  const addSuggestedSlot = () => {
+    setSuggestedSlots([...suggestedSlots, { date: '', startTime: '', endTime: '' }]);
+  };
+
+  const removeSuggestedSlot = (index) => {
+    if (suggestedSlots.length > 1) {
+      setSuggestedSlots(suggestedSlots.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateSuggestedSlot = (index, field, value) => {
+    const updated = [...suggestedSlots];
+    updated[index][field] = value;
+    setSuggestedSlots(updated);
+  };
+
+  const handleSendChangeRequest = async () => {
+    // Validate suggested slots
+    const validSlots = suggestedSlots.filter(slot => 
+      slot.date && slot.startTime && slot.endTime
+    );
+
+    if (validSlots.length === 0) {
+      alert("Please add at least one complete time slot suggestion.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      
+      console.log("🔍 [FRONTEND DEBUG] Sending change request:", {
+        notification_id: selectedNotif.id,
+        doctor_email: selectedNotif.from_email,
+        suggested_slots: validSlots
+      });
+
+      const response = await axios.post(`${API_BASE_URL}/api/scheduling/send-change-request`, {
+        parsed_email_id: selectedNotif.id,
+        doctor_email: selectedNotif.from_email,
+        doctor_name: selectedNotif.name,
+        session_details: {
+          session_name: selectedNotif.session_name,
+          session_count: selectedNotif.session_count || 1,
+          students: selectedNotif.students || ""
+        },
+        suggested_slots: validSlots,
+        reason: "Original time slots not suitable. Please provide new availability."
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      console.log("✅ [FRONTEND DEBUG] Change request sent:", response.data);
+      
+      if (response.data.email_sent) {
+        alert("✅ Change request sent to doctor successfully!");
+      } else {
+        alert("⚠️ Change request prepared but email not sent (check server logs)");
+      }
+
+      setShowChangeRequestModal(false);
+      
+      // Optionally delete the original notification since we've requested new times
+      await axios.delete(`${API_BASE_URL}/api/scheduling/parsed-email/${selectedNotif.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      await fetchAllData(); // Refresh notifications
+
+    } catch (err) {
+      console.error("❌ [FRONTEND DEBUG] Failed to send change request:", err);
+      alert("❌ Failed to send change request. Please try again.");
+    }
   };
 
   // Handle notification rejection
@@ -498,7 +582,7 @@ const DoctorScheduler = () => {
                       Accept
                     </button>
 
-                    <button className="change-btn" disabled>
+                    <button className="change-btn" onClick={() => handleChangeRequest(notif)}>
                       <MdAutorenew style={{ fontSize: '22px', verticalAlign: 'middle', position: 'relative', top: '-1px', marginRight: '5px' }} />
                       Change
                     </button>
@@ -667,6 +751,104 @@ const DoctorScheduler = () => {
             <div className="modal-buttons">
               <button onClick={handleConfirmLocation} className="confirm-btn">Confirm</button>
               <button onClick={() => setShowLocationModal(false)} className="cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Request Modal */}
+      {showChangeRequestModal && selectedNotif && (
+        <div className="modal-overlay">
+          <div className="modal-box" style={{ width: "600px", maxWidth: "90vw" }}>
+            <h3>Request New Time Slots</h3>
+            <p>
+              Request new availability from <strong>Dr. {selectedNotif.name}</strong> for <strong>{selectedNotif.session_name}</strong>
+            </p>
+            <p style={{ color: "#666", fontSize: "0.9em" }}>
+              Sessions needed: <strong>{selectedNotif.session_count || 1}x</strong> | Students: {selectedNotif.students || "N/A"}
+            </p>
+            
+            <div style={{ marginTop: "20px" }}>
+              <h4>Suggest Alternative Time Slots:</h4>
+              {suggestedSlots.map((slot, index) => (
+                <div key={index} style={{ 
+                  display: "flex", 
+                  gap: "10px", 
+                  marginBottom: "10px", 
+                  alignItems: "center",
+                  padding: "10px",
+                  border: "1px solid #ddd",
+                  borderRadius: "5px",
+                  backgroundColor: "#f9f9f9"
+                }}>
+                  <div style={{ flex: "1" }}>
+                    <label style={{ fontSize: "0.8em", color: "#666" }}>Date:</label>
+                    <input
+                      type="date"
+                      value={slot.date}
+                      onChange={(e) => updateSuggestedSlot(index, 'date', e.target.value)}
+                      style={{ width: "100%", padding: "5px" }}
+                    />
+                  </div>
+                  <div style={{ flex: "1" }}>
+                    <label style={{ fontSize: "0.8em", color: "#666" }}>Start Time:</label>
+                    <input
+                      type="time"
+                      value={slot.startTime}
+                      onChange={(e) => updateSuggestedSlot(index, 'startTime', e.target.value)}
+                      style={{ width: "100%", padding: "5px" }}
+                    />
+                  </div>
+                  <div style={{ flex: "1" }}>
+                    <label style={{ fontSize: "0.8em", color: "#666" }}>End Time:</label>
+                    <input
+                      type="time"
+                      value={slot.endTime}
+                      onChange={(e) => updateSuggestedSlot(index, 'endTime', e.target.value)}
+                      style={{ width: "100%", padding: "5px" }}
+                    />
+                  </div>
+                  {suggestedSlots.length > 1 && (
+                    <button 
+                      onClick={() => removeSuggestedSlot(index)}
+                      style={{ 
+                        background: "#ff4444", 
+                        color: "white", 
+                        border: "none", 
+                        borderRadius: "3px",
+                        padding: "5px 8px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              
+              <button 
+                onClick={addSuggestedSlot}
+                style={{
+                  background: "#4CAF50",
+                  color: "white",
+                  border: "none",
+                  padding: "8px 12px",
+                  borderRadius: "3px",
+                  cursor: "pointer",
+                  marginTop: "10px"
+                }}
+              >
+                + Add Another Time Slot
+              </button>
+            </div>
+            
+            <div className="modal-buttons" style={{ marginTop: "20px" }}>
+              <button onClick={handleSendChangeRequest} className="confirm-btn">
+                Send Change Request
+              </button>
+              <button onClick={() => setShowChangeRequestModal(false)} className="cancel-btn">
+                Cancel
+              </button>
             </div>
           </div>
         </div>

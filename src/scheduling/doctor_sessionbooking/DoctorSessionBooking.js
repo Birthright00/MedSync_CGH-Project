@@ -42,8 +42,8 @@ const DoctorSessionBooking = () => {
     setSelectedSlots(prev => {
       const existsIndex = prev.findIndex(s =>
         s.date === slot.date &&
-        s.startTime === slot.startTime &&
-        s.endTime === slot.endTime
+        (s.startTime || s.start) === (slot.startTime || slot.start) &&
+        (s.endTime || s.end) === (slot.endTime || slot.end)
       );
 
       if (existsIndex !== -1) {
@@ -68,8 +68,8 @@ const DoctorSessionBooking = () => {
       return prev.map(s => {
         if (
           s.date === slot.date &&
-          s.startTime === slot.startTime &&
-          s.endTime === slot.endTime
+          (s.startTime || s.start) === (slot.startTime || slot.start) &&
+          (s.endTime || s.end) === (slot.endTime || slot.end)
         ) {
           const updated = { ...s, [field]: value };
 
@@ -112,8 +112,8 @@ const DoctorSessionBooking = () => {
       // Format the slots before sending
       const cleanedSlots = selectedSlots.map(slot => ({
         date: slot.date,
-        start: slot.preferredStart || slot.startTime,
-        end: slot.preferredEnd || slot.endTime,
+        start: slot.preferredStart || slot.startTime || slot.start,
+        end: slot.preferredEnd || slot.endTime || slot.end,
       }));
 
       await axios.patch(`${API_BASE_URL}/api/scheduling/parsed-email/${sessionId}/update-availability`, {
@@ -144,6 +144,7 @@ const DoctorSessionBooking = () => {
     const formattedDate = date.toLocaleDateString('en-GB', options);
 
     const formatTime = (time) => {
+      if (!time) return 'TBD';
       const [hour, minute] = time.split(':');
       const h = parseInt(hour, 10);
       const ampm = h >= 12 ? 'pm' : 'am';
@@ -151,7 +152,7 @@ const DoctorSessionBooking = () => {
       return `${hour12}:${minute}${ampm}`;
     };
 
-    return `${formattedDate} (${formatTime(slot.startTime)} – ${formatTime(slot.endTime)})`;
+    return `${formattedDate} (${formatTime(slot.startTime || slot.start)} – ${formatTime(slot.endTime || slot.end)})`;
   };
 
 
@@ -209,8 +210,8 @@ const DoctorSessionBooking = () => {
               {sessionData.slots.map((slot, i) => {
                 const isSelected = selectedSlots.find(s =>
                   s.date === slot.date &&
-                  s.startTime === slot.startTime &&
-                  s.endTime === slot.endTime
+                  (s.startTime || s.start) === (slot.startTime || slot.start) &&
+                  (s.endTime || s.end) === (slot.endTime || slot.end)
                 );
 
                 return (
@@ -229,12 +230,12 @@ const DoctorSessionBooking = () => {
                           Start:
                           <input
                             type="time"
-                            min={slot.startTime}
-                            max={slot.endTime}
+                            min={slot.startTime || slot.start}
+                            max={slot.endTime || slot.end}
                             value={selectedSlots.find((s) =>
                               s.date === slot.date &&
-                              s.startTime === slot.startTime &&
-                              s.endTime === slot.endTime
+                              (s.startTime || s.start) === (slot.startTime || slot.start) &&
+                              (s.endTime || s.end) === (slot.endTime || slot.end)
                             )?.preferredStart || ''}
                             onChange={(e) => handleTimeChange(slot, 'preferredStart', e.target.value)}
                           />
@@ -247,15 +248,15 @@ const DoctorSessionBooking = () => {
                             min={
                               selectedSlots.find((s) =>
                                 s.date === slot.date &&
-                                s.startTime === slot.startTime &&
-                                s.endTime === slot.endTime
-                              )?.preferredStart || slot.startTime
+                                (s.startTime || s.start) === (slot.startTime || slot.start) &&
+                                (s.endTime || s.end) === (slot.endTime || slot.end)
+                              )?.preferredStart || (slot.startTime || slot.start)
                             }
-                            max={slot.endTime}
+                            max={slot.endTime || slot.end}
                             value={selectedSlots.find((s) =>
                               s.date === slot.date &&
-                              s.startTime === slot.startTime &&
-                              s.endTime === slot.endTime
+                              (s.startTime || s.start) === (slot.startTime || slot.start) &&
+                              (s.endTime || s.end) === (slot.endTime || slot.end)
                             )?.preferredEnd || ''}
                             onChange={(e) => handleTimeChange(slot, 'preferredEnd', e.target.value)}
                           />

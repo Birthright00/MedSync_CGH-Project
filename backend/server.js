@@ -44,6 +44,36 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // -------------------------------------------------------------------------------------------------------------//
+// HELPER FUNCTIONS
+// -------------------------------------------------------------------------------------------------------------//
+
+// Helper function to get frontend URL from request headers
+function getFrontendUrl(req) {
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
+  
+  // Extract hostname and determine frontend port
+  const hostname = host.split(':')[0];
+  let frontendHost;
+  
+  if (hostname === 'localhost') {
+    // Development environment - always use port 3000
+    frontendHost = `${hostname}:3000`;
+  } else {
+    // Production environment - check if custom port is specified
+    if (host.includes(':')) {
+      // Custom port specified, change it to frontend port
+      frontendHost = `${hostname}:3000`;
+    } else {
+      // Standard port, assume frontend is on port 3000
+      frontendHost = `${hostname}:3000`;
+    }
+  }
+  
+  return `${protocol}://${frontendHost}`;
+}
+
+// -------------------------------------------------------------------------------------------------------------//
 // IMPORTS EXPLANATION
 // -------------------------------------------------------------------------------------------------------------//
 // express: A framework for building web servers in Node.js --> simplifies routing and middleware setup
@@ -143,8 +173,9 @@ const requireRole = (role) => {
 // BACKEND SERVER
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/", (req, res) => {
+  const frontendUrl = getFrontendUrl(req);
   res.send(
-    "This site is for Development purposes only.<br>This is the backend development site.<br>You may be trying to access this instead : http://localhost:3000/"
+    `This site is for Development purposes only.<br>This is the backend development site.<br>You may be trying to access this instead : ${frontendUrl}/`
   );
 });
 
@@ -1678,67 +1709,27 @@ app.get("/api/scheduling/parsed_emails", (req, res) => {
 // GET REQUEST to call for scheduling data and displaying it as notifications for type = availability
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/api/scheduling/availability-notifications", verifyToken, requireRole("management"), (req, res) => {
-  // First, try to add the session_count column if it doesn't exist
-  const addColumnQuery = `
-    ALTER TABLE email_sessions 
-    ADD COLUMN IF NOT EXISTS session_count INT DEFAULT 1
+  // Simple query with session_count (column should exist now)
+  const query = `
+    SELECT
+      pe.id,
+      pe.session_name,
+      pe.from_name AS name,
+      pe.from_email,
+      pe.to_email,
+      pe.students,
+      pe.available_slots_timings,
+      pe.received_at,
+      pe.session_id,
+      COALESCE(es.session_count, 1) as session_count
+    FROM parsed_emails pe
+    LEFT JOIN email_sessions es ON pe.session_id = es.session_id
+    WHERE pe.type = 'availability'
+    ORDER BY pe.received_at DESC
   `;
-  
-  db.query(addColumnQuery, (alterErr) => {
-    if (alterErr && !alterErr.message.includes('Duplicate column name')) {
-      console.warn("⚠️ Could not add session_count column:", alterErr.message);
-    }
-    
-    // Try query with session_count, fall back if column doesn't exist
-    let query = `
-      SELECT
-        pe.id,
-        pe.session_name,
-        pe.from_name AS name,
-        pe.from_email,
-        pe.to_email,
-        pe.students,
-        pe.available_slots_timings,
-        pe.received_at,
-        pe.session_id,
-        COALESCE(es.session_count, 1) as session_count
-      FROM parsed_emails pe
-      LEFT JOIN email_sessions es ON pe.session_id = es.session_id
-      WHERE pe.type = 'availability'
-      ORDER BY pe.received_at DESC
-    `;
-    
-    // Fallback query without session_count
-    const fallbackQuery = `
-      SELECT
-        pe.id,
-        pe.session_name,
-        pe.from_name AS name,
-        pe.from_email,
-        pe.to_email,
-        pe.students,
-        pe.available_slots_timings,
-        pe.received_at,
-        pe.session_id,
-        1 as session_count
-      FROM parsed_emails pe
-      WHERE pe.type = 'availability'
-      ORDER BY pe.received_at DESC
-    `;
 
   db.query(query, (err, results) => {
-    if (err && err.message.includes("Unknown column 'es.session_count'")) {
-      console.warn("⚠️ session_count column not found, using fallback query");
-      // Use fallback query without session_count
-      db.query(fallbackQuery, (fallbackErr, fallbackResults) => {
-        if (fallbackErr) {
-          console.error("Error fetching availability notifications (fallback):", fallbackErr);
-          return res.status(500).json({ error: "Failed to retrieve availability data." });
-        }
-        processResults(fallbackResults);
-      });
-      return;
-    } else if (err) {
+    if (err) {
       console.error("Error fetching availability notifications:", err);
       return res.status(500).json({ error: "Failed to retrieve availability data." });
     }
@@ -1788,7 +1779,6 @@ app.get("/api/scheduling/availability-notifications", verifyToken, requireRole("
 
     return res.json(transformed);
   }
-  });
 });
 
 
@@ -3241,32 +3231,274 @@ EDO Team`;
   }
 });
 
-// Endpoint to add session_count column to email_sessions table
-app.post("/api/scheduling/add-session-count-column", async (req, res) => {
+// Send change request email to doctor with suggested time slots
+app.post("/api/scheduling/send-change-request", async (req, res) => {
+  const { 
+    parsed_email_id, 
+    doctor_email, 
+    doctor_name, 
+    session_details, 
+    suggested_slots, 
+    reason 
+  } = req.body;
+  
+  console.log("🔍 [DEBUG] Change request email request:", {
+    parsed_email_id,
+    doctor_email,
+    doctor_name,
+    session_details,
+    suggested_slots,
+    reason
+  });
+  
   try {
-    console.log("🔧 [DEBUG] Attempting to add session_count column...");
+    // Get the parsed email details
+    const [emailResult] = await db.promise().query(
+      "SELECT * FROM parsed_emails WHERE id = ?", 
+      [parsed_email_id]
+    );
     
-    const addColumnQuery = `
-      ALTER TABLE email_sessions 
-      ADD COLUMN session_count INT DEFAULT 1
-    `;
+    console.log("🔍 [DEBUG] Database query result:", emailResult);
     
-    await db.promise().query(addColumnQuery);
-    console.log("✅ [SUCCESS] session_count column added successfully");
-    res.json({ success: true, message: "session_count column added successfully" });
+    if (emailResult.length === 0) {
+      console.error("❌ [ERROR] Parsed email not found for ID:", parsed_email_id);
+      return res.status(404).json({ error: "Parsed email not found" });
+    }
     
-  } catch (err) {
-    if (err.message.includes('Duplicate column name')) {
-      console.log("ℹ️ [INFO] session_count column already exists");
-      res.json({ success: true, message: "session_count column already exists" });
-    } else {
-      console.error("❌ [ERROR] Failed to add session_count column:", err);
+    const emailData = emailResult[0];
+    
+    // Format suggested time slots
+    const suggestedSlotsText = suggested_slots.map((slot, index) => {
+      const date = new Date(slot.date).toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      
+      const startTime = new Date(`1970-01-01T${slot.startTime}`).toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      });
+      
+      const endTime = new Date(`1970-01-01T${slot.endTime}`).toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      });
+      
+      return `Option ${index + 1}: ${date} from ${startTime} to ${endTime}`;
+    }).join('\n');
+    
+    // Create a new session ID for the change request
+    const { v4: uuidv4 } = await import('uuid');
+    const newSessionId = uuidv4();
+    
+    // Get original session data and doctor MCR information
+    let originalSessionData = null;
+    let doctorMcr = '';
+    
+    try {
+      // Get original session data
+      const [originalSession] = await db.promise().query(
+        "SELECT * FROM email_sessions WHERE session_id = ?",
+        [emailData.session_id]
+      );
+      if (originalSession.length > 0) {
+        originalSessionData = originalSession[0];
+        console.log("🔍 [DEBUG] Found original session data:", originalSessionData);
+      }
+      
+      // Get doctor's MCR number from main_data using email
+      const [doctorData] = await db.promise().query(
+        "SELECT mcr_number FROM main_data WHERE email = ?",
+        [doctor_email]
+      );
+      if (doctorData.length > 0) {
+        doctorMcr = doctorData[0].mcr_number;
+        console.log("🔍 [DEBUG] Found doctor MCR:", doctorMcr);
+      } else {
+        console.warn("⚠️ [WARN] Could not find doctor MCR for email:", doctor_email);
+      }
+    } catch (originalSessionErr) {
+      console.warn("⚠️ [WARN] Could not find original session data:", originalSessionErr);
+    }
+
+    // Store the new session with suggested time slots in email_sessions table
+    // Format slots correctly for the availability form (use 'start' and 'end' instead of 'startTime' and 'endTime')
+    const suggestedSlotsJson = JSON.stringify(suggested_slots.map(slot => ({
+      date: slot.date,
+      start: slot.startTime, // Convert startTime to start
+      end: slot.endTime      // Convert endTime to end
+    })));
+
+    // Create email body with suggested slots for the new session
+    const newSessionBody = `Change request for ${session_details.session_name} with suggested time slots:\n\n${suggestedSlotsText}\n\nPlease respond with your availability.`;
+    
+    try {
+      await db.promise().query(
+        `INSERT INTO email_sessions 
+         (session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name, session_count, available_slots_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          newSessionId,
+          `Change Request - ${session_details.session_name}`,
+          newSessionBody,
+          doctor_email,
+          doctorMcr || originalSessionData?.doctor_mcrs || '', // Use doctor's MCR or original
+          originalSessionData?.student_ids || '', // Use original student_ids if available
+          session_details.session_name,
+          session_details.session_count || 1,
+          suggestedSlotsJson
+        ]
+      );
+      console.log("✅ [DEBUG] New session created for change request:", newSessionId);
+      console.log("🔍 [DEBUG] Stored doctor_mcrs:", doctorMcr);
+      console.log("🔍 [DEBUG] Stored student_ids:", originalSessionData?.student_ids || '');
+    } catch (sessionErr) {
+      console.error("❌ [ERROR] Failed to create new session:", sessionErr);
+    }
+
+    // Create email content
+    const subject = `New Time Slots Needed - ${session_details.session_name}`;
+    const body = `Dear Dr. ${doctor_name || 'Doctor'},
+
+Thank you for your availability response for the ${session_details.session_name} session.
+
+Unfortunately, the original time slots you provided are not suitable due to scheduling conflicts or other constraints.
+
+ORIGINAL REQUEST:
+Session: ${session_details.session_name}
+Sessions Needed: ${session_details.session_count}x
+Students: ${session_details.students}
+
+SUGGESTED ALTERNATIVE TIME SLOTS:
+${suggestedSlotsText}
+
+Please reply with your availability for the above suggested time slots, or provide alternative times that work for you.
+
+You can respond directly to this email or use our online form: ${getFrontendUrl(req)}/#/doctor-availability/respond?session_id=${newSessionId}
+
+Thank you for your flexibility and cooperation.
+
+Best regards,
+EDO Team`;
+
+    console.log("📧 [DEBUG] Email content prepared:", {
+      subject,
+      body_length: body.length,
+      to: doctor_email
+    });
+
+    // Try to get access token and send email
+    try {
+      const adminEmailMappings = JSON.parse(await readFile('../src/config/admin-emails.json', 'utf-8'));
+      console.log("🔍 [DEBUG] Admin email mappings loaded");
+      
+      const adminProfile = Object.keys(adminEmailMappings.admins)[0];
+      const profilePath = `../src/token/${adminProfile.toLowerCase()}_profile.json`;
+      
+      console.log("🔍 [DEBUG] Looking for profile:", profilePath);
+      
+      let accessToken = null;
+      try {
+        const profileData = await readFile(profilePath, 'utf-8');
+        const profileJson = JSON.parse(profileData);
+        accessToken = profileJson.access_token;
+        console.log("🔍 [DEBUG] Access token found:", accessToken ? "YES" : "NO");
+      } catch (tokenErr) {
+        console.warn("⚠️ [WARN] Profile token not found, trying fallback");
+        try {
+          const fallbackData = await readFile('../src/token/access_token.json', 'utf-8');
+          const fallbackJson = JSON.parse(fallbackData);
+          accessToken = fallbackJson.access_token;
+          console.log("🔍 [DEBUG] Fallback token found:", accessToken ? "YES" : "NO");
+        } catch (fallbackErr) {
+          console.error("❌ [ERROR] No access tokens available:", fallbackErr.message);
+        }
+      }
+      
+      if (accessToken) {
+        // Send email via Graph API
+        const emailPayload = {
+          message: {
+            subject,
+            body: {
+              contentType: "Text",
+              content: body,
+            },
+            toRecipients: [{
+              emailAddress: { address: doctor_email }
+            }],
+            internetMessageHeaders: [{
+              name: "X-Session-ID",
+              value: emailData.session_id || 'change_request'
+            }]
+          }
+        };
+        
+        console.log("📤 [DEBUG] Sending email via Graph API:", {
+          to: doctor_email,
+          subject,
+          token_available: true
+        });
+        
+        const graphResponse = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(emailPayload),
+        });
+        
+        console.log("📤 [DEBUG] Graph API response status:", graphResponse.status);
+        
+        if (graphResponse.ok) {
+          console.log("✅ [SUCCESS] Change request email sent successfully via Graph API");
+          res.json({ 
+            message: "✅ Change request sent successfully",
+            email_sent: true,
+            notification: {
+              to: doctor_email,
+              subject: subject,
+              body: body
+            }
+          });
+        } else {
+          const graphError = await graphResponse.json();
+          console.error("❌ [ERROR] Graph API error:", graphError);
+          res.status(500).json({ 
+            error: "Failed to send email via Graph API",
+            details: graphError,
+            email_prepared: true
+          });
+        }
+      } else {
+        console.warn("⚠️ [WARN] No access token available, change request prepared but not sent");
+        res.json({ 
+          message: "⚠️ Change request prepared (no access token for sending)",
+          email_sent: false,
+          notification: {
+            to: doctor_email,
+            subject: subject,
+            body: body
+          }
+        });
+      }
+    } catch (emailSendErr) {
+      console.error("❌ [ERROR] Email sending failed:", emailSendErr);
       res.status(500).json({ 
-        success: false, 
-        error: "Failed to add session_count column",
-        details: err.message 
+        error: "Failed to send change request email",
+        details: emailSendErr.message,
+        email_prepared: true
       });
     }
+    
+  } catch (err) {
+    console.error("❌ [ERROR] General error in change request:", err);
+    res.status(500).json({ error: "Failed to prepare change request" });
   }
 });
 

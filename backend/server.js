@@ -3231,6 +3231,141 @@ EDO Team`;
   }
 });
 
+// Notify doctor when their availability or change request is rejected
+app.post("/api/scheduling/notify-rejection", async (req, res) => {
+  const { parsed_email_id, doctor_email, session_details, rejection_reason, request_type } = req.body;
+  
+  console.log("🔍 [DEBUG] Rejection notification request:", {
+    parsed_email_id,
+    doctor_email,
+    session_details,
+    rejection_reason,
+    request_type
+  });
+  
+  try {
+    // Get the parsed email details to extract doctor information
+    const [emailResult] = await db.promise().query(
+      "SELECT * FROM parsed_emails WHERE id = ?", 
+      [parsed_email_id]
+    );
+    
+    if (emailResult.length === 0) {
+      console.error("❌ [ERROR] Parsed email not found for ID:", parsed_email_id);
+      return res.status(404).json({ error: "Parsed email not found" });
+    }
+    
+    const emailData = emailResult[0];
+    
+    // Extract doctor name with better fallback logic
+    const doctorName = emailData.name || emailData.doctor_name || emailData.from_name || 'Doctor';
+    console.log("🔍 [DEBUG] Doctor name resolved to:", doctorName);
+    
+    // Create notification email content
+    const subject = `${request_type === 'change_request' ? 'Change Request' : 'Availability'} Rejected - ${session_details.session_name}`;
+    const body = `Dear Dr. ${doctorName},
+
+We regret to inform you that your ${request_type === 'change_request' ? 'change request' : 'availability submission'} has been REJECTED for the following session:
+
+Session: ${session_details.session_name}
+${request_type === 'change_request' ? `Original Date: ${session_details.original_date || session_details.date}
+Original Time: ${session_details.original_time || session_details.time}
+Requested Date: ${session_details.new_date || session_details.date}
+Requested Time: ${session_details.new_time || session_details.time}` : `Submitted Date(s): ${session_details.date}
+Submitted Time(s): ${session_details.time}`}
+Students: ${session_details.students || 'Not specified'}
+
+Reason for rejection: ${rejection_reason || 'No specific reason provided'}
+
+If you have any questions or would like to submit a new ${request_type === 'change_request' ? 'change request' : 'availability'}, please contact the scheduling team.
+
+Best regards,
+CGH Medical Education Department`;
+
+    console.log("🔍 [DEBUG] Email content prepared:", { subject, body });
+    
+    try {
+      // Check if access token is available for sending emails
+      const accessToken = process.env.MS_GRAPH_ACCESS_TOKEN;
+      
+      if (accessToken) {
+        const emailData = {
+          message: {
+            subject: subject,
+            body: {
+              contentType: "Text",
+              content: body
+            },
+            toRecipients: [
+              {
+                emailAddress: {
+                  address: doctor_email
+                }
+              }
+            ]
+          }
+        };
+
+        // Send email using Microsoft Graph API
+        const graphResponse = await fetch(
+          'https://graph.microsoft.com/v1.0/me/sendMail',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(emailData)
+          }
+        );
+
+        if (graphResponse.ok) {
+          console.log("✅ [SUCCESS] Rejection notification sent successfully");
+          res.json({ 
+            message: "✅ Rejection notification sent successfully",
+            email_sent: true,
+            notification: {
+              to: doctor_email,
+              subject: subject,
+              body: body
+            }
+          });
+        } else {
+          const graphError = await graphResponse.text();
+          console.error("❌ [ERROR] Graph API error:", graphError);
+          res.status(500).json({ 
+            error: "Failed to send email via Graph API",
+            details: graphError,
+            notification_prepared: true
+          });
+        }
+      } else {
+        console.warn("⚠️ [WARN] No access token available, notification prepared but not sent");
+        res.json({ 
+          message: "⚠️ Rejection notification prepared (no access token for sending)",
+          email_sent: false,
+          notification: {
+            to: doctor_email,
+            subject: subject,
+            body: body
+          }
+        });
+      }
+    } catch (emailSendErr) {
+      console.error("❌ [ERROR] Email sending failed:", emailSendErr);
+      res.status(500).json({ 
+        error: "Failed to send notification email",
+        details: emailSendErr.message,
+        notification_prepared: true
+      });
+    }
+    
+  } catch (err) {
+    console.error("❌ [ERROR] General error in rejection notification:", err);
+    res.status(500).json({ error: "Failed to prepare notification" });
+  }
+});
+
 // Send change request email to doctor with suggested time slots
 app.post("/api/scheduling/send-change-request", async (req, res) => {
   const { 

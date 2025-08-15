@@ -15,6 +15,7 @@ const DoctorSessionBooking = () => {
   const [selectedSlots, setSelectedSlots] = useState([]);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [customSlots, setCustomSlots] = useState([{ date: '', startTime: '', endTime: '' }]);
 
   useEffect(() => {
     if (sessionId) {
@@ -89,14 +90,34 @@ const DoctorSessionBooking = () => {
     });
   };
 
+  const addCustomSlot = () => {
+    setCustomSlots([...customSlots, { date: '', startTime: '', endTime: '' }]);
+  };
 
+  const removeCustomSlot = (index) => {
+    if (customSlots.length > 1) {
+      setCustomSlots(customSlots.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateCustomSlot = (index, field, value) => {
+    const updated = [...customSlots];
+    updated[index][field] = value;
+    setCustomSlots(updated);
+  };
 
   const handleSubmit = async () => {
-    if (!doctorMCR || selectedSlots.length === 0) {
-      setError("Please enter your MCR/SNB number and select at least one slot.");
+    // Get valid custom slots
+    const validCustomSlots = customSlots.filter(slot => 
+      slot.date && slot.startTime && slot.endTime
+    );
+    
+    if (!doctorMCR || (selectedSlots.length === 0 && validCustomSlots.length === 0)) {
+      setError("Please enter your MCR/SNB number and select at least one slot or provide custom availability.");
       return;
     }
 
+    // Validate selected slots
     for (const slot of selectedSlots) {
       if (
         slot.preferredStart &&
@@ -107,17 +128,35 @@ const DoctorSessionBooking = () => {
         return;
       }
     }
+    
+    // Validate custom slots
+    for (const slot of validCustomSlots) {
+      if (slot.endTime <= slot.startTime) {
+        setError(`Custom slot: End time must be later than start time for ${slot.date}`);
+        return;
+      }
+    }
 
     try {
-      // Format the slots before sending
-      const cleanedSlots = selectedSlots.map(slot => ({
+      // Format the selected slots
+      const cleanedSelectedSlots = selectedSlots.map(slot => ({
         date: slot.date,
         start: slot.preferredStart || slot.startTime || slot.start,
         end: slot.preferredEnd || slot.endTime || slot.end,
       }));
+      
+      // Format the custom slots  
+      const cleanedCustomSlots = validCustomSlots.map(slot => ({
+        date: slot.date,
+        start: slot.startTime,
+        end: slot.endTime,
+      }));
+      
+      // Combine both types of slots
+      const allSlots = [...cleanedSelectedSlots, ...cleanedCustomSlots];
 
       await axios.patch(`${API_BASE_URL}/api/scheduling/parsed-email/${sessionId}/update-availability`, {
-        selected_slots: cleanedSlots,
+        selected_slots: allSlots,
         mcr_number: doctorMCR.trim(),
         students: sessionData.studentDetails
           ?.map(s => `${s.name} (${s.school})`)
@@ -284,6 +323,106 @@ const DoctorSessionBooking = () => {
               </div>
             )}
 
+            {/* Custom Time Slots Section */}
+            <div className="custom-slots-section" style={{ marginTop: '2rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '5px', backgroundColor: '#f9f9f9' }}>
+              <h3 style={{ fontWeight: 'bold', marginBottom: '1rem' }}>🆕 Suggest Alternative Time Slots</h3>
+              <p style={{ color: '#666', fontSize: '0.9em', marginBottom: '1rem' }}>
+                If none of the above slots work for you, please suggest your own available time slots:
+              </p>
+              
+              {customSlots.map((slot, index) => (
+                <div key={index} style={{ 
+                  display: 'flex', 
+                  gap: '10px', 
+                  marginBottom: '10px', 
+                  alignItems: 'center',
+                  padding: '10px',
+                  border: '1px solid #ccc',
+                  borderRadius: '5px',
+                  backgroundColor: '#fff'
+                }}>
+                  <div style={{ flex: '1' }}>
+                    <label style={{ fontSize: '0.8em', color: '#666', display: 'block' }}>Date:</label>
+                    <input
+                      type="date"
+                      value={slot.date}
+                      onChange={(e) => updateCustomSlot(index, 'date', e.target.value)}
+                      style={{ width: '100%', padding: '5px' }}
+                    />
+                  </div>
+                  <div style={{ flex: '1' }}>
+                    <label style={{ fontSize: '0.8em', color: '#666', display: 'block' }}>Start Time:</label>
+                    <input
+                      type="time"
+                      value={slot.startTime}
+                      onChange={(e) => updateCustomSlot(index, 'startTime', e.target.value)}
+                      style={{ width: '100%', padding: '5px' }}
+                    />
+                  </div>
+                  <div style={{ flex: '1' }}>
+                    <label style={{ fontSize: '0.8em', color: '#666', display: 'block' }}>End Time:</label>
+                    <input
+                      type="time"
+                      value={slot.endTime}
+                      min={slot.startTime}
+                      onChange={(e) => updateCustomSlot(index, 'endTime', e.target.value)}
+                      style={{ width: '100%', padding: '5px' }}
+                    />
+                  </div>
+                  {customSlots.length > 1 && (
+                    <button 
+                      onClick={() => removeCustomSlot(index)}
+                      style={{ 
+                        background: '#ff4444', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '3px',
+                        padding: '5px 8px',
+                        cursor: 'pointer',
+                        alignSelf: 'flex-end'
+                      }}
+                      title="Remove this slot"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              
+              <button 
+                onClick={addCustomSlot}
+                style={{
+                  background: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 12px',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  marginTop: '10px'
+                }}
+              >
+                + Add Another Custom Slot
+              </button>
+              
+              {/* Preview of Custom Slots */}
+              {customSlots.some(slot => slot.date && slot.startTime && slot.endTime) && (
+                <div className="custom-preview-container" style={{ marginTop: '1rem' }}>
+                  <h4>📝 Custom Slots Preview:</h4>
+                  {customSlots.filter(slot => slot.date && slot.startTime && slot.endTime).map((slot, idx) => (
+                    <div className="custom-preview-slot" key={idx} style={{ 
+                      padding: '8px', 
+                      margin: '5px 0', 
+                      backgroundColor: '#e8f5e8', 
+                      border: '1px solid #4CAF50',
+                      borderRadius: '3px'
+                    }}>
+                      <strong>{new Date(slot.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong><br />
+                      Time: {slot.startTime} - {slot.endTime}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="submit-button-container">
               <button className="submit-button" onClick={handleSubmit}>

@@ -28,6 +28,8 @@ const DoctorScheduler = () => {
   const [suggestedSlots, setSuggestedSlots] = useState([
     { date: '', startTime: '', endTime: '' }
   ]);
+  const [isFromAvailability, setIsFromAvailability] = useState(true);
+  const [changeReason, setChangeReason] = useState('');
 
   
 
@@ -127,9 +129,11 @@ const DoctorScheduler = () => {
     setShowLocationModal(true);
   };
 
-  const handleChangeRequest = (notif) => {
+  const handleChangeRequest = (notif, isFromAvailability = true) => {
     setSelectedNotif(notif);
     setSuggestedSlots([{ date: '', startTime: '', endTime: '' }]);
+    setIsFromAvailability(isFromAvailability);
+    setChangeReason('');
     setShowChangeRequestModal(true);
   };
 
@@ -149,13 +153,23 @@ const DoctorScheduler = () => {
     setSuggestedSlots(updated);
   };
 
+
   const handleSendChangeRequest = async () => {
     // Validate suggested slots
     const validSlots = suggestedSlots.filter(slot => 
       slot.date && slot.startTime && slot.endTime
     );
+    
+    // Use only the predefined suggested slots
+    const allValidSlots = validSlots;
+    
+    // Validate reason for change request notifications
+    if (!isFromAvailability && !changeReason.trim()) {
+      alert("Please provide a reason for requesting the change.");
+      return;
+    }
 
-    if (validSlots.length === 0) {
+    if (allValidSlots.length === 0) {
       alert("Please add at least one complete time slot suggestion.");
       return;
     }
@@ -178,8 +192,8 @@ const DoctorScheduler = () => {
           session_count: selectedNotif.session_count || 1,
           students: selectedNotif.students || ""
         },
-        suggested_slots: validSlots,
-        reason: "Original time slots not suitable. Please provide new availability."
+        suggested_slots: allValidSlots,
+        reason: !isFromAvailability ? changeReason.trim() : "Original time slots not suitable. Please provide new availability."
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -208,14 +222,61 @@ const DoctorScheduler = () => {
   };
 
   // Handle notification rejection
-  // Deletes the notification and refreshes the list
+  // Sends rejection notification to doctor, then deletes the notification
   // This is used for both availability and change requests
-  const handleReject = async (notifId) => {
+  const handleReject = async (notifId, notifData = null) => {
     try {
       const token = localStorage.getItem("token");
+      
+      // If notifData is provided, send rejection notification to doctor
+      if (notifData) {
+        console.log("🔍 [FRONTEND DEBUG] Sending rejection notification:", notifData);
+        
+        // Determine request type based on notification data
+        const requestType = notifData.new_session ? 'change_request' : 'availability';
+        
+        try {
+          const notificationResponse = await axios.post(`${API_BASE_URL}/api/scheduling/notify-rejection`, {
+            parsed_email_id: notifData.id,
+            doctor_email: notifData.from_email,
+            session_details: {
+              session_name: notifData.session_name,
+              date: requestType === 'change_request' ? notifData.original_session?.split(' ').slice(0, 3).join(' ') : 'Multiple dates',
+              time: requestType === 'change_request' ? notifData.original_session?.split(' ').slice(3).join(' ') : 'Multiple times',
+              new_date: requestType === 'change_request' ? notifData.new_session?.split(' ').slice(0, 3).join(' ') : undefined,
+              new_time: requestType === 'change_request' ? notifData.new_session?.split(' ').slice(3).join(' ') : undefined,
+              original_date: requestType === 'change_request' ? notifData.original_session?.split(' ').slice(0, 3).join(' ') : undefined,
+              original_time: requestType === 'change_request' ? notifData.original_session?.split(' ').slice(3).join(' ') : undefined,
+              students: notifData.students || ""
+            },
+            rejection_reason: "The scheduling team has reviewed your request and determined it cannot be accommodated at this time.",
+            request_type: requestType
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          console.log("✅ [FRONTEND DEBUG] Rejection notification response:", notificationResponse.data);
+          
+          if (notificationResponse.data.email_sent) {
+            console.log("✅ Rejection email sent successfully!");
+          } else {
+            console.warn("⚠️ Rejection email prepared but not sent (check server logs)");
+          }
+        } catch (notifErr) {
+          console.error("❌ [FRONTEND DEBUG] Failed to send rejection notification:", {
+            error: notifErr.message,
+            response: notifErr.response?.data,
+            status: notifErr.response?.status
+          });
+          // Continue with deletion even if notification fails
+        }
+      }
+      
+      // Delete the notification
       await axios.delete(`${API_BASE_URL}/api/scheduling/parsed-email/${notifId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
       await fetchAllData();  // Refresh after delete
     } catch (err) {
       console.error("❌ Failed to reject notification:", err);
@@ -582,12 +643,12 @@ const DoctorScheduler = () => {
                       Accept
                     </button>
 
-                    <button className="change-btn" onClick={() => handleChangeRequest(notif)}>
+                    <button className="change-btn" onClick={() => handleChangeRequest(notif, true)}>
                       <MdAutorenew style={{ fontSize: '22px', verticalAlign: 'middle', position: 'relative', top: '-1px', marginRight: '5px' }} />
                       Change
                     </button>
 
-                    <button className="reject-btn" onClick={() => handleReject(notif.id)}>
+                    <button className="reject-btn" onClick={() => handleReject(notif.id, notif)}>
                       <MdCancel style={{ fontSize: '22px', verticalAlign: 'middle', position: 'relative', top: '-1px', marginRight: '5px' }} />
                       Reject
                     </button>
@@ -627,12 +688,12 @@ const DoctorScheduler = () => {
                         Accept
                       </button>
 
-                      <button className="change-btn" disabled>
+                      <button className="change-btn" onClick={() => handleChangeRequest(notif, false)}>
                         <MdAutorenew style={{ fontSize: '22px', verticalAlign: 'middle', position: 'relative', top: '-1px', marginRight: '5px' }} />
                         Change
                       </button>
 
-                      <button className="reject-btn" onClick={() => handleReject(notif.id)}>
+                      <button className="reject-btn" onClick={() => handleReject(notif.id, notif)}>
                         <MdCancel style={{ fontSize: '22px', verticalAlign: 'middle', position: 'relative', top: '-1px', marginRight: '5px' }} />
                         Reject
                       </button>
@@ -768,6 +829,30 @@ const DoctorScheduler = () => {
               Sessions needed: <strong>{selectedNotif.session_count || 1}x</strong> | Students: {selectedNotif.students || "N/A"}
             </p>
             
+            {/* Reason input for change request notifications */}
+            {!isFromAvailability && (
+              <div style={{ marginTop: "15px", marginBottom: "20px" }}>
+                <label style={{ display: "block", fontWeight: "bold", marginBottom: "5px" }}>
+                  Reason for requesting change:
+                </label>
+                <textarea
+                  value={changeReason}
+                  onChange={(e) => setChangeReason(e.target.value)}
+                  placeholder="Please explain why you're requesting a change to this doctor's suggestion..."
+                  style={{
+                    width: "100%",
+                    minHeight: "60px",
+                    padding: "8px",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    fontSize: "0.9em",
+                    resize: "vertical"
+                  }}
+                  required
+                />
+              </div>
+            )}
+            
             <div style={{ marginTop: "20px" }}>
               <h4>Suggest Alternative Time Slots:</h4>
               {suggestedSlots.map((slot, index) => (
@@ -841,6 +926,7 @@ const DoctorScheduler = () => {
                 + Add Another Time Slot
               </button>
             </div>
+            
             
             <div className="modal-buttons" style={{ marginTop: "20px" }}>
               <button onClick={handleSendChangeRequest} className="confirm-btn">

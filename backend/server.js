@@ -1678,26 +1678,75 @@ app.get("/api/scheduling/parsed_emails", (req, res) => {
 // GET REQUEST to call for scheduling data and displaying it as notifications for type = availability
 // -------------------------------------------------------------------------------------------------------------//
 app.get("/api/scheduling/availability-notifications", verifyToken, requireRole("management"), (req, res) => {
-  const query = `
-    SELECT
-      id,
-      session_name,
-      from_name AS name,
-      from_email,
-      to_email,
-      students,
-      available_slots_timings,
-      received_at
-    FROM parsed_emails
-    WHERE type = 'availability'
-    ORDER BY received_at DESC
+  // First, try to add the session_count column if it doesn't exist
+  const addColumnQuery = `
+    ALTER TABLE email_sessions 
+    ADD COLUMN IF NOT EXISTS session_count INT DEFAULT 1
   `;
+  
+  db.query(addColumnQuery, (alterErr) => {
+    if (alterErr && !alterErr.message.includes('Duplicate column name')) {
+      console.warn("⚠️ Could not add session_count column:", alterErr.message);
+    }
+    
+    // Try query with session_count, fall back if column doesn't exist
+    let query = `
+      SELECT
+        pe.id,
+        pe.session_name,
+        pe.from_name AS name,
+        pe.from_email,
+        pe.to_email,
+        pe.students,
+        pe.available_slots_timings,
+        pe.received_at,
+        pe.session_id,
+        COALESCE(es.session_count, 1) as session_count
+      FROM parsed_emails pe
+      LEFT JOIN email_sessions es ON pe.session_id = es.session_id
+      WHERE pe.type = 'availability'
+      ORDER BY pe.received_at DESC
+    `;
+    
+    // Fallback query without session_count
+    const fallbackQuery = `
+      SELECT
+        pe.id,
+        pe.session_name,
+        pe.from_name AS name,
+        pe.from_email,
+        pe.to_email,
+        pe.students,
+        pe.available_slots_timings,
+        pe.received_at,
+        pe.session_id,
+        1 as session_count
+      FROM parsed_emails pe
+      WHERE pe.type = 'availability'
+      ORDER BY pe.received_at DESC
+    `;
 
   db.query(query, (err, results) => {
-    if (err) {
+    if (err && err.message.includes("Unknown column 'es.session_count'")) {
+      console.warn("⚠️ session_count column not found, using fallback query");
+      // Use fallback query without session_count
+      db.query(fallbackQuery, (fallbackErr, fallbackResults) => {
+        if (fallbackErr) {
+          console.error("Error fetching availability notifications (fallback):", fallbackErr);
+          return res.status(500).json({ error: "Failed to retrieve availability data." });
+        }
+        processResults(fallbackResults);
+      });
+      return;
+    } else if (err) {
       console.error("Error fetching availability notifications:", err);
       return res.status(500).json({ error: "Failed to retrieve availability data." });
     }
+    
+    processResults(results);
+  });
+  
+  function processResults(results) {
 
     const transformed = results.map(entry => {
       const slotStrings = entry.available_slots_timings
@@ -1732,11 +1781,13 @@ app.get("/api/scheduling/availability-notifications", verifyToken, requireRole("
         name: entry.name,
         from_email: entry.from_email || null,
         students: entry.students || null,
+        session_count: entry.session_count || 1,
         available_dates
       };
     });
 
     return res.json(transformed);
+  }
   });
 });
 
@@ -2749,19 +2800,25 @@ app.post("/api/scheduling/notify-availability-accepted", async (req, res) => {
     
     // Create notification email content
     const subject = `Availability Request Accepted - ${session_details.session_name}`;
+    
+    // Parse accepted_slot to create detailed session info
+    const acceptedSlots = accepted_slot.split(', ');
+    const sessionDetails = acceptedSlots.map((slot, index) => 
+      `Session ${index + 1}: ${slot} at ${session_details.location}`
+    ).join('\n');
+    
     const body = `Dear Dr. ${doctorName},
 
-Your availability request has been ACCEPTED for the following session:
+Your availability request has been ACCEPTED for the following session${acceptedSlots.length > 1 ? 's' : ''}:
 
-Session: ${session_details.session_name}
-Date: ${session_details.date}
-Time: ${session_details.time}
-Location: ${session_details.location}
+Session Name: ${session_details.session_name}
 Students: ${session_details.students}
+Location: ${session_details.location}
 
-Accepted Time Slot: ${accepted_slot}
+ACCEPTED SESSIONS:
+${sessionDetails}
 
-Thank you for your flexibility and cooperation.
+Thank you for your flexibility and cooperation. Please ensure you are available for the above scheduled session${acceptedSlots.length > 1 ? 's' : ''}.
 
 Best regards,
 EDO Team`;
@@ -3059,6 +3116,35 @@ EDO Team`;
   }
 });
 
+// Endpoint to add session_count column to email_sessions table
+app.post("/api/scheduling/add-session-count-column", async (req, res) => {
+  try {
+    console.log("🔧 [DEBUG] Attempting to add session_count column...");
+    
+    const addColumnQuery = `
+      ALTER TABLE email_sessions 
+      ADD COLUMN session_count INT DEFAULT 1
+    `;
+    
+    await db.promise().query(addColumnQuery);
+    console.log("✅ [SUCCESS] session_count column added successfully");
+    res.json({ success: true, message: "session_count column added successfully" });
+    
+  } catch (err) {
+    if (err.message.includes('Duplicate column name')) {
+      console.log("ℹ️ [INFO] session_count column already exists");
+      res.json({ success: true, message: "session_count column already exists" });
+    } else {
+      console.error("❌ [ERROR] Failed to add session_count column:", err);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to add session_count column",
+        details: err.message 
+      });
+    }
+  }
+});
+
 // Debug endpoint to check notification system status
 app.get("/api/scheduling/debug-notification-status", async (req, res) => {
   try {
@@ -3179,14 +3265,15 @@ app.post("/api/email-sessions", (req, res) => {
     doctor_mcrs,
     student_ids,
     session_name,
+    session_count,
     available_slots_json,
   } = req.body;
 
   db.query(
     `INSERT INTO email_sessions 
-      (session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name, available_slots_json)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name, available_slots_json,],
+      (session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name, session_count, available_slots_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [session_id, subject, body, to_emails, doctor_mcrs, student_ids, session_name, session_count, available_slots_json,],
     (err, results) => {
       if (err) {
         console.error("❌ Failed to store email session:", err);

@@ -363,6 +363,8 @@ Associate Dean’s Office (ADO)`;
         });
 
         try {
+            const finalSessionCount = sessionCount === 'Other' ? customSessionCount : sessionCount;
+            
             await axios.post(`${API_BASE_URL}/api/email-sessions`, {
                 session_id: sessionId,
                 subject,
@@ -374,6 +376,7 @@ Associate Dean’s Office (ADO)`;
                 doctor_mcrs: selectedDoctors.join(','),
                 student_ids: selectedStudents.join(','),
                 session_name: sessionName,
+                session_count: finalSessionCount, // Add session count
                 created_at: new Date().toISOString(),
                 available_slots_json: JSON.stringify(sessionSlots.map(slot => ({
                     date: slot.date,

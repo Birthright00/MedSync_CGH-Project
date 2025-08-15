@@ -18,9 +18,12 @@ const DoctorScheduler = () => {
 
   // Modal control state
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showSlotSelectionModal, setShowSlotSelectionModal] = useState(false);
   const [selectedNotif, setSelectedNotif] = useState(null);
   const [isChangeRequest, setIsChangeRequest] = useState(false);
   const [locationInput, setLocationInput] = useState("");
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedSlots, setSelectedSlots] = useState([]); // For multi-session selection
 
   
 
@@ -58,6 +61,65 @@ const DoctorScheduler = () => {
     setSelectedNotif(notif);
     setIsChangeRequest(type === "change");
     setLocationInput("");
+    setSelectedSlot(null);
+    setSelectedSlots([]);
+    
+    if (type === "availability") {
+      const sessionCount = parseInt(notif.session_count) || 1;
+      const availableSlots = notif.available_dates || [];
+      
+      console.log("🔍 [DEBUG] Session count:", sessionCount, "Available slots:", availableSlots.length);
+      
+      // If we need multiple sessions OR have multiple slots to choose from, show selection modal
+      if (sessionCount > 1 || (sessionCount === 1 && availableSlots.length > 1)) {
+        setShowSlotSelectionModal(true);
+      } else {
+        // Single session with single slot - go directly to location
+        if (availableSlots.length === 1) {
+          setSelectedSlot(availableSlots[0]);
+        }
+        setShowLocationModal(true);
+      }
+    } else {
+      // For change requests, go directly to location
+      setShowLocationModal(true);
+    }
+  };
+
+  const handleSlotSelection = (slot) => {
+    const sessionCount = parseInt(selectedNotif?.session_count) || 1;
+    
+    if (sessionCount === 1) {
+      // Single session - select one slot
+      setSelectedSlot(slot);
+      setSelectedSlots([slot]);
+      setShowSlotSelectionModal(false);
+      setShowLocationModal(true);
+    } else {
+      // Multiple sessions - toggle slot selection
+      setSelectedSlots(prev => {
+        const isSelected = prev.some(s => s.date === slot.date && s.time === slot.time);
+        if (isSelected) {
+          return prev.filter(s => !(s.date === slot.date && s.time === slot.time));
+        } else if (prev.length < sessionCount) {
+          return [...prev, slot];
+        } else {
+          alert(`You can only select ${sessionCount} time slots for this session.`);
+          return prev;
+        }
+      });
+    }
+  };
+
+  const handleConfirmSlotSelection = () => {
+    const sessionCount = parseInt(selectedNotif?.session_count) || 1;
+    
+    if (selectedSlots.length !== sessionCount) {
+      alert(`Please select exactly ${sessionCount} time slot${sessionCount > 1 ? 's' : ''}.`);
+      return;
+    }
+    
+    setShowSlotSelectionModal(false);
     setShowLocationModal(true);
   };
 
@@ -269,7 +331,27 @@ const DoctorScheduler = () => {
       }
 
       else {
-        for (const slot of selectedNotif.available_dates) {
+        // For availability requests, add the selected slot(s)
+        const slotsToAdd = selectedSlots.length > 0 ? selectedSlots : 
+                          selectedSlot ? [selectedSlot] : 
+                          selectedNotif.available_dates?.slice(0, 1) || [];
+        
+        if (slotsToAdd.length === 0) {
+          alert("⚠️ No slots selected. Please try again.");
+          return;
+        }
+
+        const sessionCount = parseInt(selectedNotif.session_count) || 1;
+        
+        if (slotsToAdd.length !== sessionCount) {
+          alert(`⚠️ Expected ${sessionCount} slot(s) but got ${slotsToAdd.length}. Please try again.`);
+          return;
+        }
+
+        console.log("🔍 [FRONTEND DEBUG] Adding selected slots to timetable:", slotsToAdd);
+
+        // Add each selected slot as a separate session
+        for (const slot of slotsToAdd) {
           await axios.post(`${API_BASE_URL}/api/scheduling/add-to-timetable`, {
             session_name: selectedNotif.session_name,
             name: selectedNotif.name,
@@ -285,15 +367,16 @@ const DoctorScheduler = () => {
 
         // 📧 Send availability acceptance notification
         try {
-          const acceptedSlots = selectedNotif.available_dates.map(slot => 
+          const acceptedSlotTexts = slotsToAdd.map(slot => 
             `${slot.date} at ${slot.time || 'TBD'}`
-          ).join(', ');
+          );
+          const acceptedSlotText = acceptedSlotTexts.join(', ');
 
           console.log("🔍 [FRONTEND DEBUG] Sending availability notification:", {
             notification_id: selectedNotif.id,
             doctor_email: selectedNotif.from_email,
             session_name: selectedNotif.session_name,
-            accepted_slots: acceptedSlots,
+            accepted_slots: acceptedSlotTexts,
             location: locationInput
           });
 
@@ -302,12 +385,12 @@ const DoctorScheduler = () => {
             doctor_email: selectedNotif.from_email,
             session_details: {
               session_name: selectedNotif.session_name,
-              date: selectedNotif.available_dates[0]?.date || 'Multiple dates',
-              time: selectedNotif.available_dates[0]?.time || 'Multiple times',
+              date: slotsToAdd.length === 1 ? slotsToAdd[0].date : 'Multiple dates',
+              time: slotsToAdd.length === 1 ? slotsToAdd[0].time : 'Multiple times',
               location: locationInput,
               students: selectedNotif.students || ""
             },
-            accepted_slot: acceptedSlots
+            accepted_slot: acceptedSlotText
           }, {
             headers: { Authorization: `Bearer ${token}` }
           });
@@ -362,6 +445,7 @@ const DoctorScheduler = () => {
                   </div>
                   <div className="session-details">
                     <span className="detail-label">Session:</span> {notif.session_name || "—"}<br />
+                    <span className="detail-label">Sessions Needed:</span> <strong>{notif.session_count || 1}x</strong><br />
                     <span className="detail-label">Students:</span> {notif.students || "—"}<br />
                     <span className="detail-label">Available Dates:</span>
                   </div>
@@ -458,11 +542,90 @@ const DoctorScheduler = () => {
         </div>
       </div>
 
-      {/* Nice Popup Modal */}
+      {/* Slot Selection Modal */}
+      {showSlotSelectionModal && selectedNotif && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h3>Select Time Slots</h3>
+            {(() => {
+              const sessionCount = parseInt(selectedNotif.session_count) || 1;
+              return (
+                <p>
+                  Choose <strong>{sessionCount}</strong> time slot{sessionCount > 1 ? 's' : ''} for <strong>{selectedNotif.session_name}</strong>:
+                  {sessionCount > 1 && (
+                    <span style={{ color: "#666", fontSize: "0.9em" }}>
+                      <br />({selectedSlots.length}/{sessionCount} selected)
+                    </span>
+                  )}
+                </p>
+              );
+            })()}
+            <div style={{ marginTop: "15px" }}>
+              {selectedNotif.available_dates?.map((slot, index) => {
+                const isSelected = selectedSlots.some(s => s.date === slot.date && s.time === slot.time);
+                const sessionCount = parseInt(selectedNotif.session_count) || 1;
+                
+                return (
+                  <div 
+                    key={index} 
+                    style={{
+                      padding: "10px",
+                      margin: "5px 0",
+                      border: `2px solid ${isSelected ? "#2196F3" : "#ddd"}`,
+                      borderRadius: "5px",
+                      cursor: "pointer",
+                      backgroundColor: isSelected ? "#e3f2fd" : "#f9f9f9",
+                      transition: "all 0.2s"
+                    }}
+                    onClick={() => handleSlotSelection(slot)}
+                  >
+                    <strong>{slot.date}</strong>
+                    {isSelected && <span style={{ color: "#2196F3", marginLeft: "10px" }}>✓</span>}
+                    <br />
+                    <span style={{ color: "#666" }}>{slot.time || "Time TBD"}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="modal-buttons" style={{ marginTop: "20px" }}>
+              {(() => {
+                const sessionCount = parseInt(selectedNotif.session_count) || 1;
+                return sessionCount > 1 ? (
+                  <button 
+                    onClick={handleConfirmSlotSelection}
+                    className="confirm-btn"
+                    disabled={selectedSlots.length !== sessionCount}
+                  >
+                    Confirm Selection ({selectedSlots.length}/{sessionCount})
+                  </button>
+                ) : null;
+              })()}
+              <button onClick={() => setShowSlotSelectionModal(false)} className="cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Location Input Modal */}
       {showLocationModal && (
         <div className="modal-overlay">
           <div className="modal-box">
             <h3>Enter Location</h3>
+            {(() => {
+              const slotsToShow = selectedSlots.length > 0 ? selectedSlots : 
+                                selectedSlot ? [selectedSlot] : [];
+              
+              return slotsToShow.length > 0 && (
+                <div style={{ marginBottom: "10px", color: "#666" }}>
+                  <p>Selected slot{slotsToShow.length > 1 ? 's' : ''}:</p>
+                  {slotsToShow.map((slot, index) => (
+                    <p key={index} style={{ margin: "2px 0", fontWeight: "bold" }}>
+                      • {slot.date} at {slot.time || 'TBD'}
+                    </p>
+                  ))}
+                </div>
+              );
+            })()}
             <input
               type="text"
               value={locationInput}

@@ -103,6 +103,38 @@ const StudentHomePage = () => {
     });
     const time = currentTime.toLocaleTimeString("en-SG");
 
+    /**
+     * Helper function to get standardized colors for session modifications
+     * Ensures consistency across all student interface components
+     */
+    const getSessionStatusColor = (changeType) => {
+        switch (changeType) {
+            case "resized":
+            case "rescheduled":
+                return "#D49A00"; // Dark orange - matches timetable calendar
+            case "location_changed":
+                return "#00BFA6"; // Teal for location changes
+            default:
+                return "#3174ad"; // Default blue for normal sessions
+        }
+    };
+
+    /**
+     * Helper function to get status indicator text
+     */
+    const getStatusIndicator = (changeType) => {
+        switch (changeType) {
+            case "resized":
+                return "📏"; // Ruler emoji for resized
+            case "rescheduled":
+                return "🔄"; // Cycle emoji for rescheduled
+            case "location_changed":
+                return "📍"; // Pin emoji for location changed
+            default:
+                return null;
+        }
+    };
+
     const todayEvents = timetableData.filter((entry) =>
         moment(entry.date).isSame(currentTime, 'day')
     );
@@ -194,12 +226,13 @@ const StudentHomePage = () => {
             const formattedNewStartTime = start.trim();
             // const formattedNewEndTime = end ? end.trim() : "";
 
+            // Standardized color scheme - matches timetable calendar colors
             const borderColor =
                 item.change_type === "resized"
-                    ? "#FFB703"
+                    ? "#D49A00" // Dark orange - matches timetable
                     : item.change_type === "rescheduled"
-                        ? "#FF6B6B"
-                        : "#00BFA6"; // green for location_changed
+                        ? "#D49A00" // Dark orange - matches timetable (same as resized)
+                        : "#00BFA6"; // Teal for location_changed only
 
 
             return {
@@ -351,8 +384,47 @@ const StudentHomePage = () => {
                                 <p>No events today.</p>
                                 <h4>🔜 Upcoming Sessions:</h4>
                                 <ul className="events-list">
-                                    {upcomingEvents.map((event, index) => (
-                                        <li key={index} className="event-card">
+                                    {upcomingEvents.map((event, index) => {
+                                        const statusColor = getSessionStatusColor(event.change_type);
+                                        
+                                        return (
+                                            <li 
+                                                key={index} 
+                                                className="event-card"
+                                                style={{
+                                                    borderLeft: `4px solid ${statusColor}`,
+                                                    backgroundColor: event.change_type ? 'rgba(212, 154, 0, 0.05)' : 'transparent'
+                                                }}
+                                            >
+                                                <div className="event-left">
+                                                    <strong>{event.subject}</strong>
+                                                    <p>{event.date}, {event.day}</p>
+                                                </div>
+                                                <div className="event-right">
+                                                    <span className="event-time">
+                                                        {event.start_time} - {event.end_time}
+                                                    </span>
+                                                    <span className="event-location">@ {event.location}</span>
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </>
+                        ) : (
+                            <ul className="events-list">
+                                {todayEvents.map((event, index) => {
+                                    const statusColor = getSessionStatusColor(event.change_type);
+                                    
+                                    return (
+                                        <li 
+                                            key={index} 
+                                            className="event-card"
+                                            style={{
+                                                borderLeft: `4px solid ${statusColor}`,
+                                                backgroundColor: event.change_type ? 'rgba(212, 154, 0, 0.05)' : 'transparent'
+                                            }}
+                                        >
                                             <div className="event-left">
                                                 <strong>{event.subject}</strong>
                                                 <p>{event.date}, {event.day}</p>
@@ -364,25 +436,8 @@ const StudentHomePage = () => {
                                                 <span className="event-location">@ {event.location}</span>
                                             </div>
                                         </li>
-                                    ))}
-                                </ul>
-                            </>
-                        ) : (
-                            <ul className="events-list">
-                                {todayEvents.map((event, index) => (
-                                    <li key={index} className="event-card">
-                                        <div className="event-left">
-                                            <strong>{event.subject}</strong>
-                                            <p>{event.date}, {event.day}</p>
-                                        </div>
-                                        <div className="event-right">
-                                            <span className="event-time">
-                                                {event.start_time} - {event.end_time}-
-                                            </span>
-                                            <span className="event-location">@ {event.location}</span>
-                                        </div>
-                                    </li>
-                                ))}
+                                    );
+                                })}
                             </ul>
                         )}
                     </div>

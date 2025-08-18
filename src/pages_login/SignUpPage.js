@@ -40,8 +40,8 @@ const SignUpPage = () => {
     // SNB: N or n + 5 digits + 1 letter (e.g. N54321B)
     const mcrOrSnbPattern = /^[Mm]\d{5}[A-Za-z]$|^[Nn]\d{5}[A-Za-z]$/;
 
-    // Student: A followed by 7 digits and ending with a capital letter (e.g. A0284226A)
-    const studentPattern = /^[A-Z]\d{7}[A-Z]$/;
+    // Student: Email validation pattern
+    const studentPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
     // HR: follow same rule as management (only lowercase alphabets)
     const hrPattern = /^[a-z]+$/;
@@ -135,7 +135,7 @@ const SignUpPage = () => {
       else if (selectedRole === "staff")
         message = "Staff ID must be M/N followed by 5 digits and a letter (e.g. M12345A).";
       else if (selectedRole === "student")
-        message = "Matric No must be in the format A followed by 7 digits and 1 uppercase letter (e.g. A0284226A).";
+        message = "Please enter a valid email address (e.g. student@example.com).";
       else if (selectedRole === "hr")
         message = "HR ID must contain only lowercase letters.";
 
@@ -151,13 +151,15 @@ const SignUpPage = () => {
 
     // API Call to Backend for Signup
     try {
+      const normalizedUsername = selectedRole === 'student' ? username.toLowerCase() : username;
       const response = await fetch(`${API_BASE_URL}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          user_id: username,
+          user_id: normalizedUsername,
+          email: selectedRole === 'student' ? normalizedUsername : '', // Set email for students
           password: password,
           role: selectedRole,
         }),
@@ -245,7 +247,7 @@ const SignUpPage = () => {
                 <input
                   placeholder={
                     selectedRole === "student"
-                      ? "Enter Matric No (e.g. A*******A)"
+                      ? "Enter Email (e.g. student@example.com)"
                       : selectedRole === "management" || selectedRole === "staff"
                         ? "Enter MCR / ADID (e.g. M*****A)"
                         : "Enter HR ID"

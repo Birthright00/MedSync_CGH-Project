@@ -193,9 +193,17 @@ app.post("/login", (req, res) => {
       .json({ error: "User ID, password, and role are required" });
   }
 
-  // Query the database to find the user by user_id
-  const q = "SELECT * FROM user_data WHERE user_id = ?";
-  db.query(q, [user_id], (err, data) => {
+  // Query the database - for students use email, for others use user_id
+  let q, queryParam;
+  if (selectedRole === "student") {
+    q = "SELECT * FROM user_data WHERE email = ?";
+    queryParam = user_id; // user_id contains the email for students
+  } else {
+    q = "SELECT * FROM user_data WHERE user_id = ?";
+    queryParam = user_id;
+  }
+  
+  db.query(q, [queryParam], (err, data) => {
     if (err) {
       return res.status(500).json({ error: "Database error occurred" });
     }
@@ -223,22 +231,57 @@ app.post("/login", (req, res) => {
         return res.status(403).json({ error: "Role does not match" });
       }
 
-      // Create a JWT token upon successful authentication
-      const token = jwt.sign(
-        { id: user.user_id, role: user.role },
-        JWT_SECRET,
-        {
-          expiresIn: "3h",
-        }
-      );
+      // For students, we need to get their matric number from student_database
+      if (selectedRole === "student") {
+        const studentQuery = "SELECT user_id FROM student_database WHERE email = ?";
+        db.query(studentQuery, [user.email], (err, studentData) => {
+          if (err) {
+            return res.status(500).json({ error: "Database error occurred" });
+          }
+          
+          if (studentData.length === 0) {
+            return res.status(404).json({ error: "Student record not found" });
+          }
+          
+          const studentUserId = studentData[0].user_id; // This is the matric number
+          
+          // Create a JWT token upon successful authentication
+          const token = jwt.sign(
+            { id: studentUserId, role: user.role },
+            JWT_SECRET,
+            {
+              expiresIn: "3h",
+            }
+          );
 
-      // Respond with success message, token, and user role
-      return res.status(200).json({
-        message: "Authentication successful",
-        token,
-        role: user.role,
-        user_id: user.user_id,
-      });
+          // Respond with success message, token, and user role
+          // For students, return the matric number as user_id for session lookups
+          return res.status(200).json({
+            message: "Authentication successful",
+            token,
+            role: user.role,
+            user_id: studentUserId, // Return matric number, not email
+          });
+        });
+      } else {
+        // For non-students, use the original logic
+        // Create a JWT token upon successful authentication
+        const token = jwt.sign(
+          { id: user.user_id, role: user.role },
+          JWT_SECRET,
+          {
+            expiresIn: "3h",
+          }
+        );
+
+        // Respond with success message, token, and user role
+        return res.status(200).json({
+          message: "Authentication successful",
+          token,
+          role: user.role,
+          user_id: user.user_id,
+        });
+      }
     });
   });
 });

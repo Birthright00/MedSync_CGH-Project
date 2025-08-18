@@ -60,9 +60,8 @@ const LoginPage = () => {
     // SNB number: N or n followed by 5 digits and 1 letter
     const mcrOrSnbPattern = /^[Mm]\d{5}[A-Za-z]$|^[Nn]\d{5}[A-Za-z]$/;
 
-    // For Student: Follows its own pattern such that, it i A-Z, a-z, 0-9, and no spaces
-    const studentPattern = /^[A-Z]\d{7}[A-Z]$/; // e.g. A0284226A
-    // Note: Adjust the studentPattern based on your actual requirements
+    // For Student: Email validation pattern
+    const studentPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/; // Valid email format
 
 
     // Check the pattern based on the selected role
@@ -101,7 +100,7 @@ const LoginPage = () => {
       return;
     }
 
-    const normalizedUsername = selectedRole === 'student' ? username.toUpperCase() : username;
+    const normalizedUsername = selectedRole === 'student' ? username.toLowerCase() : username;
 
     // API Call to Backend for Login
     try {
@@ -272,7 +271,7 @@ const LoginPage = () => {
                 <input
                   placeholder={
                     selectedRole === "staff" ? "MCR / SNB" :
-                      selectedRole === "student" ? "Matric No" :
+                      selectedRole === "student" ? "Email" :
                         "ADID"
                   }
                   value={username}

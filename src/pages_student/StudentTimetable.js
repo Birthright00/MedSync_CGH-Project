@@ -1,51 +1,111 @@
+/**
+ * StudentTimetable Component
+ * 
+ * Advanced interactive calendar interface for students to view their scheduled sessions.
+ * Integrates with backend authentication system and provides comprehensive timetable management.
+ * 
+ * Key Features:
+ * - Interactive calendar with drag-and-drop capabilities (react-big-calendar)
+ * - Real-time data synchronization with 5-second refresh intervals
+ * - PDF export functionality for offline access
+ * - Bulk download capabilities with ZIP file generation
+ * - Past session identification with visual distinction
+ * - Blocked dates handling for institutional schedules
+ * - Session conflict detection and resolution
+ * - Mobile-responsive design with touch-friendly interactions
+ * 
+ * Authentication Integration:
+ * - JWT token-based API requests
+ * - User identification via matric number (stored as user_id in localStorage)
+ * - Secure session management with automatic token validation
+ * 
+ * Data Management:
+ * - Automatic refresh every 5 seconds for real-time updates
+ * - Comprehensive date/time parsing with moment.js
+ * - Event categorization (active, past, blocked, modified)
+ * - Error handling for network and authentication failures
+ * 
+ * Export Capabilities:
+ * - Individual session PDF generation
+ * - Calendar screenshot export
+ * - Bulk session data download as ZIP
+ * 
+ * Visual Features:
+ * - Color-coded events by status and modification type
+ * - Hover effects and interactive event selection
+ * - Responsive layout adaptation
+ * - Accessibility-compliant interface elements
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, Views, momentLocalizer } from 'react-big-calendar';
-import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
-import moment from 'moment';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import axios from 'axios';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
-import StudentNavbar from "./studentnavbar.js";
-import '../styles/studenttimetable.css';
-import API_BASE_URL from '../apiConfig';
-import { getStartEndTime, getBlockedTimeRange } from './parseTime.js';
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver'; // also install: npm install file-saver
-import { generateWalkaboutBlocks } from '../components/generateWalkabouts.js';
+import { Calendar, Views, momentLocalizer } from 'react-big-calendar'; // Calendar library with view management
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'; // Drag-and-drop functionality
+import moment from 'moment'; // Date/time manipulation and formatting
+import jsPDF from 'jspdf'; // PDF generation for exports
+import html2canvas from 'html2canvas'; // DOM to canvas conversion for screenshots
+import axios from 'axios'; // HTTP client for API communication
+import 'react-big-calendar/lib/css/react-big-calendar.css'; // Base calendar styles
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'; // Drag-and-drop styles
+import StudentNavbar from "./studentnavbar.js"; // Student-specific navigation component
+import '../styles/studenttimetable.css'; // Custom timetable styling
+import API_BASE_URL from '../apiConfig'; // Backend API endpoint configuration
+import { getStartEndTime, getBlockedTimeRange } from './parseTime.js'; // Time parsing utilities
+import JSZip from 'jszip'; // ZIP file generation for bulk downloads
+import { saveAs } from 'file-saver'; // File download utility
+import { generateWalkaboutBlocks } from '../components/generateWalkabouts.js'; // Walkabout session generator
 
 
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
 
 const StudentTimetable = () => {
-  const calendarRef = useRef(null);
-  const [events, setEvents] = useState([]);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [exportType, setExportType] = useState(null); // 'png' or 'pdf'
-  const [exportStartDate, setExportStartDate] = useState('');
-  const [exportEndDate, setExportEndDate] = useState('');
-  const [calendarView, setCalendarView] = useState(Views.WORK_WEEK);
-  const [calendarDate, setCalendarDate] = useState(new Date());
-  const [blockedDates, setBlockedDates] = useState([]);
+  // DOM References
+  const calendarRef = useRef(null); // Reference to calendar element for exports and screenshots
+  
+  // Core State Management
+  const [events, setEvents] = useState([]); // All student timetable events/sessions
+  const [selectedEvent, setSelectedEvent] = useState(null); // Currently selected event for modal display
+  const [blockedDates, setBlockedDates] = useState([]); // Institutional blocked dates overlay
+  
+  // Export Modal State Management
+  const [showExportModal, setShowExportModal] = useState(false); // Controls export modal visibility
+  const [exportType, setExportType] = useState(null); // Export format: 'png' or 'pdf'
+  const [exportStartDate, setExportStartDate] = useState(''); // Date range start for export
+  const [exportEndDate, setExportEndDate] = useState(''); // Date range end for export
+  
+  // Calendar View State Management
+  const [calendarView, setCalendarView] = useState(Views.WORK_WEEK); // Current calendar view mode
+  const [calendarDate, setCalendarDate] = useState(new Date()); // Currently displayed date
 
+  /**
+   * Fetch Institutional Blocked Dates
+   * 
+   * Retrieves institution-wide blocked dates (holidays, exam periods, etc.)
+   * that should be overlaid on the student calendar for context.
+   * These dates help students understand when regular sessions won't occur.
+   * 
+   * Data Processing:
+   * - Fetches blocked date data from backend API
+   * - Formats date ranges using time parsing utilities
+   * - Creates calendar events marked as blocked
+   * - Applies visual styling to distinguish from regular sessions
+   */
   const fetchBlockedDates = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/scheduling/get-blocked-dates`);
       const formatted = res.data.blocked_dates.map(item => {
         const [start, end] = getBlockedTimeRange(item.date);
         return {
-          title: item.remark || "Blocked",
-          start,
-          end,
-          isBlocked: true
+          title: item.remark || "Blocked", // Display text for blocked period
+          start, // Blocked period start time
+          end, // Blocked period end time
+          isBlocked: true // Flag for visual styling
         };
       });
       setBlockedDates(formatted);
     } catch (err) {
       console.error("Failed to fetch blocked dates", err);
+      // Could add user notification for better UX
     }
   };
 

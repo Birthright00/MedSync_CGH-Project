@@ -1,182 +1,262 @@
+/**
+ * SignUpPage Component
+ * 
+ * User registration page for the CGH Project system.
+ * Primarily used for development and testing purposes to create new user accounts.
+ * 
+ * Supported Roles:
+ * - Management (EDO) - uses ADID (lowercase letters only)
+ * - Staff (Doctors/Nurses) - uses MCR/SNB numbers (M/N + 5 digits + 1 letter)
+ * - Students - uses email addresses (validated email format)
+ * - HR - uses ADID format (same as management)
+ * 
+ * Features:
+ * - Multi-role user registration
+ * - Role-based input validation with real-time feedback
+ * - Password confirmation matching
+ * - Responsive design with framer-motion animations
+ * - Toast notifications for user feedback
+ * - Password visibility toggle for both password fields
+ * - Form validation with detailed error messages
+ * 
+ * Security Features:
+ * - Input sanitization and validation
+ * - Role-based format enforcement
+ * - Password strength requirements (currently disabled for development)
+ */
+
 // Dependencies Imports
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ToastContainer, toast } from "react-toastify";
-import API_BASE_URL from '../apiConfig';
+import { motion } from "framer-motion"; // For smooth animations
+import { ToastContainer, toast } from "react-toastify"; // For user notifications
+import API_BASE_URL from '../apiConfig'; // Backend API configuration
 
 // Components Imports
 import Footer from "../components/footer";
 
 // CSS Imports
-import "react-toastify/dist/ReactToastify.css";
-import "../styles/signuppage.css";
+import "react-toastify/dist/ReactToastify.css"; // Toast notification styles
+import "../styles/signuppage.css"; // Custom signup page styles
 
-// Images Imports
+// Images Imports - Role-specific icons and UI elements
 import logo from "../images/cgh_logo.png";
 import staff from "../images/staff.png";
 import management from "../images/management.png";
-import show_pw from "../images/show_pw.png";
-import hide_pw from "../images/hide_pw.png";
+import show_pw from "../images/show_pw.png"; // Show password icon
+import hide_pw from "../images/hide_pw.png"; // Hide password icon
 import hr from "../images/hr.png";
-import hr_white from "../images/hr_white.png";
+import hr_white from "../images/hr_white.png"; // Selected state icon
 import student from "../images/student.png";
-import white_student from "../images/student_white.png";
+import white_student from "../images/student_white.png"; // Selected state icon
 
 const SignUpPage = () => {
+  // Navigation hook for redirecting users after registration
   const nav = useNavigate();
-  const [username, usernameupdate] = useState("");
-  const [password, passwordupdate] = useState("");
-  const [cfrmpassword, cfrmpasswordupdate] = useState("");
-  const [selectedRole, setSelectedRole] = useState(null); // State to track selected role
-  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
-  // console.log("Selected role:", selectedRole);
+  
+  // State Management for Form Data
+  const [username, usernameupdate] = useState(""); // Stores username/email input
+  const [password, passwordupdate] = useState(""); // Stores password input
+  const [cfrmpassword, cfrmpasswordupdate] = useState(""); // Stores password confirmation
+  const [selectedRole, setSelectedRole] = useState(null); // Tracks which role is selected
+  const [showPassword, setShowPassword] = useState(false); // Controls password visibility for both fields
+
+  /**
+   * Username Validation Function
+   * 
+   * Validates user input based on the selected role using regex patterns.
+   * Identical to LoginPage validation to ensure consistency across the application.
+   * 
+   * @param {string} username - The input to validate
+   * @param {string} role - The selected user role
+   * @returns {boolean} - True if username matches role requirements
+   */
   const validateUsername = (username, role) => {
-    // Management (ADID): lowercase alphabets only (no spaces, numbers, or uppercase letters)
+    // Management/HR ADID Pattern: Only lowercase alphabets (e.g., "johndoe")
     const adidPattern = /^[a-z]+$/;
 
-    // Staff (MCR or SNB):
-    // MCR: M or m + 5 digits + 1 letter (e.g. M12345A)
-    // SNB: N or n + 5 digits + 1 letter (e.g. N54321B)
+    // Staff Professional Registration Numbers:
+    // MCR (Medical Council Registration): M + 5 digits + 1 letter (e.g., "M12345A")
+    // SNB (Singapore Nursing Board): N + 5 digits + 1 letter (e.g., "N54321B")
     const mcrOrSnbPattern = /^[Mm]\d{5}[A-Za-z]$|^[Nn]\d{5}[A-Za-z]$/;
 
-    // Student: Email validation pattern
+    // Student Email Pattern: Standard email validation
     const studentPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-    // HR: follow same rule as management (only lowercase alphabets)
+    // HR Pattern: Same as management (lowercase alphabets only)
     const hrPattern = /^[a-z]+$/;
 
-    if (role === "management") return adidPattern.test(username);
-    if (role === "staff") return mcrOrSnbPattern.test(username);
-    if (role === "student") return studentPattern.test(username);
-    if (role === "hr") return hrPattern.test(username);
-
-    return false;
+    // Role-based validation
+    switch (role) {
+      case "management":
+        return adidPattern.test(username);
+      case "staff":
+        return mcrOrSnbPattern.test(username);
+      case "student":
+        return studentPattern.test(username);
+      case "hr":
+        return hrPattern.test(username);
+      default:
+        return false;
+    }
   };
 
+  /**
+   * Password Strength Validation Function
+   * 
+   * Validates password strength using comprehensive regex patterns.
+   * Currently disabled in the signup flow for development convenience,
+   * but can be re-enabled for production use.
+   * 
+   * Requirements:
+   * - Minimum 8 characters
+   * - At least one lowercase letter
+   * - At least one uppercase letter
+   * - At least one digit
+   * - At least one special character (@$!%*?&)
+   * 
+   * @param {string} password - The password to validate
+   * @returns {boolean} - True if password meets all requirements
+   */
   const validatePassword = (password) => {
     const pwPattern =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return pwPattern.test(password);
   };
 
+  /**
+   * Navigation Helper Function
+   * 
+   * Returns user to the login page when back button is clicked.
+   */
   const handleBack = () => {
     nav("/");
   };
 
+  /**
+   * Password Visibility Toggle Function
+   * 
+   * Controls the visibility of both password fields simultaneously
+   * for consistent user experience.
+   */
   const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword); // Toggle password visibility
+    setShowPassword(!showPassword);
   };
 
+  /**
+   * User Registration Handler
+   * 
+   * Processes new user account creation with comprehensive validation.
+   * Includes role-based validation, password confirmation, and API integration.
+   * 
+   * Registration Flow:
+   * 1. Validate role selection and required fields
+   * 2. Validate username format based on selected role
+   * 3. Confirm password match
+   * 4. Normalize username for consistency
+   * 5. Submit registration data to backend API
+   * 6. Handle response and redirect on success
+   * 
+   * Special Student Handling:
+   * - Students register with email addresses
+   * - Email is normalized to lowercase for consistency
+   * - Email is stored in both user_id and email fields in database
+   * 
+   * @param {Event} e - Form submission event
+   */
   const handleSignUp = async (e) => {
-    e.preventDefault(); // e.preventDefault() is called to prevent the default form submission behavior, which would reload the page.
+    e.preventDefault(); // Prevent default form submission and page reload
 
-    // Makes sure a role is selected
+    // Role Selection Validation
     if (!selectedRole) {
-      toast.warn("Please select a role (Management or Staff)");
+      toast.warn("Please select a role (Management, Staff, Student, or HR)");
       return;
     }
 
-    // Makes sure all fields are filled
+    // Required Fields Validation
     if (!username || !password || !cfrmpassword) {
       toast.warn("Please enter all the fields");
       return;
     }
-    // ----------------------------------------------------------------------------------------//
-    // Comment out this part for easier account creation
-    // ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
-    // ----------------------------------------------------------------------------------------//
 
-    // if (!validateMCRNumber(username)) {
-    //   toast.error(
-    //     <div>
-    //       <p>Invalid MCR Number. It must meet the following criteria:</p>
-    //       <ul>
-    //         <li>Start with 'M' or 'm'</li>
-    //         <li>Followed by 5 digits (0-9)</li>
-    //         <li>End with a letter (A-Z, a-z)</li>
-    //         <li>Total of 7 characters</li>
-    //       </ul>
-    //     </div>
-    //   );
-    //   return;
-    // }
+    /* 
+     * DISABLED VALIDATION SECTION (For Development Convenience)
+     * 
+     * The following validation blocks are commented out to allow easier account creation
+     * during development and testing phases. In production, consider re-enabling these
+     * validations for enhanced security.
+     * 
+     * Disabled Validations:
+     * - MCR Number format validation (legacy)
+     * - Password strength requirements
+     */
 
-    // if (!validatePassword(password)) {
-    //   toast.error(
-    //     <div>
-    //       <p>Password must meet the following requirements:</p>
-    //       <ul>
-    //         <li>Minimum 8 characters</li>
-    //         <li>At least one lowercase letter</li>
-    //         <li>At least one uppercase letter</li>
-    //         <li>At least one digit (0-9)</li>
-    //         <li>At least one special character</li>
-    //       </ul>
-    //     </div>
-    //   );
-    //   return;
-    // }
-
-    // ----------------------------------------------------------------------------------------//
-    // ⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️
-    // Comment out this part for easier account creation
-    // ----------------------------------------------------------------------------------------//
-
-    // ----------------------------------------------------------------------------------------//
-    // Comment out this part for easier account creation
-    // ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
-    // ----------------------------------------------------------------------------------------//
+    // Username Format Validation (ACTIVE)
+    // This validation remains active to ensure data integrity
     if (!validateUsername(username, selectedRole)) {
       let message = "Invalid username format.";
 
-      if (selectedRole === "management")
-        message = "ADID must contain only lowercase letters with no spaces.";
-      else if (selectedRole === "staff")
-        message = "Staff ID must be M/N followed by 5 digits and a letter (e.g. M12345A).";
-      else if (selectedRole === "student")
-        message = "Please enter a valid email address (e.g. student@example.com).";
-      else if (selectedRole === "hr")
-        message = "HR ID must contain only lowercase letters.";
+      // Role-specific error messages for better user guidance
+      switch (selectedRole) {
+        case "management":
+          message = "ADID must contain only lowercase letters with no spaces.";
+          break;
+        case "staff":
+          message = "Staff ID must be M/N followed by 5 digits and a letter (e.g. M12345A).";
+          break;
+        case "student":
+          message = "Please enter a valid email address (e.g. student@example.com).";
+          break;
+        case "hr":
+          message = "HR ID must contain only lowercase letters.";
+          break;
+      }
 
       toast.error(message);
       return;
     }
 
-
+    // Password Confirmation Validation
     if (password !== cfrmpassword) {
       toast.warn("Passwords do not match");
       return;
     }
 
-    // API Call to Backend for Signup
+    // Backend Registration Request
     try {
+      // Username normalization for consistency
       const normalizedUsername = selectedRole === 'student' ? username.toLowerCase() : username;
+      
       const response = await fetch(`${API_BASE_URL}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          user_id: normalizedUsername,
-          email: selectedRole === 'student' ? normalizedUsername : '', // Set email for students
+          user_id: normalizedUsername, // Primary identifier
+          email: selectedRole === 'student' ? normalizedUsername : '', // Email field for students
           password: password,
           role: selectedRole,
         }),
       });
+      
       const data = await response.json();
-      // console.log(data);
+
+      // Registration Success Handling
       if (response.ok) {
         toast.success("Signup Successful");
+        // Redirect to login page after brief delay
         setTimeout(() => {
           nav("/");
-        }, 1000); // Small delay for toast visibility
+        }, 1000);
       } else {
-        toast.error(data.message);
+        // Registration Error Handling
+        toast.error(data.message || "Registration failed");
       }
     } catch (error) {
-      // console.log(error);
-      toast.error("Signup Failed");
+      // Network/Connection Error Handling
+      console.error("Registration error:", error);
+      toast.error("Signup Failed - Unable to connect to server");
     }
   };
 

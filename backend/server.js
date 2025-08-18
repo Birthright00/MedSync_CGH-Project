@@ -180,62 +180,99 @@ app.get("/", (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// LOGIN ROUTE
+// LOGIN ROUTE - Multi-Role Authentication System
 // -------------------------------------------------------------------------------------------------------------//
+/**
+ * User Authentication Endpoint
+ * 
+ * Handles login requests for multiple user roles with specialized logic for each role type.
+ * Implements JWT token-based authentication with role-based access control.
+ * 
+ * Supported Roles:
+ * - Management: Uses ADID for authentication, direct login
+ * - Staff: Uses MCR/SNB numbers for authentication, direct login
+ * - Students: Uses email for authentication, returns matric number for session compatibility
+ * - HR: Uses ADID format, same as management
+ * 
+ * Special Student Authentication Flow:
+ * 1. Authenticate using email address (stored in user_data.email)
+ * 2. Retrieve corresponding matric number from student_database
+ * 3. Return matric number as user_id for frontend session management
+ * 4. This maintains compatibility with existing session_students table structure
+ * 
+ * Security Features:
+ * - bcrypt password hashing verification
+ * - JWT token generation with expiration
+ * - Role-based authorization checks
+ * - Comprehensive error handling with specific status codes
+ * 
+ * @route POST /login
+ * @param {string} user_id - Username/email (email for students, ID for others)
+ * @param {string} password - User password
+ * @param {string} selectedRole - Selected user role
+ * @returns {Object} Authentication response with token and user data
+ */
 app.post("/login", (req, res) => {
-  // Extract user ID, password, and selected role from request body
+  // Extract authentication data from request body
   const { user_id, password, selectedRole } = req.body;
 
-  // Ensure all required fields are provided
+  // Input Validation - Ensure all required fields are provided
   if (!user_id || !password || !selectedRole) {
     return res
       .status(400)
       .json({ error: "User ID, password, and role are required" });
   }
 
-  // Query the database - for students use email, for others use user_id
+  // Database Query Logic - Role-based user lookup
   let q, queryParam;
   if (selectedRole === "student") {
+    // Students: Authenticate using email address
     q = "SELECT * FROM user_data WHERE email = ?";
-    queryParam = user_id; // user_id contains the email for students
+    queryParam = user_id; // user_id parameter contains the email for students
   } else {
+    // Other roles: Authenticate using traditional user_id
     q = "SELECT * FROM user_data WHERE user_id = ?";
     queryParam = user_id;
   }
   
+  // Execute user lookup query
   db.query(q, [queryParam], (err, data) => {
     if (err) {
+      console.error("Database error during user lookup:", err);
       return res.status(500).json({ error: "Database error occurred" });
     }
 
-    // Check if user exists in the database
+    // User Existence Check
     if (data.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const user = data[0]; // Retrieve user data
+    const user = data[0]; // Extract user data from query results
 
-    // Compare the provided password with the stored hashed password
+    // Password Verification using bcrypt
     bcrypt.compare(password, user.user_password, (err, isMatch) => {
       if (err) {
+        console.error("Password comparison error:", err);
         return res.status(500).json({ error: "Error comparing passwords" });
       }
 
-      // If the password does not match, send an error
+      // Password Match Validation
       if (!isMatch) {
         return res.status(401).json({ error: "Incorrect password" });
       }
 
-      // Allow login if selectedRole is either the exact user role, or "HR" logging in as "management"
+      // Role Authorization Check
       if (user.role !== selectedRole) {
         return res.status(403).json({ error: "Role does not match" });
       }
 
-      // For students, we need to get their matric number from student_database
+      // SPECIAL HANDLING FOR STUDENTS
+      // Students require additional lookup to maintain database compatibility
       if (selectedRole === "student") {
         const studentQuery = "SELECT user_id FROM student_database WHERE email = ?";
         db.query(studentQuery, [user.email], (err, studentData) => {
           if (err) {
+            console.error("Student database lookup error:", err);
             return res.status(500).json({ error: "Database error occurred" });
           }
           
@@ -243,19 +280,20 @@ app.post("/login", (req, res) => {
             return res.status(404).json({ error: "Student record not found" });
           }
           
+          // Extract matric number from student_database
           const studentUserId = studentData[0].user_id; // This is the matric number
           
-          // Create a JWT token upon successful authentication
+          // JWT Token Generation for Student
           const token = jwt.sign(
             { id: studentUserId, role: user.role },
             JWT_SECRET,
             {
-              expiresIn: "3h",
+              expiresIn: "3h", // Token expires in 3 hours
             }
           );
 
-          // Respond with success message, token, and user role
-          // For students, return the matric number as user_id for session lookups
+          // Student Authentication Success Response
+          // Returns matric number as user_id for session_students table compatibility
           return res.status(200).json({
             message: "Authentication successful",
             token,
@@ -264,17 +302,19 @@ app.post("/login", (req, res) => {
           });
         });
       } else {
-        // For non-students, use the original logic
-        // Create a JWT token upon successful authentication
+        // STANDARD HANDLING FOR NON-STUDENT ROLES
+        // Direct authentication without additional database lookups
+        
+        // JWT Token Generation for Non-Students
         const token = jwt.sign(
           { id: user.user_id, role: user.role },
           JWT_SECRET,
           {
-            expiresIn: "3h",
+            expiresIn: "3h", // Token expires in 3 hours
           }
         );
 
-        // Respond with success message, token, and user role
+        // Standard Authentication Success Response
         return res.status(200).json({
           message: "Authentication successful",
           token,
@@ -3766,21 +3806,61 @@ app.post("/api/scheduling/send-acceptance-notification", async (req, res) => {
 });
 
 // -------------------------------------------------------------------------------------------------------------//
-// ------------------- SPECIFIC STUDENT ID TIMETABLE -------------------
+// STUDENT TIMETABLE ENDPOINT - Session Retrieval for Individual Students
 // -------------------------------------------------------------------------------------------------------------//
+/**
+ * Student Timetable Retrieval Endpoint
+ * 
+ * Fetches all scheduled sessions for a specific student based on their user ID (matric number).
+ * This endpoint works in conjunction with the student login system to provide personalized
+ * timetable information.
+ * 
+ * Database Relationships:
+ * - scheduled_sessions: Contains session details (date, time, location, etc.)
+ * - session_students: Junction table linking sessions to students via matric numbers
+ * - student_database: Contains student profile information
+ * 
+ * Authentication Flow Integration:
+ * 1. Student logs in with email address
+ * 2. Backend returns matric number as user_id
+ * 3. Frontend stores matric number in localStorage
+ * 4. This endpoint receives matric number and retrieves associated sessions
+ * 
+ * Query Logic:
+ * - Joins scheduled_sessions with session_students table
+ * - Filters by student's matric number (user_id)
+ * - Returns all session details for the authenticated student
+ * 
+ * Security Considerations:
+ * - Should be protected by JWT authentication middleware
+ * - Only returns sessions for the specified student
+ * - User ID comes from authenticated session, not user input
+ * 
+ * @route GET /api/scheduling/student-timetable/:userId
+ * @param {string} userId - Student's matric number (from authentication)
+ * @returns {Array} Array of scheduled session objects for the student
+ */
 app.get("/api/scheduling/student-timetable/:userId", (req, res) => {
-  const userId = req.params.userId;
+  const userId = req.params.userId; // Matric number from authenticated session
+  
+  // SQL Query to retrieve student's scheduled sessions
+  // Joins scheduled_sessions with session_students to get all sessions for this student
   const query = `
     SELECT s.*
     FROM scheduled_sessions s
     JOIN session_students ss ON ss.scheduled_session_id = s.id
     WHERE ss.user_id = ?;
   `;
+  
+  // Execute query with student's matric number
   db.query(query, [userId], (err, results) => {
     if (err) {
       console.error("❌ Error fetching student timetable:", err);
       return res.status(500).json({ error: "Database error" });
     }
+    
+    // Return array of scheduled sessions
+    // Each session contains: date, time, location, subject, instructor, etc.
     res.json(results);
   });
 });

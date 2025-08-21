@@ -340,7 +340,7 @@ const SignUpPage = () => {
 
               </div>
               <div className="form-group">
-                <div className="password-container">
+                <div className="password-wrapper">
                   <input
                     placeholder="Enter Password"
                     value={password}
@@ -348,21 +348,24 @@ const SignUpPage = () => {
                     className="password"
                     type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
                   />
-                  <button
-                    type="button"
-                    onClick={togglePasswordVisibility}
-                    className="toggle-password-btn"
-                  >
-                    <img
-                      className="toggle-password-img"
-                      src={showPassword ? show_pw : hide_pw} // Toggle between the show and hide images
-                      alt={showPassword ? "Hide Password" : "Show Password"}
-                    />
-                  </button>
+                  {/* Password Visibility Toggle Button - Only show when password has content */}
+                  {password && (
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      className="toggle-password-btn"
+                    >
+                      <img
+                        className="toggle-password-img"
+                        src={showPassword ? show_pw : hide_pw} // Toggle between the show and hide images
+                        alt={showPassword ? "Hide Password" : "Show Password"}
+                      />
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="form-group">
-                <div className="password-container">
+                <div className="password-wrapper">
                   <input
                     placeholder="Confirm Password"
                     value={cfrmpassword}
@@ -370,17 +373,20 @@ const SignUpPage = () => {
                     className="password"
                     type={showPassword ? "text" : "password"} // Conditionally toggle between text and password type
                   />
-                  <button
-                    type="button"
-                    onClick={togglePasswordVisibility}
-                    className="toggle-password-btn"
-                  >
-                    <img
-                      className="toggle-password-img"
-                      src={showPassword ? show_pw : hide_pw} // Toggle between the show and hide images
-                      alt={showPassword ? "Hide Password" : "Show Password"}
-                    />
-                  </button>
+                  {/* Password Visibility Toggle Button - Only show when confirm password has content */}
+                  {cfrmpassword && (
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      className="toggle-password-btn"
+                    >
+                      <img
+                        className="toggle-password-img"
+                        src={showPassword ? show_pw : hide_pw} // Toggle between the show and hide images
+                        alt={showPassword ? "Hide Password" : "Show Password"}
+                      />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

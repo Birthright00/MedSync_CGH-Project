@@ -355,25 +355,29 @@ const LoginPage = () => {
 
               {/* Password Input Field with Visibility Toggle */}
               <div className="form-group">
-                <input
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => passwordupdate(e.target.value)}
-                  className="password"
-                  type={showPassword ? "text" : "password"} // Toggle between text and password input types
-                />
-                {/* Password Visibility Toggle Button */}
-                <button
-                  type="button"
-                  onClick={togglePasswordVisibility}
-                  className="toggle-password-btn"
-                >
-                  <img
-                    className="toggle-password-img"
-                    src={showPassword ? show_pw : hide_pw} // Eye icon changes based on visibility state
-                    alt={showPassword ? "Hide Password" : "Show Password"}
+                <div className="password-wrapper">
+                  <input
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => passwordupdate(e.target.value)}
+                    className="password"
+                    type={showPassword ? "text" : "password"} // Toggle between text and password input types
                   />
-                </button>
+                  {/* Password Visibility Toggle Button - Only show when password has content */}
+                  {password && (
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      className="toggle-password-btn"
+                    >
+                      <img
+                        className="toggle-password-img"
+                        src={showPassword ? show_pw : hide_pw} // Eye icon changes based on visibility state
+                        alt={showPassword ? "Hide Password" : "Show Password"}
+                      />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

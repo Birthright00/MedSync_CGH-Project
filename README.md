@@ -160,25 +160,57 @@ Node.js is essential for running the Doctor Data Management Web Application. Fol
 
 ---
 
+**Quick Setup (Recommended):**
+
+```shell
+# Install all dependencies (frontend + backend)
+npm run setup
+
+# Verify installation
+npm run verify
+```
+
+**Manual Installation:**
+
 Assuming you have no issues with the above step,
 
 In the same terminal, copy and paste or type the following code (this may take awhile) :
 
 ```shell
+# Install frontend dependencies
 npm install
+
+# Install backend dependencies
+cd backend
+npm install
+cd ..
 ```
 
-In the event of errors there are 2 things you can do :
+**Troubleshooting Dependencies:**
+
+In the event of errors there are several things you can do:
 
 ```shell
+# Quick fixes
 npm audit fix
-```
-
-```shell
 npm audit fix --force
+
+# Clean installation (if npm install fails)
+npm run clean-install
+
+# Check what's wrong with your setup
+npm run verify
 ```
 
-Else, contact developers if you still run into issuess
+**Common Issues:**
+- `missing: msal@^1.4.18` error - Run `npm install` to fix
+- Backend won't start - Run `cd backend && npm install`
+- JavaScript errors - Run `npm run verify` for diagnosis
+
+For detailed setup instructions, see: [SETUP.md](./SETUP.md)
+For dependency information, see: [DEPENDENCIES.md](./DEPENDENCIES.md)
+
+Else, contact developers if you still run into issues
 
 <a id="running"></a>
 

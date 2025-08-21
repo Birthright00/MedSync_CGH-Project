@@ -88,7 +88,19 @@ body {
     margin-bottom: 5px;
 }
 
-.username,
+.username {
+    width: 100%;
+    max-width: 400px;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: 1px solid #0083ca;
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 5px;
+    box-sizing: border-box;
+}
+
 .password {
     width: 100%;
     max-width: 400px;
@@ -99,30 +111,62 @@ body {
     font-size: 16px;
     text-align: center;
     margin-bottom: 5px;
+    box-sizing: border-box;
 }
 
-.password-container {
+.password-wrapper {
     position: relative;
+    display: flex;
+    align-items: center;
     width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* Very specific styling for password fields within wrapper to avoid affecting other inputs */
+.form-group .password-wrapper .password {
+    width: 100% !important;
+    max-width: 400px !important;
+    padding: 12px 40px 12px 12px !important;
+    margin: 0 !important;
+    border-radius: 5px !important;
+    border: 1px solid #0083ca !important;
+    font-size: 16px !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+    display: block !important;
 }
 
 .form-group {
-    margin-bottom: 0px;
-    /* ↓ Reduce from 20px or more */
+    margin-bottom: 20px;
+    width: 100%;
+    min-height: 60px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .toggle-password-btn {
     position: absolute;
-    top: 50%;
     right: 10px;
+    top: 50%;
     transform: translateY(-50%);
+    display: flex;
+    align-items: center;
     background: none;
     border: none;
     cursor: pointer;
+    padding: 5px;
+    z-index: 2;
+    opacity: 1;
+    transition: opacity 0.2s ease-in-out;
 }
 
 .toggle-password-img {
     width: 20px;
+    height: 20px;
 }
 
 .signin_button {

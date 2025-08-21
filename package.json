@@ -56,7 +56,13 @@
     "backend": "cd backend && nodemon server.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "setup": "npm install && cd backend && npm install && cd ..",
+    "setup-check": "npm list --depth=0 && cd backend && npm list --depth=0 && cd ..",
+    "verify": "node verify-setup.js",
+    "clean-install": "npm run clean && npm run setup",
+    "clean": "rm -rf node_modules package-lock.json && cd backend && rm -rf node_modules package-lock.json && cd ..",
+    "postinstall": "echo 'Frontend dependencies installed. Run: cd backend && npm install' to install backend dependencies."
   },
   "eslintConfig": {
     "extends": [

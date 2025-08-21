@@ -134,17 +134,31 @@ body {
   box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
 }
 
-.username,
-.password {
+.username {
   margin-bottom: 20px;
   display: block;
-  width: 135%;
+  width: 100%;
   padding: 12px;
   border-style: solid;
   border-width: 1px;
   border-radius: 5px;
   border-color: #0083ca;
-  /* Consistent blue border */
+  font-size: 16px;
+  text-align: center;
+  color: #333;
+  font-family: "Montserrat", sans-serif;
+  box-sizing: border-box;
+}
+
+.password {
+  margin-bottom: 20px;
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 5px;
+  border-color: #0083ca;
   font-size: 16px;
   text-align: center;
   color: #333;
@@ -178,6 +192,9 @@ body {
   justify-content: center;
   width: 100%;
   margin-top: 5px;
+  margin-bottom: 20px;
+  min-height: 60px; /* Ensure consistent height */
+  box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
@@ -218,18 +235,49 @@ body {
   }
 }
 
-.toggle-password-btn {
-  right: 10px;
-  /* Adjust based on input padding */
+.password-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
-  /* Vertically center the icon */
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Very specific styling for password fields within wrapper to avoid affecting other inputs */
+.form-group .password-wrapper .password {
+  width: 100% !important;
+  margin-bottom: 0 !important;
+  padding: 12px 40px 12px 12px !important;
+  border-style: solid !important;
+  border-width: 1px !important;
+  border-radius: 5px !important;
+  border-color: #0083ca !important;
+  font-size: 16px !important;
+  text-align: center !important;
+  color: #333 !important;
+  font-family: "Montserrat", sans-serif !important;
+  box-sizing: border-box !important;
+  display: block !important;
+}
+
+.toggle-password-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
+  padding: 5px;
+  z-index: 2;
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
 }
 
 .toggle-password-img {
   width: 20px;
+  height: 20px;
 }

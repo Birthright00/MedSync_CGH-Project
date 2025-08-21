@@ -26,7 +26,7 @@ import DoctorSessionBooking from "./scheduling/doctor_sessionbooking/DoctorSessi
 import 'react-toastify/dist/ReactToastify.css';
 import { Toast } from "bootstrap";
 
-function App() {
+function AppContent() {
   const location = useLocation();
   return (
     <div className="App">
@@ -89,6 +89,10 @@ function App() {
       </Routes>
     </div>
   );
+}
+
+function App() {
+  return <AppContent />;
 }
 
 export default App;

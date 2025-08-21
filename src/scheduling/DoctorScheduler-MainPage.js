@@ -322,6 +322,82 @@ const DoctorScheduler = () => {
     return rawStart.toLowerCase();
   }
 
+  // Helper functions for time parsing (copied from DoctorScheduling.js for conflict detection)
+  const parseDateAndTime = (dateStr, timeStr) => {
+    const [day, monthName, year] = dateStr.split(' ');
+    const month = monthStrToNum(monthName);
+
+    let startHour = 9, startMinute = 0, endHour = 10, endMinute = 0;
+
+    if (timeStr && timeStr !== "-" && timeStr !== "—") {
+      let normalizedTimeStr = timeStr.replace(/\s*-\s*/g, '-').replace(/\s*to\s*/gi, '-').replace(/\./g, ':').toLowerCase();
+
+      // Add AM/PM if missing — assume AM unless it's after 12
+      const parts = normalizedTimeStr.split('-');
+      if (!parts[0].includes('am') && !parts[0].includes('pm')) {
+        const startHour = parseInt(parts[0].split(':')[0]);
+        parts[0] += startHour >= 7 && startHour <= 11 ? 'am' : 'pm';
+      }
+      if (parts.length > 1 && !parts[1].includes('am') && !parts[1].includes('pm')) {
+        const endHour = parseInt(parts[1].split(':')[0]);
+        parts[1] += endHour >= 1 && endHour <= 6 ? 'pm' : 'am';
+      }
+
+      normalizedTimeStr = parts.join('-');
+
+      const rangeMatch = normalizedTimeStr.match(/^(.+?)-(.+)$/);
+      if (rangeMatch) {
+        const startTime = parseSingleTime(rangeMatch[1].trim());
+        const endTime = parseSingleTime(rangeMatch[2].trim());
+        startHour = startTime.hour;
+        startMinute = startTime.minute;
+        endHour = endTime.hour;
+        endMinute = endTime.minute;
+      } else {
+        const singleTime = parseSingleTime(normalizedTimeStr);
+        startHour = singleTime.hour;
+        startMinute = singleTime.minute;
+        endHour = startHour + 1;
+        endMinute = startMinute;
+      }
+    }
+
+    const startDate = new Date(year, month, parseInt(day), startHour, startMinute);
+    const endDate = new Date(year, month, parseInt(day), endHour, endMinute);
+    return { startDate, endDate };
+  };
+
+  const parseSingleTime = (timeStr) => {
+    const match = timeStr.match(/(\d{1,2})(?::?(\d{0,2}))?\s*(am|pm)/i);
+    if (!match) {
+      throw new Error(`Cannot parse time string: "${timeStr}"`);
+    }
+    let hour = parseInt(match[1], 10);
+    const minute = match[2] ? parseInt(match[2], 10) : 0;
+    const ampm = match[3].toLowerCase();
+
+    if (ampm === "pm" && hour < 12) hour += 12;
+    if (ampm === "am" && hour === 12) hour = 0;
+    return { hour, minute };
+  };
+
+  const monthStrToNum = (monthStr) => {
+    const months = {
+      jan: 0, january: 0,
+      feb: 1, february: 1,
+      mar: 2, march: 2,
+      apr: 3, april: 3,
+      may: 4,
+      jun: 5, june: 5,
+      jul: 6, july: 6,
+      aug: 7, august: 7,
+      sep: 8, september: 8,
+      oct: 9, october: 9,
+      nov: 10, november: 10,
+      dec: 11, december: 11,
+    };
+    return months[monthStr.toLowerCase()] ?? 0;
+  };
 
   // Handle location confirmation for both availability and change requests
   // For availability, it adds the session to the timetable
@@ -407,6 +483,43 @@ const DoctorScheduler = () => {
 
         const newStart = moment(`${date} ${timePartsSplit[0].trim()}`, "D MMMM YYYY h:mmA").toISOString();
         const newEnd = moment(`${date} ${timePartsSplit[1].trim()}`, "D MMMM YYYY h:mmA").toISOString()
+
+        // ✅ Check for scheduling conflicts before updating the session
+        const doctorName = selectedNotif.name?.trim().toLowerCase();
+        const newDateTime = moment(`${date} ${timePartsSplit[0].trim()}`, "D MMMM YYYY h:mmA");
+        const newEndDateTime = moment(`${date} ${timePartsSplit[1].trim()}`, "D MMMM YYYY h:mmA");
+        
+        // Find any existing sessions for the same doctor that would conflict
+        const conflictingSession = timetableSessions.find(session => {
+          // Skip the session we're updating
+          if (session.id === matchingSession.id) return false;
+          
+          // Only check sessions for the same doctor
+          if (session.name?.trim().toLowerCase() !== doctorName) return false;
+          
+          // Parse existing session time
+          const { startDate, endDate } = parseDateAndTime(session.date, session.time);
+          
+          // Check for time overlap
+          const existingStart = moment(startDate);
+          const existingEnd = moment(endDate);
+          
+          // Times overlap if: new_start < existing_end AND new_end > existing_start
+          return newDateTime.isBefore(existingEnd) && newEndDateTime.isAfter(existingStart);
+        });
+
+        if (conflictingSession) {
+          alert(`⚠️ SCHEDULING CONFLICT DETECTED!\n\nDr. ${selectedNotif.name} already has a session scheduled:\n\n` +
+                `Existing: "${conflictingSession.session_name}"\n` +
+                `Date: ${conflictingSession.date}\n` +
+                `Time: ${conflictingSession.time}\n` +
+                `Location: ${conflictingSession.location}\n\n` +
+                `This conflicts with the requested new time: ${date} ${time}\n\n` +
+                `Please choose a different time or reschedule the existing session first.`);
+          
+          setShowLocationModal(false);
+          return; // Exit without updating
+        }
 
         await axios.patch(`${API_BASE_URL}/api/scheduling/update-scheduled-session/${matchingSession.id}`, {
           title: selectedNotif.session_name,

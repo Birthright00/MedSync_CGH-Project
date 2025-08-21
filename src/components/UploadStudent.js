@@ -116,6 +116,17 @@ const UploadStudent = () => {
 
             console.log("✅ Headers parsed:", headers);
             console.log("✅ First row parsed:", parsedData[0]);
+            console.log(`📊 Total rows parsed: ${parsedData.length}`);
+            
+            // Check for Edward Tang specifically
+            const edwardRow = parsedData.find(row => row.name && row.name.toLowerCase().includes('edward tang'));
+            if (edwardRow) {
+                console.log("🎯 Found Edward Tang:", edwardRow);
+            } else {
+                console.log("❌ Edward Tang not found in parsed data");
+                // Log all names to help debug
+                console.log("All names found:", parsedData.map(row => row.name).filter(Boolean));
+            }
 
 
             const requiredFields = ['user_id', 'name', 'gender', 'email', 'start_date', 'end_date', 'cg', 'school', 'program_name', 'yearofstudy'];

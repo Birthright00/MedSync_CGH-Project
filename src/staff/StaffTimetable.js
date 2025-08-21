@@ -68,10 +68,8 @@ const StaffTimetable = () => {
 
             const now = new Date();
 
-            const filtered = response.data.filter(item => {
-                if (userRole === 'management') return true;
-                return item.doctor_email === staffEmail;
-            });
+            // ✅ Show all sessions for staff, but we'll control editing permissions later
+            const filtered = response.data; // Show all sessions regardless of role
 
 
             // Fetch parsed_emails for checking pending change requests
@@ -125,13 +123,24 @@ const StaffTimetable = () => {
 
 
 
+                // ✅ Determine if this session is editable by the current user
+                const isOwnSession = userRole === 'management' || item.doctor_email === staffEmail;
+                
+                // ✅ Set color based on ownership and status
+                let eventColor = '#31B5F7'; // Default blue
+                if (['rescheduled', 'resized'].includes(item.change_type)) {
+                    eventColor = '#D49A00'; // Orange for changed sessions
+                } else if (!isOwnSession) {
+                    eventColor = '#90A4AE'; // Gray for other doctors' sessions (read-only)
+                }
+
                 return {
                     id: item.id,
                     title: item.session_name,
-                    doctor_name: item.name || "Unknown", // ✅ ADD THIS
+                    doctor_name: item.name || "Unknown",
                     start: startDateTime,
                     end: endDateTime,
-                    color: ['rescheduled', 'resized'].includes(item.change_type) ? '#D49A00' : '#31B5F7',
+                    color: eventColor,
                     location: item.location,
                     students: item.students,
                     isPast: endDateTime < now,
@@ -140,6 +149,7 @@ const StaffTimetable = () => {
                     changeReason: item.change_reason,
                     doctor_email: item.doctor_email,
                     pendingChangeRequest: hasPendingRequest,
+                    isOwnSession: isOwnSession, // ✅ Add ownership flag
                 };
             });
 
@@ -223,21 +233,20 @@ const StaffTimetable = () => {
     }, []);
 
     const getEventColor = (event) => {
-        if (event.pendingChangeRequest) return '#FFA500'; // orange
-        if (event.isPast) return '#999999';
-        if (['rescheduled', 'resized'].includes(event.changeType)) return '#D49A00';
-        return '#3174ad';
+        if (event.pendingChangeRequest) return '#FFA500'; // orange for pending requests
+        if (event.isPast) return '#999999'; // gray for past events
+        return event.color; // Use the color already calculated in event mapping
     };
 
     const eventStyleGetter = (event) => ({
         style: {
             backgroundColor: getEventColor(event),
             borderRadius: '4px',
-            opacity: 0.9,
+            opacity: event.isOwnSession ? 0.9 : 0.6, // ✅ Lower opacity for read-only sessions
             color: 'white',
-            border: 'none',
+            border: event.isOwnSession ? 'none' : '2px dashed rgba(255,255,255,0.5)', // ✅ Dashed border for read-only
             display: 'block',
-            cursor: event.isPast ? 'not-allowed' : 'pointer',
+            cursor: event.isPast ? 'not-allowed' : (event.isOwnSession ? 'pointer' : 'default'), // ✅ Different cursor for read-only
         },
     });
 
@@ -262,6 +271,12 @@ const StaffTimetable = () => {
     const CustomEvent = ({ event }) => (
         <div>
             <strong>{event.title}</strong>
+            {/* ✅ Show doctor name for other doctors' sessions */}
+            {!event.isOwnSession && (
+                <div style={{ fontSize: '0.7em', opacity: 0.9, marginTop: '1px' }}>
+                    Dr. {event.doctor_name}
+                </div>
+            )}
             {event.pendingChangeRequest && (
                 <div style={{ fontSize: '0.75em', color: '#FFA500' }}>
                     ⏳ Pending ADO approval
@@ -279,9 +294,52 @@ const StaffTimetable = () => {
         <>
             <StaffNavbar homeRoute="/management-home" />
             <div style={{ padding: '20px' }} ref={calendarRef}>
+                {/* ✅ Legend for session colors */}
+                <div style={{ 
+                    marginBottom: '15px', 
+                    padding: '12px', 
+                    backgroundColor: '#f8f9fa', 
+                    borderRadius: '8px',
+                    border: '1px solid #e9ecef'
+                }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#495057' }}>
+                        📋 Session Legend
+                    </h4>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', fontSize: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ 
+                                width: '16px', height: '16px', backgroundColor: '#31B5F7', 
+                                borderRadius: '3px', border: 'none' 
+                            }}></div>
+                            <span>Your sessions (editable)</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ 
+                                width: '16px', height: '16px', backgroundColor: '#90A4AE', 
+                                borderRadius: '3px', border: '2px dashed rgba(255,255,255,0.5)', opacity: 0.6 
+                            }}></div>
+                            <span>Other doctors' sessions (read-only)</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ 
+                                width: '16px', height: '16px', backgroundColor: '#D49A00', 
+                                borderRadius: '3px' 
+                            }}></div>
+                            <span>Rescheduled sessions</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ 
+                                width: '16px', height: '16px', backgroundColor: '#FFA500', 
+                                borderRadius: '3px' 
+                            }}></div>
+                            <span>Pending change requests</span>
+                        </div>
+                    </div>
+                </div>
+                
                 <div
                     style={{
-                        height: '75vh',
+                        height: '70vh',
                         border: '1px solid #ddd',
                         borderRadius: '8px',
                         padding: '10px',
@@ -312,6 +370,12 @@ const StaffTimetable = () => {
                             event: CustomEvent,
                         }}
                         onSelectEvent={(event) => {
+                            // ✅ Only allow editing sessions that belong to the current user
+                            if (!event.isOwnSession) {
+                                alert(`🔒 This session belongs to Dr. ${event.doctor_name}.\n\nYou can only edit sessions assigned to you.`);
+                                return;
+                            }
+                            
                             if (!event.isPast && !event.pendingChangeRequest) {
                                 setEditForm({
                                     id: event.id,
@@ -327,7 +391,7 @@ const StaffTimetable = () => {
                                         ? moment(event.originalTime, ["D MMMM YYYY h:mmA", "D MMMM YYYY hA"]).toDate()
                                         : event.start,
                                     changeReason: "",
-                                    fromName: event.doctor_name || "Unknown", // ✅ FIXED
+                                    fromName: event.doctor_name || "Unknown",
                                 });
                             } else if (event.pendingChangeRequest) {
                                 alert("⚠️ A change request for this session is already pending ADO approval.");

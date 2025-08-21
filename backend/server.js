@@ -2609,17 +2609,27 @@ app.post('/upload-student-data', async (req, res) => {
     const today = new Date();
 
     const values = students
-      .map(student => {
+      .map((student, index) => {
+        // Log processing for debugging
+        console.log(`Processing student ${index + 2}: ${student.name || 'Unknown'}`); // +2 because row 1 is headers, so data starts at row 2
+        
         const startDate = parseExcelDate(student.start_date);
         const endDate = parseExcelDate(student.end_date);
         const recessStart = parseExcelDate(student.recess_start_date);
         const recessEnd = parseExcelDate(student.recess_end_date);
 
-        if (endDate && new Date(endDate) < today) return null;
+        // Check for required fields before filtering by date
+        if (!student.user_id || !student.name) {
+          console.log(`❌ Skipping row ${index + 2}: Missing required fields (user_id: ${student.user_id}, name: ${student.name})`);
+          return null;
+        }
+
+        // Remove the date filtering that excludes past end dates - students can have past postings
+        // if (endDate && new Date(endDate) < today) return null;
 
         const academicYear = getAcademicYear(startDate);
 
-        return [
+        const rowData = [
           student.user_id || '',
           student.name || '',
           student.gender || '',
@@ -2636,17 +2646,30 @@ app.post('/upload-student-data', async (req, res) => {
           student.program_name || '',
           adid || ''
         ];
+
+        console.log(`✅ Successfully processed row ${index + 2}: ${student.name}`);
+        return rowData;
       })
       .filter(Boolean);
 
 
+
+    console.log(`📊 Total students to insert: ${values.length}`);
+    
+    if (values.length === 0) {
+      return res.status(400).json({ message: 'No valid student data to upload. Check required fields and data format.' });
+    }
 
     db.query(insertQuery, [values], (err) => {
       if (err) {
         console.error('❌ DB Insert Error:', err);
         return res.status(500).json({ message: 'Database error', error: err });
       }
-      res.status(200).json({ message: 'Student data uploaded successfully' });
+      console.log(`✅ Successfully inserted ${values.length} student records`);
+      res.status(200).json({ 
+        message: 'Student data uploaded successfully',
+        recordsProcessed: values.length 
+      });
     });
   } catch (err) {
     console.error('❌ Server Error:', err);

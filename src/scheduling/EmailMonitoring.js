@@ -92,7 +92,15 @@ const EmailMonitoring = () => {
             }
         } catch (error) {
             console.error("Auth check error:", error);
+            // ✅ Always set needsAuth to true when there's an error (authentication failed/not found)
             setNeedsAuth(true);
+            // ✅ Still set profile info for display, but mark as not authenticated
+            if (adminInfo.email && adminInfo.name) {
+                setProfileInfo({
+                    sender_email: adminInfo.email,
+                    sender_name: adminInfo.name
+                });
+            }
         }
     };
 

@@ -235,22 +235,115 @@ const CreateNewSession = () => {
     };
 
     const checkAuthenticationStatus = async () => {
-        if (!adminName || !adminEmailMappings[adminName]) return;
+        if (!adminName || !adminEmailMappings[adminName]) {
+            alert("❌ Please select an admin profile first.");
+            return;
+        }
 
         const adminInfo = adminEmailMappings[adminName];
 
         try {
-            const response = await axios.get(`${API_BASE_URL}/api/check-auth-status/${adminInfo.profile}`);
+            // ✅ First check the auth status endpoint
+            const statusResponse = await axios.get(`${API_BASE_URL}/api/check-auth-status/${adminInfo.profile}`);
             
-            if (response.data.authenticated) {
-                alert("✅ Authentication successful! You can now send emails.");
-                setNeedsAuth(false);
+            console.log("🔍 [AUTH DEBUG] Auth status response:", statusResponse.data);
+            
+            // ✅ If status says authenticated, try to actually get a token to verify
+            if (statusResponse.data && statusResponse.data.authenticated === true) {
+                try {
+                    console.log("🔍 [AUTH DEBUG] Attempting to fetch actual token...");
+                    const tokenResponse = await axios.get(`${API_BASE_URL}/api/token?profile=${adminInfo.profile}`);
+                    
+                    console.log("🔍 [AUTH DEBUG] Token response:", tokenResponse.data);
+                    
+                    if (tokenResponse.data && tokenResponse.data.access_token) {
+                        // ✅ Check token expiration if possible
+                        try {
+                            const tokenParts = tokenResponse.data.access_token.split('.');
+                            if (tokenParts.length === 3) {
+                                const payload = JSON.parse(atob(tokenParts[1]));
+                                const expirationTime = payload.exp * 1000; // Convert to milliseconds
+                                const currentTime = Date.now();
+                                
+                                console.log("🔍 [AUTH DEBUG] Token expires at:", new Date(expirationTime));
+                                console.log("🔍 [AUTH DEBUG] Current time:", new Date(currentTime));
+                                console.log("🔍 [AUTH DEBUG] Token expired:", currentTime > expirationTime);
+                                
+                                if (currentTime > expirationTime) {
+                                    alert("❌ Token has expired. Please re-authenticate to get a fresh token.");
+                                    setNeedsAuth(true);
+                                    return;
+                                }
+                            }
+                        } catch (decodeError) {
+                            console.warn("🔍 [AUTH DEBUG] Could not decode token for expiration check:", decodeError);
+                            // Continue with Microsoft Graph test if token decode fails
+                        }
+                        // ✅ Token exists, but let's verify it actually works with Microsoft Graph
+                        try {
+                            console.log("🔍 [AUTH DEBUG] Testing token validity with Microsoft Graph...");
+                            
+                            // Test the token by making a simple call to Microsoft Graph
+                            const testResponse = await axios.get('https://graph.microsoft.com/v1.0/me', {
+                                headers: {
+                                    'Authorization': `Bearer ${tokenResponse.data.access_token}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            console.log("🔍 [AUTH DEBUG] Microsoft Graph test successful:", testResponse.data);
+                            alert("✅ Authentication successful and token is valid! You can now send emails.");
+                            setNeedsAuth(false);
+                            
+                        } catch (graphError) {
+                            console.error("🔍 [AUTH DEBUG] Microsoft Graph test failed:", graphError);
+                            
+                            if (graphError.response?.status === 401) {
+                                alert("❌ Token has expired. Please re-authenticate to get a fresh token.");
+                            } else if (graphError.response?.status === 403) {
+                                alert("❌ Token lacks required permissions. Please re-authenticate.");
+                            } else {
+                                alert("❌ Token validation failed. Please re-authenticate.");
+                            }
+                            setNeedsAuth(true);
+                        }
+                    } else {
+                        alert("❌ Authentication status shows active but no valid token found. Please re-authenticate.");
+                        setNeedsAuth(true);
+                    }
+                } catch (tokenError) {
+                    console.error("🔍 [AUTH DEBUG] Token fetch failed:", tokenError);
+                    
+                    if (tokenError.response?.status === 401) {
+                        alert("❌ Authentication expired. Please authenticate again.");
+                    } else if (tokenError.response?.data?.needs_auth) {
+                        alert("❌ Authentication required. Please complete the authentication process.");
+                    } else {
+                        alert("❌ Authentication token is invalid or expired. Please re-authenticate.");
+                    }
+                    setNeedsAuth(true);
+                }
+            } else if (statusResponse.data && statusResponse.data.authenticated === false) {
+                alert("❌ Authentication not complete. Please complete the sign-in process first.");
+                setNeedsAuth(true);
             } else {
-                alert("⏳ Authentication not complete yet. Please complete the sign-in process.");
+                console.warn("🔍 [AUTH DEBUG] Unexpected response format:", statusResponse.data);
+                alert("⚠️ Unexpected authentication status format. Assuming not authenticated.");
+                setNeedsAuth(true);
             }
         } catch (error) {
-            console.error("Auth check error:", error);
-            alert("Unable to check authentication status. Please try again.");
+            console.error("🔍 [AUTH DEBUG] Auth check error:", error);
+            
+            // Handle different error scenarios
+            if (error.response?.status === 404) {
+                alert("❌ Authentication profile not found. Please authenticate first using the 'Authenticate Email' button.");
+            } else if (error.response?.status === 401) {
+                alert("❌ Authentication expired or invalid. Please authenticate again.");
+            } else {
+                alert("❌ Unable to check authentication status. Please ensure you have authenticated first.");
+            }
+            
+            setNeedsAuth(true);
         }
     };
 

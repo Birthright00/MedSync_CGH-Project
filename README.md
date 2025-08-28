@@ -435,6 +435,22 @@ The application includes a comprehensive session scheduling system that integrat
    - `admin-emails.json` - Admin email profiles for sending notifications
    - `llm_config.yaml` - AI model configuration for email parsing
 
+   **⚠️ Important Configuration Note:**
+   The `src/scheduling/hospital_email_pipeline/config.cfg` file currently contains personal Azure credentials. Before using the system, you **must** update this file with your own Azure Application credentials:
+   
+   ```ini
+   [azure]
+   clientId = YOUR_AZURE_CLIENT_ID
+   tenantId = YOUR_TENANT_ID (or 'common' for multi-tenant)
+   graphUserScopes = User.Read Mail.ReadWrite Mail.Send
+   ```
+   
+   To obtain these credentials:
+   1. Register a new application in Azure Active Directory
+   2. Configure API permissions for Microsoft Graph (User.Read, Mail.ReadWrite, Mail.Send)
+   3. Copy your Application (client) ID and Directory (tenant) ID
+   4. Update the config.cfg file with your values
+
 #### Session Management Features
 
 ### For Management Users
@@ -612,9 +628,18 @@ npm run ai-parser
    - Required permissions: `User.Read`, `Mail.ReadWrite`, `Mail.Send`
 
 2. **Configuration Files:**
-   - `src/scheduling/hospital_email_pipeline/config/config.cfg` - API credentials
+   - `src/scheduling/hospital_email_pipeline/config.cfg` - API credentials ⚠️ **MUST BE UPDATED WITH YOUR CREDENTIALS**
    - `src/config/admin-emails.json` - Email profile mappings
    - `src/scheduling/hospital_email_pipeline/config/llm_config.yaml` - AI model settings
+
+   **🔧 Critical Setup Step:**
+   Before running the email parser, you must replace the personal Azure credentials in `config.cfg`:
+   ```ini
+   [azure]
+   clientId = YOUR_AZURE_APPLICATION_CLIENT_ID
+   tenantId = YOUR_AZURE_TENANT_ID  
+   graphUserScopes = User.Read Mail.ReadWrite Mail.Send
+   ```
 
 3. **Dependencies:**
    - Python 3.7+ environment

@@ -33,6 +33,8 @@ const CreateNewSession = () => {
     const [adminEmailMappings, setAdminEmailMappings] = useState({});
     const [isAuthenticating, setIsAuthenticating] = useState(false);
     const [needsAuth, setNeedsAuth] = useState(false);
+    const [customAdminName, setCustomAdminName] = useState('');
+    const [customAdminEmail, setCustomAdminEmail] = useState('');
 
 
 
@@ -234,6 +236,120 @@ const CreateNewSession = () => {
         }
     };
 
+    const checkAuthenticationStatusForAdmin = async (selectedAdminName) => {
+        if (!selectedAdminName || !adminEmailMappings[selectedAdminName]) {
+            console.log("🔍 [CREATE SESSION] No admin selected or admin mappings not loaded yet");
+            return;
+        }
+
+        const adminInfo = adminEmailMappings[selectedAdminName];
+
+        try {
+            // ✅ First check the auth status endpoint
+            const statusResponse = await axios.get(`${API_BASE_URL}/api/check-auth-status/${adminInfo.profile}`);
+            
+            console.log("🔍 [AUTH DEBUG] Auth status response:", statusResponse.data);
+            
+            // ✅ If status says authenticated, try to actually get a token to verify
+            if (statusResponse.data && statusResponse.data.authenticated === true) {
+                try {
+                    console.log("🔍 [AUTH DEBUG] Attempting to fetch actual token...");
+                    const tokenResponse = await axios.get(`${API_BASE_URL}/api/token?profile=${adminInfo.profile}`);
+                    
+                    console.log("🔍 [AUTH DEBUG] Token response:", tokenResponse.data);
+                    
+                    if (tokenResponse.data && tokenResponse.data.access_token) {
+                        // ✅ Check token expiration if possible
+                        try {
+                            const tokenParts = tokenResponse.data.access_token.split('.');
+                            if (tokenParts.length === 3) {
+                                const payload = JSON.parse(atob(tokenParts[1]));
+                                const expirationTime = payload.exp * 1000; // Convert to milliseconds
+                                const currentTime = Date.now();
+                                
+                                console.log("🔍 [AUTH DEBUG] Token expires at:", new Date(expirationTime));
+                                console.log("🔍 [AUTH DEBUG] Current time:", new Date(currentTime));
+                                console.log("🔍 [AUTH DEBUG] Token expired:", currentTime > expirationTime);
+                                
+                                if (currentTime > expirationTime) {
+                                    console.log("❌ Token has expired. Need re-authentication.");
+                                    setNeedsAuth(true);
+                                    return;
+                                }
+                            }
+                        } catch (decodeError) {
+                            console.warn("🔍 [AUTH DEBUG] Could not decode token for expiration check:", decodeError);
+                            // Continue with Microsoft Graph test if token decode fails
+                        }
+                        
+                        // ✅ Token exists and not expired, but let's verify it actually works with Microsoft Graph
+                        try {
+                            console.log("🔍 [AUTH DEBUG] Testing token validity with Microsoft Graph...");
+                            
+                            // Test the token by making a simple call to Microsoft Graph
+                            const testResponse = await axios.get('https://graph.microsoft.com/v1.0/me', {
+                                headers: {
+                                    'Authorization': `Bearer ${tokenResponse.data.access_token}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            console.log("🔍 [AUTH DEBUG] Microsoft Graph test successful:", testResponse.data);
+                            console.log("✅ Authentication successful and token is valid!");
+                            setNeedsAuth(false);
+                            
+                        } catch (graphError) {
+                            console.error("🔍 [AUTH DEBUG] Microsoft Graph test failed:", graphError);
+                            
+                            if (graphError.response?.status === 401) {
+                                console.log("❌ Token has expired. Need re-authentication.");
+                            } else if (graphError.response?.status === 403) {
+                                console.log("❌ Token lacks required permissions. Need re-authentication.");
+                            } else {
+                                console.log("❌ Token validation failed. Need re-authentication.");
+                            }
+                            setNeedsAuth(true);
+                        }
+                    } else {
+                        console.log("❌ Authentication status shows active but no valid token found. Need re-authentication.");
+                        setNeedsAuth(true);
+                    }
+                } catch (tokenError) {
+                    console.error("🔍 [AUTH DEBUG] Token fetch failed:", tokenError);
+                    
+                    if (tokenError.response?.status === 401) {
+                        console.log("❌ Authentication expired. Need re-authentication.");
+                    } else if (tokenError.response?.data?.needs_auth) {
+                        console.log("❌ Authentication required. Need re-authentication.");
+                    } else {
+                        console.log("❌ Authentication token is invalid or expired. Need re-authentication.");
+                    }
+                    setNeedsAuth(true);
+                }
+            } else if (statusResponse.data && statusResponse.data.authenticated === false) {
+                console.log("❌ Authentication not complete. Need authentication.");
+                setNeedsAuth(true);
+            } else {
+                console.warn("🔍 [AUTH DEBUG] Unexpected response format:", statusResponse.data);
+                console.log("⚠️ Unexpected authentication status format. Assuming not authenticated.");
+                setNeedsAuth(true);
+            }
+        } catch (error) {
+            console.error("🔍 [AUTH DEBUG] Auth check error:", error);
+            
+            // Handle different error scenarios
+            if (error.response?.status === 404) {
+                console.log("❌ Authentication profile not found. Need authentication.");
+            } else if (error.response?.status === 401) {
+                console.log("❌ Authentication expired or invalid. Need re-authentication.");
+            } else {
+                console.log("❌ Unable to check authentication status. Need authentication.");
+            }
+            
+            setNeedsAuth(true);
+        }
+    };
+
     const checkAuthenticationStatus = async () => {
         if (!adminName || !adminEmailMappings[adminName]) {
             alert("❌ Please select an admin profile first.");
@@ -402,8 +518,8 @@ If you prefer not to reply via email, you may indicate your availability directl
 👉 ${replyLink}
 
 Thank you,
-${adminName || "[Admin Name]"}
-Associate Dean’s Office (ADO)`;
+${adminName === "Custom" ? customAdminName : adminName || "[Admin Name]"}
+Associate Dean's Office (ADO)`;
 
             return { subject, body };
         }
@@ -416,10 +532,20 @@ Associate Dean’s Office (ADO)`;
         const sessionId = uuidv4(); // ✅ Generate UUID here
         const { subject, body } = generateEmailContent(sessionId);
 
-
         if (!subject || !body) {
             alert("❌ Please complete all required fields and select a valid email template.");
             return;
+        }
+
+        // ✅ First verify authentication status before proceeding
+        if (adminName && adminEmailMappings[adminName]) {
+            console.log("🔍 [CREATE SESSION] Verifying authentication status before creating session...");
+            await checkAuthenticationStatus();
+            
+            if (needsAuth) {
+                alert("❌ Token has expired or authentication is required. Please authenticate before creating the session.");
+                return;
+            }
         }
 
         // ✅ Load token from API with selected email profile
@@ -433,10 +559,43 @@ Associate Dean’s Office (ADO)`;
                 name: res.data.sender_name
             };
             console.log(`📧 Using email profile: ${senderInfo.name} <${senderInfo.email}>`);
+            
+            // ✅ Double-check token expiration before using it
+            try {
+                const tokenParts = accessToken.split('.');
+                if (tokenParts.length === 3) {
+                    const payload = JSON.parse(atob(tokenParts[1]));
+                    const expirationTime = payload.exp * 1000; // Convert to milliseconds
+                    const currentTime = Date.now();
+                    
+                    if (currentTime > expirationTime) {
+                        console.log("❌ [CREATE SESSION] Token expired just before use. Re-checking authentication...");
+                        await checkAuthenticationStatus();
+                        if (needsAuth) {
+                            alert("❌ Token expired. Please re-authenticate before creating the session.");
+                            return;
+                        }
+                        // If we get here, checkAuthenticationStatus should have updated the UI, but token is still expired
+                        alert("❌ Token has expired. Please re-authenticate to get a fresh token.");
+                        return;
+                    }
+                    
+                    const timeUntilExpiry = (expirationTime - currentTime) / 1000 / 60; // Minutes
+                    if (timeUntilExpiry < 5) {
+                        console.log(`⚠️ [CREATE SESSION] Token expires in ${Math.round(timeUntilExpiry)} minutes`);
+                    }
+                }
+            } catch (tokenCheckError) {
+                console.warn("🔍 [CREATE SESSION] Could not verify token expiration:", tokenCheckError);
+            }
+            
         } catch (error) {
             if (error.response && error.response.status === 401 && error.response.data.needs_auth) {
                 const profileInfo = error.response.data;
                 alert(`❌ Email profile "${profileInfo.sender_name} <${profileInfo.sender_email}>" needs authentication.\n\nClick the "Authenticate Email" button below to set this up.`);
+                setNeedsAuth(true);
+            } else if (error.response && error.response.status === 401) {
+                alert("❌ Token has expired. Please re-authenticate to get a fresh token.");
                 setNeedsAuth(true);
             } else {
                 alert("❌ Failed to retrieve access token. Make sure the email profile is configured.");
@@ -445,15 +604,35 @@ Associate Dean’s Office (ADO)`;
             return;
         }
 
-        // ✅ Send the email
-        await sendEmailViaGraph({
-            selectedDoctors,
-            doctors,
-            subject,
-            body,
-            accessToken,
-            sessionId,
-        });
+        // ✅ Send the email with token expiration handling
+        try {
+            await sendEmailViaGraph({
+                selectedDoctors,
+                doctors,
+                subject,
+                body,
+                accessToken,
+                sessionId,
+            });
+        } catch (emailError) {
+            console.error("❌ [CREATE SESSION] Email sending failed:", emailError);
+            
+            // ✅ Check if the error is due to token expiration
+            if (emailError.message && (
+                emailError.message.includes('401') || 
+                emailError.message.includes('Unauthorized') || 
+                emailError.message.includes('authentication') ||
+                emailError.message.includes('expired')
+            )) {
+                console.log("❌ [CREATE SESSION] Email sending failed due to token expiration");
+                await checkAuthenticationStatus();
+                alert("❌ Token expired during email sending. Please re-authenticate and try creating the session again.");
+                return;
+            } else {
+                // Re-throw other errors
+                throw emailError;
+            }
+        }
 
         try {
             const finalSessionCount = sessionCount === 'Other' ? customSessionCount : sessionCount;
@@ -616,12 +795,30 @@ Associate Dean’s Office (ADO)`;
                             <label style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#1976d2' }}>Admin Name</label>
                             <select
                                 value={adminName}
-                                onChange={(e) => {
+                                onChange={async (e) => {
                                     const selectedAdmin = e.target.value;
                                     setAdminName(selectedAdmin);
+                                    
+                                    // Clear custom fields when switching away from Custom
+                                    if (selectedAdmin !== "Custom") {
+                                        setCustomAdminName('');
+                                        setCustomAdminEmail('');
+                                    }
+                                    
                                     // Automatically set email profile based on admin selection
-                                    if (adminEmailMappings[selectedAdmin]) {
+                                    if (adminEmailMappings[selectedAdmin] && selectedAdmin !== "Custom") {
                                         setSelectedEmailProfile(adminEmailMappings[selectedAdmin].profile);
+                                        
+                                        // ✅ Automatically check authentication status when admin is selected
+                                        console.log(`🔍 [CREATE SESSION] Auto-checking authentication for selected admin: ${selectedAdmin}`);
+                                        try {
+                                            // Use setTimeout to avoid blocking the UI update, and pass the selectedAdmin directly
+                                            setTimeout(async () => {
+                                                await checkAuthenticationStatusForAdmin(selectedAdmin);
+                                            }, 100);
+                                        } catch (error) {
+                                            console.error("🔍 [CREATE SESSION] Error during auto-authentication check:", error);
+                                        }
                                     }
                                 }}
                                 style={{
@@ -640,18 +837,30 @@ Associate Dean’s Office (ADO)`;
                                 ))}
                             </select>
                             {adminName === "Custom" && (
-                                <input
-                                    type="text"
-                                    placeholder="Enter custom name"
-                                    value={customSessionName}
-                                    onChange={(e) => setCustomSessionName(e.target.value)}
-                                    style={{
-                                        marginTop: '0.5rem',
-                                        padding: '0.65rem',
-                                        border: '2px solid #e0e0e0',
-                                        borderRadius: '8px'
-                                    }}
-                                />
+                                <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter custom admin name"
+                                        value={customAdminName}
+                                        onChange={(e) => setCustomAdminName(e.target.value)}
+                                        style={{
+                                            padding: '0.65rem',
+                                            border: '2px solid #e0e0e0',
+                                            borderRadius: '8px'
+                                        }}
+                                    />
+                                    <input
+                                        type="email"
+                                        placeholder="Enter custom admin email"
+                                        value={customAdminEmail}
+                                        onChange={(e) => setCustomAdminEmail(e.target.value)}
+                                        style={{
+                                            padding: '0.65rem',
+                                            border: '2px solid #e0e0e0',
+                                            borderRadius: '8px'
+                                        }}
+                                    />
+                                </div>
                             )}
                         </div>
                     </div>
@@ -809,7 +1018,9 @@ Associate Dean’s Office (ADO)`;
                                 <label>Sender Email (Auto-selected)</label>
                                 <input
                                     type="text"
-                                    value={adminName && adminEmailMappings[adminName] ? 
+                                    value={adminName === "Custom" && customAdminName && customAdminEmail ? 
+                                        `${customAdminName} <${customAdminEmail}>` :
+                                        adminName && adminEmailMappings[adminName] ? 
                                         `${adminEmailMappings[adminName].name} <${adminEmailMappings[adminName].email}>` : 
                                         'No admin selected'}
                                     disabled
@@ -827,7 +1038,7 @@ Associate Dean’s Office (ADO)`;
                                 </small>
                                 
                                 {/* Authentication buttons */}
-                                {adminName && (
+                                {adminName && adminName !== "Custom" && (
                                     <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
                                         <button
                                             type="button"
@@ -846,23 +1057,36 @@ Associate Dean’s Office (ADO)`;
                                             {isAuthenticating ? '🔄 Authenticating...' : '🔐 Authenticate Email'}
                                         </button>
                                         
-                                        {needsAuth && (
-                                            <button
-                                                type="button"
-                                                onClick={checkAuthenticationStatus}
-                                                style={{
-                                                    padding: '0.5rem 1rem',
-                                                    backgroundColor: '#4caf50',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '5px',
-                                                    cursor: 'pointer',
-                                                    fontSize: '0.8rem'
-                                                }}
-                                            >
-                                                ✅ Check Authentication
-                                            </button>
-                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={checkAuthenticationStatus}
+                                            style={{
+                                                padding: '0.5rem 1rem',
+                                                backgroundColor: '#4caf50',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '5px',
+                                                cursor: 'pointer',
+                                                fontSize: '0.8rem'
+                                            }}
+                                        >
+                                            ✅ Check Authentication
+                                        </button>
+                                    </div>
+                                )}
+                                
+                                {/* Custom admin note */}
+                                {adminName === "Custom" && (
+                                    <div style={{ 
+                                        marginTop: '0.5rem', 
+                                        padding: '0.5rem', 
+                                        backgroundColor: '#fff3cd', 
+                                        border: '1px solid #ffeaa7', 
+                                        borderRadius: '5px',
+                                        fontSize: '0.8rem',
+                                        color: '#856404'
+                                    }}>
+                                        ⚠️ Custom admin names are for display only. Email will be sent using the first available authenticated admin's credentials (currently: {Object.keys(adminEmailMappings).find(key => key !== 'Custom') || 'None Available'}).
                                     </div>
                                 )}
                             </div>
@@ -894,6 +1118,9 @@ Associate Dean’s Office (ADO)`;
                                 setFilterYear("");
                                 setSessionSlots([{ date: '', startTime: '', endTime: '' }]);
                                 setSelectedTemplate('');
+                                setAdminName('');
+                                setCustomAdminName('');
+                                setCustomAdminEmail('');
                             }}
                         >
                             Cancel

@@ -34,6 +34,8 @@ def get_emails(access_token):
         print(f"[ERROR] Email fetch failed - {error_msg}")
         if response.status_code == 401:
             print("[ERROR] Authentication failed. Access token may be expired.")
+            # ✅ Return None for 401 errors so main script can handle token refresh
+            return None
         elif response.status_code == 403:
             print("[ERROR] Permission denied. Check Graph API permissions.")
         
